@@ -1,7 +1,8 @@
 # ============================================================
-# PREMIUM AI DJ DROP FACTORY - RENDER CLOUD EDITION v2.2
-# Works on Render free tier (no system packages needed)
-# Offline TTS fallback with graceful degradation
+# PREMIUM AI DJ DROP FACTORY v3.0
+# Created by: Macdonald Barasa
+# Email: simiyumacdonal1@gmail.com
+# Features: AI Training Mode, Loud Audio, PWA Install
 # ============================================================
 
 import os
@@ -13,6 +14,7 @@ import shutil
 import urllib.request
 from pathlib import Path
 from datetime import datetime
+from difflib import SequenceMatcher
 
 from flask import Flask, render_template, request, jsonify, send_file, send_from_directory
 import edge_tts
@@ -28,12 +30,15 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 UPLOAD_DIR = BASE_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
 
+# AI Training storage
+TRAINING_DIR = BASE_DIR / "training_data"
+TRAINING_DIR.mkdir(exist_ok=True)
+
 # ============================================================
 # DETECT AVAILABLE TOOLS
 # ============================================================
 
 def has_internet(timeout=3):
-    """Check if internet is available."""
     try:
         urllib.request.urlopen('https://www.google.com', timeout=timeout)
         return True
@@ -41,25 +46,177 @@ def has_internet(timeout=3):
         return False
 
 def check_ffmpeg():
-    """Find FFmpeg command."""
     return shutil.which('ffmpeg')
 
 def check_espeak():
-    """Find espeak-ng or espeak command."""
     return shutil.which('espeak-ng') or shutil.which('espeak')
 
-# Check what's available on this server
 FFMPEG_AVAILABLE = check_ffmpeg() is not None
 ESPEAK_AVAILABLE = check_espeak() is not None
-INTERNET_AVAILABLE = has_internet()
 
 print("=" * 60)
-print("DJ DROP FACTORY - SYSTEM CHECK")
+print("DJ DROP FACTORY v3.0 - Macdonald Barasa")
+print("Email: simiyumacdonal1@gmail.com")
 print("=" * 60)
-print(f"Internet: {'YES' if INTERNET_AVAILABLE else 'NO'}")
+print(f"Internet: {'YES' if has_internet() else 'NO'}")
 print(f"FFmpeg:   {'YES' if FFMPEG_AVAILABLE else 'NO'}")
 print(f"espeak:   {'YES' if ESPEAK_AVAILABLE else 'NO'}")
 print("=" * 60)
+
+
+# ============================================================
+# AI TRAINING ENGINE
+# ============================================================
+
+class AITrainingEngine:
+    """
+    Learns from user-provided example drops.
+    Extracts patterns, style, energy level, and mimics them.
+    """
+    
+    # Store training examples
+    TRAINING_FILE = TRAINING_DIR / "trained_examples.json"
+    
+    @classmethod
+    def save_training(cls, example_text, genre, style_notes):
+        """Save a training example for future mimicry."""
+        import json
+        examples = []
+        if cls.TRAINING_FILE.exists():
+            with open(cls.TRAINING_FILE, 'r') as f:
+                examples = json.load(f)
+        
+        example = {
+            "text": example_text,
+            "genre": genre,
+            "style_notes": style_notes,
+            "timestamp": datetime.now().isoformat(),
+            "length": len(example_text),
+            "exclamation_count": example_text.count('!'),
+            "uppercase_ratio": sum(1 for c in example_text if c.isupper()) / len(example_text) if example_text else 0
+        }
+        examples.append(example)
+        
+        with open(cls.TRAINING_FILE, 'w') as f:
+            json.dump(examples, f, indent=2)
+        
+        return len(examples)
+    
+    @classmethod
+    def load_training(cls):
+        """Load all training examples."""
+        import json
+        if not cls.TRAINING_FILE.exists():
+            return []
+        with open(cls.TRAINING_FILE, 'r') as f:
+            return json.load(f)
+    
+    @classmethod
+    def analyze_style(cls, text):
+        """Analyze the style of a drop text."""
+        return {
+            "length": len(text),
+            "words": text.split(),
+            "has_stutter": bool(re.search(r'(\w)\.\.\.|\1-\1', text)),
+            "energy_markers": text.count('!') + text.count('?'),
+            "has_location": bool(re.search(r'\bin\b|\bfrom\b', text.lower())),
+            "has_callout": bool(re.search(r'stand up|make some noise|hands up', text.lower())),
+            "repeated_words": [word for word in set(text.split()) if text.lower().split().count(word.lower()) > 1]
+        }
+    
+    @classmethod
+    def mimic_drop(cls, example_text, dj_name, genre="club_banger", energy=8):
+        """
+        Create a new drop that mimics the style of the example.
+        Preserves structure, energy, and flow while changing content.
+        """
+        # Analyze the example
+        style = cls.analyze_style(example_text)
+        
+        # Extract patterns
+        has_opener = bool(re.match(r'^[^.!?]+[!.,]', example_text))
+        has_closer = bool(re.search(r'[!.,]\s*[^.!?]+[!.,]?$', example_text))
+        
+        # Build mimic based on style
+        parts = []
+        
+        # Opener pattern
+        if style["has_callout"]:
+            openers = ["Yo!", "Listen up!", "Check it!", "Ayo!"]
+            parts.append(random.choice(openers))
+        
+        # DJ name with optional stutter
+        if style["has_stutter"] or random.random() < 0.5:
+            first_letter = dj_name[0] if dj_name else "D"
+            stutter_patterns = [
+                f"{first_letter}-{first_letter}-{dj_name}",
+                f"{first_letter}... {first_letter}... {dj_name}",
+                f"{dj_name}! {dj_name}!",
+                dj_name
+            ]
+            dj_display = random.choice(stutter_patterns)
+        else:
+            dj_display = dj_name
+        
+        parts.append(dj_display)
+        
+        # Energy phrase based on original energy level
+        energy_phrases = {
+            "amapiano": ["log drum pressure", "piano vibes only", "strictly smooth", "private school settings"],
+            "dancehall": ["sound system active", "riddim pressure", "madness only", "pull up selectah"],
+            "radio": ["you're locked in", "live on air", "premium broadcast", "stay tuned"],
+            "club_banger": ["main event", "full shutdown", "hands up", "wall-to-wall energy"],
+            "afrobeat": ["afro bounce", "global rhythm", "sweet pressure", "wave after wave"],
+            "trap": ["808 warning", "bassline alert", "heavyweight", "dark energy"]
+        }
+        
+        genre_key = genre.lower().replace(" ", "_").strip()
+        phrases = energy_phrases.get(genre_key, energy_phrases["club_banger"])
+        
+        # Add energy-appropriate phrases
+        if energy >= 8:
+            parts.append(random.choice(phrases) + "!!!")
+        elif energy >= 5:
+            parts.append(random.choice(phrases) + "!")
+        else:
+            parts.append(random.choice(phrases))
+        
+        # Location/callout if original had it
+        if style["has_location"]:
+            locations = ["in the building", "worldwide", "to the world", "in full effect"]
+            parts.append(random.choice(locations))
+        
+        # Closer pattern
+        closers = ["Let's go!", "Make some noise!", "We outside!", "No sleep tonight!", "Take it higher!"]
+        if has_closer or energy >= 7:
+            parts.append(random.choice(closers))
+        
+        # Join and clean up
+        result = " ".join(parts)
+        result = re.sub(r'\s+', ' ', result).strip()
+        
+        return result
+    
+    @classmethod
+    def generate_from_training(cls, dj_name, genre, energy, example_text=None):
+        """Generate a drop using training data or a fresh example."""
+        if example_text and example_text.strip():
+            # Save this example for future learning
+            cls.save_training(example_text, genre, "user_provided")
+            # Mimic it
+            return cls.mimic_drop(example_text, dj_name, genre, energy)
+        
+        # Try to use past training
+        examples = cls.load_training()
+        if examples:
+            # Pick the best matching example by genre
+            genre_examples = [e for e in examples if e.get("genre") == genre]
+            if genre_examples:
+                best = max(genre_examples, key=lambda x: x.get("exclamation_count", 0) * energy / 10)
+                return cls.mimic_drop(best["text"], dj_name, genre, energy)
+        
+        # No training data - return None to use default AI
+        return None
 
 
 # ============================================================
@@ -392,10 +549,14 @@ class PremiumDJScriptAI:
 
 
 # ============================================================
-# 2) AUDIO / FX ENGINE
+# 2) AUDIO / FX ENGINE - LOUD VERSION
 # ============================================================
 
 class PremiumAudioStudio:
+    """
+    Audio engine with LOUD output for maximum impact.
+    """
+    
     @classmethod
     def safe_stereo(cls, mlev: float) -> str:
         mlev = max(0.015625, min(64.0, float(mlev)))
@@ -405,102 +566,110 @@ class PremiumAudioStudio:
     def get_fx_profile(cls, style: str, energy: int):
         style = style.lower().strip()
 
+        # LOUD profile - boosted for maximum impact
         profile = {
             "highpass": 100,
-            "compressor": "acompressor=threshold=-16dB:ratio=4.5:attack=8:release=120",
-            "presence_eq": "equalizer=f=3200:width_type=q:width=1.1:g=2.5",
-            "deesser_eq": "equalizer=f=6500:width_type=q:width=1.2:g=-1.2",
+            "compressor": "acompressor=threshold=-14dB:ratio=6:attack=5:release=100",
+            "presence_eq": "equalizer=f=3200:width_type=q:width=1.1:g=4.0",
+            "deesser_eq": "equalizer=f=6500:width_type=q:width=1.2:g=-1.0",
             "echo": "",
             "slap": "",
             "space": "",
             "phaser": "",
             "stereo": "",
-            "loudness": "loudnorm=I=-12:TP=-1.5:LRA=7",
-            "duck_threshold": "0.035",
-            "duck_release": "250",
-            "bg_gain": 0.23,
-            "vocal_gain": 1.0
+            "loudness": "loudnorm=I=-10:TP=-0.5:LRA=5",  # LOUDER than before
+            "limiter": "alimiter=limit=0.95:level=1",
+            "duck_threshold": "0.02",
+            "duck_release": "200",
+            "bg_gain": 0.20,
+            "vocal_gain": 1.2  # Boosted vocal
         }
 
         if style == "amapiano":
             profile.update({
-                "highpass": 95,
-                "presence_eq": "equalizer=f=2800:width_type=q:width=1.0:g=2.0",
-                "echo": "aecho=0.82:0.55:220|440:0.22|0.12",
-                "space": "aecho=0.78:0.45:700|900:0.10|0.06",
-                "phaser": "aphaser=speed=0.20:decay=0.35",
-                "stereo": cls.safe_stereo(0.02),
-                "duck_threshold": "0.03",
-                "duck_release": "420",
-                "bg_gain": 0.25
+                "highpass": 90,
+                "presence_eq": "equalizer=f=2800:width_type=q:width=1.0:g=3.5",
+                "echo": "aecho=0.85:0.60:220|440:0.25|0.15",
+                "space": "aecho=0.80:0.50:700|900:0.12|0.08",
+                "phaser": "aphaser=speed=0.25:decay=0.40",
+                "stereo": cls.safe_stereo(0.03),
+                "duck_threshold": "0.025",
+                "duck_release": "400",
+                "bg_gain": 0.22,
+                "vocal_gain": 1.3
             })
             if energy >= 8:
-                profile["space"] = "aecho=0.80:0.50:650|850:0.14|0.08"
-                profile["phaser"] = "aphaser=speed=0.25:decay=0.40"
+                profile["space"] = "aecho=0.82:0.55:650|850:0.16|0.10"
+                profile["phaser"] = "aphaser=speed=0.30:decay=0.45"
 
         elif style == "dancehall":
             profile.update({
-                "highpass": 110,
-                "presence_eq": "equalizer=f=3500:width_type=q:width=1.0:g=4.0",
-                "slap": "aecho=0.85:0.55:110:0.18",
-                "echo": "aecho=0.80:0.50:220:0.10",
-                "stereo": cls.safe_stereo(0.02),
-                "duck_threshold": "0.04",
-                "duck_release": "180",
-                "bg_gain": 0.22
+                "highpass": 105,
+                "presence_eq": "equalizer=f=3500:width_type=q:width=1.0:g=5.0",
+                "slap": "aecho=0.88:0.60:110:0.22",
+                "echo": "aecho=0.82:0.55:220:0.12",
+                "stereo": cls.safe_stereo(0.03),
+                "duck_threshold": "0.03",
+                "duck_release": "150",
+                "bg_gain": 0.20,
+                "vocal_gain": 1.4
             })
             if energy >= 8:
-                profile["echo"] = "aecho=0.82:0.55:180|260:0.14|0.08"
+                profile["echo"] = "aecho=0.85:0.58:180|260:0.16|0.10"
 
         elif style == "radio":
             profile.update({
-                "highpass": 100,
-                "compressor": "acompressor=threshold=-18dB:ratio=3.5:attack=10:release=140",
-                "presence_eq": "equalizer=f=3000:width_type=q:width=1.1:g=3.0",
-                "slap": "aecho=0.70:0.35:95:0.08",
-                "duck_threshold": "0.04",
-                "duck_release": "180",
-                "bg_gain": 0.18
+                "highpass": 95,
+                "compressor": "acompressor=threshold=-16dB:ratio=4:attack=8:release=120",
+                "presence_eq": "equalizer=f=3000:width_type=q:width=1.1:g=4.5",
+                "slap": "aecho=0.72:0.38:95:0.10",
+                "duck_threshold": "0.03",
+                "duck_release": "160",
+                "bg_gain": 0.15,
+                "vocal_gain": 1.2
             })
 
         elif style == "afrobeat":
             profile.update({
-                "highpass": 100,
-                "presence_eq": "equalizer=f=3000:width_type=q:width=1.1:g=2.8",
-                "echo": "aecho=0.80:0.50:240|360:0.14|0.08",
-                "space": "aecho=0.75:0.42:650|820:0.08|0.05",
-                "stereo": cls.safe_stereo(0.02),
-                "duck_threshold": "0.032",
-                "duck_release": "320",
-                "bg_gain": 0.24
+                "highpass": 95,
+                "presence_eq": "equalizer=f=3000:width_type=q:width=1.1:g=4.0",
+                "echo": "aecho=0.82:0.55:240|360:0.16|0.10",
+                "space": "aecho=0.78:0.45:650|820:0.10|0.06",
+                "stereo": cls.safe_stereo(0.03),
+                "duck_threshold": "0.028",
+                "duck_release": "300",
+                "bg_gain": 0.22,
+                "vocal_gain": 1.3
             })
 
         elif style == "trap":
             profile.update({
-                "highpass": 105,
-                "presence_eq": "equalizer=f=3400:width_type=q:width=1.0:g=3.6",
-                "echo": "aecho=0.82:0.60:160|320:0.20|0.10",
-                "phaser": "aphaser=speed=0.35:decay=0.30",
-                "stereo": cls.safe_stereo(0.03),
-                "duck_threshold": "0.03",
-                "duck_release": "280",
-                "bg_gain": 0.22
+                "highpass": 100,
+                "presence_eq": "equalizer=f=3400:width_type=q:width=1.0:g=4.5",
+                "echo": "aecho=0.85:0.65:160|320:0.22|0.12",
+                "phaser": "aphaser=speed=0.40:decay=0.35",
+                "stereo": cls.safe_stereo(0.04),
+                "duck_threshold": "0.025",
+                "duck_release": "250",
+                "bg_gain": 0.20,
+                "vocal_gain": 1.35
             })
 
-        else:
+        else:  # club_banger - MAXIMUM LOUD
             profile.update({
-                "highpass": 105,
-                "presence_eq": "equalizer=f=3400:width_type=q:width=1.0:g=3.5",
-                "echo": "aecho=0.82:0.60:180|360:0.20|0.10",
-                "phaser": "aphaser=speed=0.35:decay=0.30",
-                "stereo": cls.safe_stereo(0.03),
-                "duck_threshold": "0.03",
-                "duck_release": "300",
-                "bg_gain": 0.23
+                "highpass": 100,
+                "presence_eq": "equalizer=f=3400:width_type=q:width=1.0:g=4.5",
+                "echo": "aecho=0.85:0.65:180|360:0.22|0.12",
+                "phaser": "aphaser=speed=0.40:decay=0.35",
+                "stereo": cls.safe_stereo(0.04),
+                "duck_threshold": "0.025",
+                "duck_release": "280",
+                "bg_gain": 0.21,
+                "vocal_gain": 1.4
             })
             if energy >= 8:
-                profile["echo"] = "aecho=0.84:0.62:160|320:0.24|0.12"
-                profile["phaser"] = "aphaser=speed=0.45:decay=0.35"
+                profile["echo"] = "aecho=0.87:0.68:160|320:0.26|0.14"
+                profile["phaser"] = "aphaser=speed=0.50:decay=0.40"
 
         return profile
 
@@ -509,6 +678,7 @@ class PremiumAudioStudio:
         p = cls.get_fx_profile(style, energy)
         chain = []
 
+        # Core cleanup and LOUD tone
         chain.append(f"highpass=f={p['highpass']}")
         chain.append(p["compressor"])
         chain.append(p["presence_eq"])
@@ -548,9 +718,9 @@ class PremiumAudioStudio:
                 chain.append(p["phaser"])
             if p["stereo"]:
                 chain.append(p["stereo"])
-            chain.append("acompressor=threshold=-14dB:ratio=3:attack=3:release=90")
+            chain.append("acompressor=threshold=-12dB:ratio=4:attack=2:release=80")
 
-        else:
+        else:  # auto
             if style_key == "radio":
                 if p["slap"]:
                     chain.append(p["slap"])
@@ -587,7 +757,7 @@ class PremiumAudioStudio:
                 if p["stereo"]:
                     chain.append(p["stereo"])
 
-            else:
+            else:  # club_banger
                 if p["echo"]:
                     chain.append(p["echo"])
                 if energy >= 7 and p["phaser"]:
@@ -595,7 +765,9 @@ class PremiumAudioStudio:
                 if p["stereo"]:
                     chain.append(p["stereo"])
 
+        # LOUDNESS and LIMITER for maximum volume
         chain.append(p["loudness"])
+        chain.append(p["limiter"])
         return ",".join([x for x in chain if x]), p
 
     @classmethod
@@ -607,10 +779,12 @@ class PremiumAudioStudio:
     @classmethod
     def render_wet_vocal(cls, vocal_path, wet_output_path, style_preset, energy=8,
                          fx_mode="auto", vocal_gain=1.0):
-        vocal_fx, _ = cls.build_vocal_fx_chain(style_preset, energy, fx_mode)
+        vocal_fx, p = cls.build_vocal_fx_chain(style_preset, energy, fx_mode)
 
-        if abs(vocal_gain - 1.0) > 0.0001:
-            vocal_fx = f"volume={vocal_gain},{vocal_fx}"
+        # Apply boosted vocal gain
+        final_gain = vocal_gain * p["vocal_gain"]
+        if abs(final_gain - 1.0) > 0.0001:
+            vocal_fx = f"volume={final_gain:.2f},{vocal_fx}"
 
         cmd = [
             "ffmpeg", "-y",
@@ -632,7 +806,7 @@ class PremiumAudioStudio:
             filter_complex = (
                 f"[1:a]volume={bg_gain}[bgquiet];"
                 f"[bgquiet][0:a]sidechaincompress="
-                f"threshold={profile['duck_threshold']}:ratio=12:attack=5:release={profile['duck_release']}[bgduck];"
+                f"threshold={profile['duck_threshold']}:ratio=15:attack=3:release={profile['duck_release']}[bgduck];"
                 f"[0:a][bgduck]amix=inputs=2:duration=first:dropout_transition=2[out]"
             )
 
@@ -658,16 +832,16 @@ class PremiumAudioStudio:
 
 
 # ============================================================
-# 3) VOICE PRESETS
+# 3) VOICE PRESETS - LOUD
 # ============================================================
 
 VOICE_PRESETS = {
-    "amapiano": {"rate": "+1%", "volume": "+6%"},
-    "dancehall": {"rate": "+9%", "volume": "+13%"},
-    "radio": {"rate": "0%", "volume": "+7%"},
-    "club_banger": {"rate": "+7%", "volume": "+11%"},
-    "afrobeat": {"rate": "+3%", "volume": "+8%"},
-    "trap": {"rate": "+4%", "volume": "+10%"},
+    "amapiano": {"rate": "+2%", "volume": "+10%"},
+    "dancehall": {"rate": "+11%", "volume": "+16%"},
+    "radio": {"rate": "+1%", "volume": "+10%"},
+    "club_banger": {"rate": "+9%", "volume": "+14%"},
+    "afrobeat": {"rate": "+5%", "volume": "+11%"},
+    "trap": {"rate": "+6%", "volume": "+13%"},
 }
 
 VOICE_MAP = {
@@ -701,14 +875,8 @@ def safe_filename(name: str) -> str:
 # ============================================================
 
 async def synthesize_tts_smart(text, voice, out_path, rate, volume):
-    """
-    Try online edge-tts first. If no internet, fall back to espeak-ng.
-    If neither works, create a silent placeholder.
-    Returns: 'edge', 'espeak', or 'silent'
-    """
     online = has_internet()
 
-    # Try online edge-tts (best quality)
     if online:
         try:
             communicate = edge_tts.Communicate(text, voice, rate=rate, volume=volume)
@@ -717,7 +885,6 @@ async def synthesize_tts_smart(text, voice, out_path, rate, volume):
         except Exception as e:
             print(f"Edge TTS failed: {e}")
 
-    # Try offline espeak-ng
     espeak_cmd = check_espeak()
     if espeak_cmd and FFMPEG_AVAILABLE:
         try:
@@ -734,7 +901,6 @@ async def synthesize_tts_smart(text, voice, out_path, rate, volume):
         except Exception as e:
             print(f"espeak failed: {e}")
 
-    # LAST RESORT: Create silent placeholder MP3
     if FFMPEG_AVAILABLE:
         try:
             subprocess.run([
@@ -745,7 +911,6 @@ async def synthesize_tts_smart(text, voice, out_path, rate, volume):
         except Exception as e:
             print(f"Silent MP3 failed: {e}")
 
-    # Absolute fallback - create empty file
     Path(out_path).touch()
     return "silent"
 
@@ -757,30 +922,48 @@ async def synthesize_tts_smart(text, voice, out_path, rate, volume):
 async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track,
                              drop_type, mood, energy, city, event_name,
                              user_stutter, station_name, slogan, crew_tag,
-                             fx_mode, vocal_gain, bg_gain, mode="ai", custom_script=""):
+                             fx_mode, vocal_gain, bg_gain, mode="ai", custom_script="",
+                             training_example=None):
+    """
+    Generate a drop with optional AI training.
+    training_example: A drop text to mimic/copy
+    """
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     project_name = f"{safe_filename(dj_name)}_{timestamp}"
     out_dir = OUTPUT_DIR / project_name
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # Generate script
-    if mode == "strict" and custom_script.strip():
+    # Handle AI Training mode
+    if training_example and training_example.strip():
+        # AI Training / Mimic mode
+        mimic_result = AITrainingEngine.generate_from_training(
+            dj_name=dj_name,
+            genre=genre,
+            energy=energy,
+            example_text=training_example
+        )
+        if mimic_result:
+            selected = mimic_result
+            takes = [{"text": selected, "score": 15, "mimic": True}]
+        else:
+            # Fallback to standard AI
+            takes = PremiumDJScriptAI.generate(
+                dj_name=dj_name, genre=genre, use_stutter=use_stutter,
+                drop_type=drop_type, mood=mood, energy=energy, city=city,
+                event_name=event_name, user_stutter=user_stutter,
+                station_name=station_name, slogan=slogan, crew_tag=crew_tag,
+                count=8
+            )
+            selected = takes[0]["text"]
+    elif mode == "strict" and custom_script.strip():
         selected = custom_script.strip()
         takes = [{"text": selected, "score": 10}]
     else:
         takes = PremiumDJScriptAI.generate(
-            dj_name=dj_name,
-            genre=genre,
-            use_stutter=use_stutter,
-            drop_type=drop_type,
-            mood=mood,
-            energy=energy,
-            city=city,
-            event_name=event_name,
-            user_stutter=user_stutter,
-            station_name=station_name,
-            slogan=slogan,
-            crew_tag=crew_tag,
+            dj_name=dj_name, genre=genre, use_stutter=use_stutter,
+            drop_type=drop_type, mood=mood, energy=energy, city=city,
+            event_name=event_name, user_stutter=user_stutter,
+            station_name=station_name, slogan=slogan, crew_tag=crew_tag,
             count=8
         )
         selected = takes[0]["text"]
@@ -797,12 +980,12 @@ async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track,
 
     preset = VOICE_PRESETS.get(genre.lower(), {"rate": "+5%", "volume": "+10%"})
 
-    # Step 1: TTS (with graceful fallback)
+    # Step 1: TTS
     tts_engine = await synthesize_tts_smart(
         selected, voice, str(raw_vocal), preset["rate"], preset["volume"]
     )
 
-    # Step 2: Apply FX if FFmpeg is available
+    # Step 2: Apply FX if FFmpeg available
     if FFMPEG_AVAILABLE and raw_vocal.exists() and raw_vocal.stat().st_size > 0:
         try:
             PremiumAudioStudio.render_wet_vocal(
@@ -815,11 +998,9 @@ async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track,
             )
         except Exception as e:
             print(f"Wet FX failed: {e}")
-            # Copy raw as wet if FX fails
             import shutil as sh
             sh.copy(str(raw_vocal), str(wet_vocal))
     else:
-        # No FFmpeg - just copy raw to wet
         import shutil as sh
         sh.copy(str(raw_vocal), str(wet_vocal))
 
@@ -879,7 +1060,6 @@ def serve_manifest():
 
 @app.route("/api/status")
 def api_status():
-    """Check server capabilities."""
     return jsonify({
         "online": has_internet(),
         "ffmpeg_available": FFMPEG_AVAILABLE,
@@ -897,12 +1077,60 @@ def get_voices():
     })
 
 
+@app.route("/api/train", methods=["POST"])
+def api_train():
+    """
+    Save a training example and return a mimicked version.
+    """
+    try:
+        data = request.get_json()
+        example_text = data.get("example", "").strip()
+        dj_name = data.get("dj_name", "DJ Beshi").strip()
+        genre = data.get("genre", "club_banger")
+        energy = int(data.get("energy", 8))
+        mode = data.get("train_mode", "mimic")  # "mimic" or "exact"
+
+        if not example_text:
+            return jsonify({"success": False, "error": "No example text provided"}), 400
+
+        if mode == "exact":
+            # Exact copy mode - just save and return as-is
+            AITrainingEngine.save_training(example_text, genre, "exact_copy")
+            return jsonify({
+                "success": True,
+                "script": example_text,
+                "mode": "exact",
+                "message": "Exact copy saved and ready to use!"
+            })
+
+        # Mimic mode - analyze and create variation
+        mimic = AITrainingEngine.generate_from_training(
+            dj_name=dj_name,
+            genre=genre,
+            energy=energy,
+            example_text=example_text
+        )
+
+        return jsonify({
+            "success": True,
+            "original": example_text,
+            "script": mimic,
+            "mode": "mimic",
+            "analysis": AITrainingEngine.analyze_style(example_text),
+            "message": "AI learned your style and created a new drop!"
+        })
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @app.route("/api/generate", methods=["POST"])
 def api_generate():
     try:
         data = request.get_json()
         mode = data.get("mode", "ai")
         custom_script = data.get("custom_script", "").strip()
+        training_example = data.get("training_example", "").strip()
 
         dj_name = data.get("dj_name", "DJ Beshi").strip()
         genre = data.get("genre", "club_banger")
@@ -953,7 +1181,8 @@ def api_generate():
             vocal_gain=vocal_gain,
             bg_gain=bg_gain,
             mode=mode,
-            custom_script=custom_script
+            custom_script=custom_script,
+            training_example=training_example
         ))
 
         return jsonify({
@@ -966,7 +1195,7 @@ def api_generate():
             "offline": result["offline"],
             "ffmpeg_available": result["ffmpeg_available"],
             "download_url": f"/download/{result['project_name']}/{result['final_master'].split('/')[-1]}",
-            "message": "Drop generated!" + (" (Neural voice)" if result["tts_engine"] == "edge" else " (Basic audio)" if result["tts_engine"] == "espeak" else " (Audio unavailable - install FFmpeg for full features)")
+            "message": "Drop generated!" + (" (Neural voice)" if result["tts_engine"] == "edge" else " (Basic audio)" if result["tts_engine"] == "espeak" else " (Audio unavailable)")
         })
 
     except Exception as e:
@@ -1033,15 +1262,10 @@ def preview_script():
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("   PREMIUM AI DJ DROP FACTORY - RENDER CLOUD EDITION")
+    print("   PREMIUM AI DJ DROP FACTORY v3.0")
+    print("   Created by: Macdonald Barasa")
+    print("   Email: simiyumacdonal1@gmail.com")
     print("=" * 60)
-    print("Features:")
-    print(f"  - Script AI: ALWAYS WORKS")
-    print(f"  - Neural TTS: {'YES' if has_internet() else 'NO (no internet)'}")
-    print(f"  - FFmpeg FX: {'YES' if FFMPEG_AVAILABLE else 'NO (install for audio)'}")
-    print(f"  - Offline TTS: {'YES' if ESPEAK_AVAILABLE else 'NO (install espeak-ng)'}")
-    print("=" * 60)
-    print("Open browser: http://127.0.0.1:5000")
-    print("Press CTRL+C to stop")
+    print("Features: AI Training Mode | Loud Audio | PWA Install")
     print("=" * 60)
     app.run(host="0.0.0.0", port=5000, debug=True)
