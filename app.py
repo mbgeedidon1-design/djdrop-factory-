@@ -1,7 +1,7 @@
 # ============================================================
-# PREMIUM AI DJ DROP FACTORY - PWA OFFLINE EDITION v2.1
-# Works offline with espeak-ng fallback
-# Works online with edge-tts neural voices
+# PREMIUM AI DJ DROP FACTORY - RENDER CLOUD EDITION v2.2
+# Works on Render free tier (no system packages needed)
+# Offline TTS fallback with graceful degradation
 # ============================================================
 
 import os
@@ -29,20 +29,38 @@ UPLOAD_DIR = BASE_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
 
 # ============================================================
-# INTERNET & OFFLINE DETECTION
+# DETECT AVAILABLE TOOLS
 # ============================================================
 
 def has_internet(timeout=3):
-    """Check if internet is available by pinging Google."""
+    """Check if internet is available."""
     try:
         urllib.request.urlopen('https://www.google.com', timeout=timeout)
         return True
     except Exception:
         return False
 
+def check_ffmpeg():
+    """Find FFmpeg command."""
+    return shutil.which('ffmpeg')
+
 def check_espeak():
     """Find espeak-ng or espeak command."""
     return shutil.which('espeak-ng') or shutil.which('espeak')
+
+# Check what's available on this server
+FFMPEG_AVAILABLE = check_ffmpeg() is not None
+ESPEAK_AVAILABLE = check_espeak() is not None
+INTERNET_AVAILABLE = has_internet()
+
+print("=" * 60)
+print("DJ DROP FACTORY - SYSTEM CHECK")
+print("=" * 60)
+print(f"Internet: {'YES' if INTERNET_AVAILABLE else 'NO'}")
+print(f"FFmpeg:   {'YES' if FFMPEG_AVAILABLE else 'NO'}")
+print(f"espeak:   {'YES' if ESPEAK_AVAILABLE else 'NO'}")
+print("=" * 60)
+
 
 # ============================================================
 # 1) SCRIPT AI ENGINE
@@ -679,52 +697,57 @@ def safe_filename(name: str) -> str:
 
 
 # ============================================================
-# TTS WITH OFFLINE FALLBACK
+# TTS WITH GRACEFUL DEGRADATION
 # ============================================================
 
 async def synthesize_tts_smart(text, voice, out_path, rate, volume):
     """
     Try online edge-tts first. If no internet, fall back to espeak-ng.
-    Returns the engine used: 'edge' or 'espeak'.
+    If neither works, create a silent placeholder.
+    Returns: 'edge', 'espeak', or 'silent'
     """
     online = has_internet()
 
+    # Try online edge-tts (best quality)
     if online:
         try:
             communicate = edge_tts.Communicate(text, voice, rate=rate, volume=volume)
             await communicate.save(out_path)
             return "edge"
         except Exception as e:
-            print(f"Edge TTS failed: {e}. Falling back to offline...")
+            print(f"Edge TTS failed: {e}")
 
-    # OFFLINE FALLBACK: espeak-ng
+    # Try offline espeak-ng
     espeak_cmd = check_espeak()
-    if not espeak_cmd:
-        raise RuntimeError(
-            "No TTS engine available.\n"
-            "Online: Internet is down.\n"
-            "Offline: espeak-ng is not installed.\n"
-            "Run: pkg install espeak-ng -y"
-        )
+    if espeak_cmd and FFMPEG_AVAILABLE:
+        try:
+            wav_path = str(Path(out_path).with_suffix('.espeak.wav'))
+            subprocess.run([espeak_cmd, '-w', wav_path, text], capture_output=True, check=True)
 
-    wav_path = str(Path(out_path).with_suffix('.espeak.wav'))
-    subprocess.run([espeak_cmd, '-w', wav_path, text], capture_output=True)
+            if os.path.exists(wav_path):
+                subprocess.run([
+                    'ffmpeg', '-y', '-i', wav_path,
+                    '-b:a', '320k', out_path
+                ], capture_output=True, check=True)
+                os.remove(wav_path)
+                return "espeak"
+        except Exception as e:
+            print(f"espeak failed: {e}")
 
-    if not os.path.exists(wav_path):
-        raise RuntimeError("espeak-ng failed to generate audio.")
+    # LAST RESORT: Create silent placeholder MP3
+    if FFMPEG_AVAILABLE:
+        try:
+            subprocess.run([
+                'ffmpeg', '-y', '-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=mono',
+                '-t', '3', '-b:a', '320k', out_path
+            ], capture_output=True, check=True)
+            return "silent"
+        except Exception as e:
+            print(f"Silent MP3 failed: {e}")
 
-    # Convert WAV to MP3 using FFmpeg
-    subprocess.run([
-        'ffmpeg', '-y', '-i', wav_path,
-        '-b:a', '320k',
-        out_path
-    ], capture_output=True)
-
-    # Clean up WAV
-    if os.path.exists(wav_path):
-        os.remove(wav_path)
-
-    return "espeak"
+    # Absolute fallback - create empty file
+    Path(out_path).touch()
+    return "silent"
 
 
 # ============================================================
@@ -740,6 +763,7 @@ async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track,
     out_dir = OUTPUT_DIR / project_name
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    # Generate script
     if mode == "strict" and custom_script.strip():
         selected = custom_script.strip()
         takes = [{"text": selected, "score": 10}]
@@ -761,6 +785,7 @@ async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track,
         )
         selected = takes[0]["text"]
 
+    # Save takes
     takes_file = out_dir / "takes.txt"
     with open(takes_file, "w", encoding="utf-8") as f:
         for i, item in enumerate(takes, 1):
@@ -772,30 +797,50 @@ async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track,
 
     preset = VOICE_PRESETS.get(genre.lower(), {"rate": "+5%", "volume": "+10%"})
 
-    # Step 1: TTS (online edge-tts or offline espeak-ng)
+    # Step 1: TTS (with graceful fallback)
     tts_engine = await synthesize_tts_smart(
         selected, voice, str(raw_vocal), preset["rate"], preset["volume"]
     )
 
-    # Step 2: Wet FX
-    PremiumAudioStudio.render_wet_vocal(
-        vocal_path=str(raw_vocal),
-        wet_output_path=str(wet_vocal),
-        style_preset=genre,
-        energy=energy,
-        fx_mode=fx_mode,
-        vocal_gain=vocal_gain
-    )
+    # Step 2: Apply FX if FFmpeg is available
+    if FFMPEG_AVAILABLE and raw_vocal.exists() and raw_vocal.stat().st_size > 0:
+        try:
+            PremiumAudioStudio.render_wet_vocal(
+                vocal_path=str(raw_vocal),
+                wet_output_path=str(wet_vocal),
+                style_preset=genre,
+                energy=energy,
+                fx_mode=fx_mode,
+                vocal_gain=vocal_gain
+            )
+        except Exception as e:
+            print(f"Wet FX failed: {e}")
+            # Copy raw as wet if FX fails
+            import shutil as sh
+            sh.copy(str(raw_vocal), str(wet_vocal))
+    else:
+        # No FFmpeg - just copy raw to wet
+        import shutil as sh
+        sh.copy(str(raw_vocal), str(wet_vocal))
 
-    # Step 3: Final Master
-    PremiumAudioStudio.render_final_master(
-        wet_vocal_path=str(wet_vocal),
-        bg_path=bg_track,
-        final_output_path=str(final_master),
-        style_preset=genre,
-        energy=energy,
-        bg_gain=bg_gain
-    )
+    # Step 3: Final master mix
+    if FFMPEG_AVAILABLE and wet_vocal.exists() and wet_vocal.stat().st_size > 0:
+        try:
+            PremiumAudioStudio.render_final_master(
+                wet_vocal_path=str(wet_vocal),
+                bg_path=bg_track,
+                final_output_path=str(final_master),
+                style_preset=genre,
+                energy=energy,
+                bg_gain=bg_gain
+            )
+        except Exception as e:
+            print(f"Final master failed: {e}")
+            import shutil as sh
+            sh.copy(str(wet_vocal), str(final_master))
+    else:
+        import shutil as sh
+        sh.copy(str(wet_vocal), str(final_master))
 
     return {
         "project_name": project_name,
@@ -807,7 +852,8 @@ async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track,
         "takes": takes,
         "mode": mode,
         "tts_engine": tts_engine,
-        "offline": tts_engine == "espeak"
+        "offline": tts_engine == "espeak" or tts_engine == "silent",
+        "ffmpeg_available": FFMPEG_AVAILABLE
     }
 
 
@@ -833,14 +879,13 @@ def serve_manifest():
 
 @app.route("/api/status")
 def api_status():
-    """Check if server has internet for high-quality TTS."""
-    online = has_internet()
-    espeak = check_espeak() is not None
+    """Check server capabilities."""
     return jsonify({
-        "online": online,
-        "espeak_installed": espeak,
-        "edge_tts_ready": online,
-        "message": "Online (Neural voices)" if online else "Offline (Robot voice fallback)"
+        "online": has_internet(),
+        "ffmpeg_available": FFMPEG_AVAILABLE,
+        "espeak_available": ESPEAK_AVAILABLE,
+        "edge_tts_ready": has_internet(),
+        "message": "Full audio generation" if FFMPEG_AVAILABLE else "Script only - no audio FX"
     })
 
 
@@ -919,8 +964,9 @@ def api_generate():
             "mode": result["mode"],
             "tts_engine": result["tts_engine"],
             "offline": result["offline"],
+            "ffmpeg_available": result["ffmpeg_available"],
             "download_url": f"/download/{result['project_name']}/{result['final_master'].split('/')[-1]}",
-            "message": "Drop generated!" + (" (Offline robot voice)" if result["offline"] else " (Neural voice)")
+            "message": "Drop generated!" + (" (Neural voice)" if result["tts_engine"] == "edge" else " (Basic audio)" if result["tts_engine"] == "espeak" else " (Audio unavailable - install FFmpeg for full features)")
         })
 
     except Exception as e:
@@ -987,12 +1033,15 @@ def preview_script():
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("   PREMIUM AI DJ DROP FACTORY - PWA OFFLINE EDITION v2.1")
+    print("   PREMIUM AI DJ DROP FACTORY - RENDER CLOUD EDITION")
     print("=" * 60)
-    print("Internet status:", "ONLINE" if has_internet() else "OFFLINE")
-    print("espeak-ng:", "FOUND" if check_espeak() else "NOT FOUND")
+    print("Features:")
+    print(f"  - Script AI: ALWAYS WORKS")
+    print(f"  - Neural TTS: {'YES' if has_internet() else 'NO (no internet)'}")
+    print(f"  - FFmpeg FX: {'YES' if FFMPEG_AVAILABLE else 'NO (install for audio)'}")
+    print(f"  - Offline TTS: {'YES' if ESPEAK_AVAILABLE else 'NO (install espeak-ng)'}")
+    print("=" * 60)
     print("Open browser: http://127.0.0.1:5000")
-    print("Install: Open in Chrome -> Menu -> Add to Home Screen")
     print("Press CTRL+C to stop")
     print("=" * 60)
     app.run(host="0.0.0.0", port=5000, debug=True)
