@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#ff6b35">
+    <title>Premium AI DJ Drop Factory</title>
+    <link rel="manifest" href="/manifest.json">
+    <style>
+        :root {
+            --bg-dark: #0a0a0f;
+            --bg-card: #12121a;
+            --bg-input: #1a1a25;
+            --accent: #ff6b35;
+            --accent-glow: #ff6b3580;
+            --accent2: #00d084;
+            --text: #e0e0e0;
+            --text-muted: #888;
+            --border: #2a2a3a;
+            --success: #00d084;
+            --error: #ff4757;
+            --offline: #f7c531;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .bg-animation {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(ellipse at top, #1a0a2e 0%, var(--bg-dark) 70%);
+            z-index: -1;
+        }
+
+        .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+
+        .header { text-align: center; padding: 40px 0 20px; }
+        .header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #ff6b35, #f7c531);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            margin-bottom: 10px; text-transform: uppercase; letter-spacing: 2px;
+        }
+        .header p { color: var(--text-muted); font-size: 1.1rem; }
+
+        /* OFFLINE / ONLINE BADGE */
+        .status-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 8px 16px; border-radius: 20px;
+            font-size: 0.85rem; font-weight: 600;
+            margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .status-badge.online {
+            background: rgba(0, 208, 132, 0.15);
+            color: var(--success); border: 1px solid var(--success);
+        }
+        .status-badge.offline {
+            background: rgba(247, 197, 49, 0.15);
+            color: var(--offline); border: 1px solid var(--offline);
+        }
+        .status-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        .status-badge.online .status-dot { background: var(--success); }
+        .status-badge.offline .status-dot { background: var(--offline); }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 16px; padding: 25px; margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        .card-title {
+            font-size: 1.2rem; color: var(--accent); margin-bottom: 15px;
+            display: flex; align-items: center; gap: 10px;
+            text-transform: uppercase; letter-spacing: 1px; font-weight: 600;
+        }
+        .card-title .icon { font-size: 1.4rem; }
+
+        .form-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 15px;
+        }
+        @media (max-width: 600px) {
+            .form-grid { grid-template-columns: 1fr; }
+            .header h1 { font-size: 1.8rem; }
+        }
+
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        .form-group.full-width { grid-column: 1 / -1; }
+
+        label { font-size: 0.9rem; color: var(--text-muted); font-weight: 500; }
+
+        input[type="text"], input[type="number"], select, textarea {
+            background: var(--bg-input); border: 1px solid var(--border);
+            border-radius: 10px; padding: 12px 15px; color: var(--text);
+            font-size: 1rem; transition: all 0.3s ease; outline: none;
+            font-family: inherit;
+        }
+        textarea { min-height: 120px; resize: vertical; }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        input[type="range"] {
+            width: 100%; height: 8px; border-radius: 4px;
+            background: var(--bg-input); outline: none; -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 22px; height: 22px;
+            border-radius: 50%; background: var(--accent); cursor: pointer;
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+        .range-value { text-align: center; color: var(--accent); font-weight: bold; font-size: 1.1rem; margin-top: 5px; }
+
+        .checkbox-wrapper { display: flex; align-items: center; gap: 10px; padding: 10px 0; }
+        input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent); cursor: pointer; }
+
+        .mode-toggle {
+            display: flex; background: var(--bg-input);
+            border-radius: 12px; padding: 4px; margin-bottom: 20px;
+            border: 1px solid var(--border);
+        }
+        .mode-btn {
+            flex: 1; padding: 14px 20px; border: none; background: transparent;
+            color: var(--text-muted); font-size: 1rem; font-weight: 600;
+            cursor: pointer; border-radius: 10px; transition: all 0.3s ease;
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+        .mode-btn.active {
+            background: linear-gradient(135deg, var(--accent), #e85d04);
+            color: white; box-shadow: 0 4px 15px var(--accent-glow);
+        }
+        .mode-btn:hover:not(.active) { color: var(--text); }
+
+        .mode-desc {
+            text-align: center; color: var(--text-muted);
+            font-size: 0.9rem; margin-bottom: 20px; padding: 10px;
+            background: rgba(255,107,53,0.05); border-radius: 8px;
+            border: 1px solid rgba(255,107,53,0.1);
+        }
+
+        .upload-area {
+            border: 2px dashed var(--border); border-radius: 12px;
+            padding: 30px; text-align: center; cursor: pointer;
+            transition: all 0.3s ease; position: relative;
+        }
+        .upload-area:hover { border-color: var(--accent); background: rgba(255,107,53,0.05); }
+        .upload-area input[type="file"] {
+            position: absolute; width: 100%; height: 100%;
+            top: 0; left: 0; opacity: 0; cursor: pointer;
+        }
+        .upload-icon { font-size: 2.5rem; margin-bottom: 10px; }
+
+        .btn {
+            background: linear-gradient(135deg, var(--accent), #e85d04);
+            color: white; border: none; border-radius: 12px;
+            padding: 15px 30px; font-size: 1.1rem; font-weight: 600;
+            cursor: pointer; transition: all 0.3s ease;
+            text-transform: uppercase; letter-spacing: 1px;
+            width: 100%; margin-top: 10px;
+        }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px var(--accent-glow); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+        .btn-secondary {
+            background: var(--bg-input); border: 1px solid var(--border); margin-top: 10px;
+        }
+        .btn-secondary:hover { border-color: var(--accent); box-shadow: none; }
+
+        .results { display: none; margin-top: 20px; }
+        .results.show { display: block; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .script-box {
+            background: var(--bg-input); border-left: 4px solid var(--accent);
+            border-radius: 0 10px 10px 0; padding: 20px;
+            margin: 15px 0; font-size: 1.1rem; line-height: 1.8;
+        }
+
+        audio { width: 100%; margin: 15px 0; border-radius: 10px; }
+
+        .download-link {
+            display: inline-block; background: var(--success); color: #000;
+            padding: 12px 25px; border-radius: 10px; text-decoration: none;
+            font-weight: 600; margin-top: 10px; transition: all 0.3s ease;
+        }
+        .download-link:hover { transform: scale(1.05); box-shadow: 0 5px 20px rgba(0,208,132,0.4); }
+
+        .spinner { display: none; text-align: center; padding: 30px; }
+        .spinner.show { display: block; }
+        .spinner-ring {
+            width: 50px; height: 50px; border: 4px solid var(--border);
+            border-top-color: var(--accent); border-radius: 50%;
+            animation: spin 1s linear infinite; margin: 0 auto 15px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .error-msg {
+            background: rgba(255,71,87,0.1); border: 1px solid var(--error);
+            color: var(--error); padding: 15px; border-radius: 10px;
+            margin-top: 15px; display: none;
+        }
+        .error-msg.show { display: block; }
+
+        .takes-list { margin-top: 15px; }
+        .take-item {
+            background: var(--bg-input); border-radius: 8px;
+            padding: 12px 15px; margin-bottom: 8px;
+            font-size: 0.95rem; border-left: 3px solid var(--border);
+        }
+        .take-item.best { border-left-color: var(--success); background: rgba(0,208,132,0.05); }
+        .take-score {
+            display: inline-block; background: var(--accent); color: white;
+            padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;
+            margin-right: 10px; font-weight: bold;
+        }
+
+        .conditional { display: none; }
+        .conditional.show { display: block; }
+
+        .footer { text-align: center; padding: 30px; color: var(--text-muted); font-size: 0.9rem; }
+
+        .engine-badge {
+            display: inline-block; padding: 6px 12px; border-radius: 6px;
+            font-size: 0.8rem; font-weight: 600; margin-top: 10px;
+        }
+        .engine-badge.edge { background: rgba(0,208,132,0.15); color: var(--success); }
+        .engine-badge.espeak { background: rgba(247,197,49,0.15); color: var(--offline); }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+
+    <div class="container">
+        <div class="header">
+            <h1>🔥 Premium AI DJ Drop Factory</h1>
+            <p>Generate professional DJ drops with neural voices & studio FX</p>
+            <div id="statusBadge" class="status-badge offline">
+                <span class="status-dot"></span>
+                <span id="statusText">Checking...</span>
+            </div>
+        </div>
+
+        <div class="card" style="padding: 15px;">
+            <div class="mode-toggle">
+                <button type="button" class="mode-btn active" id="modeAi" onclick="setMode('ai')">
+                    🤖 AI Mode
+                </button>
+                <button type="button" class="mode-btn" id="modeStrict" onclick="setMode('strict')">
+                    ✍️ Strict Mode
+                </button>
+            </div>
+            <div class="mode-desc" id="modeDesc">
+                <strong>AI Mode:</strong> The AI generates smart script variations based on your genre, mood, and energy.
+            </div>
+        </div>
+
+        <form id="dropForm">
+            <div class="card conditional show" id="strictCard">
+                <div class="card-title"><span class="icon">✍️</span> Your Exact Script</div>
+                <div class="form-group full-width">
+                    <label for="custom_script">Type exactly what you want the DJ to say:</label>
+                    <textarea id="custom_script" name="custom_script" placeholder="e.g. Yo yo yo! DJ Beshi in the building! Lagos stand up! We about to shut this party down! Let's go!!!"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="strict_dj_name">DJ Name (for filename)</label>
+                    <input type="text" id="strict_dj_name" name="strict_dj_name" value="DJ Beshi">
+                </div>
+            </div>
+
+            <div class="card conditional" id="aiIdentityCard">
+                <div class="card-title"><span class="icon">🎤</span> DJ Identity</div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="dj_name">DJ Name *</label>
+                        <input type="text" id="dj_name" name="dj_name" value="DJ Beshi" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="city">City / Location</label>
+                        <input type="text" id="city" name="city" placeholder="e.g. Lagos, London, NYC">
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="user_stutter">Custom Stutter Pattern (optional)</label>
+                        <input type="text" id="user_stutter" name="user_stutter" placeholder="e.g. D... D... D-DJ">
+                    </div>
+                    <div class="form-group">
+                        <div class="checkbox-wrapper">
+                            <input type="checkbox" id="use_stutter" name="use_stutter" checked>
+                            <label for="use_stutter">Enable Auto Stutter Engine</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card conditional" id="aiSettingsCard">
+                <div class="card-title"><span class="icon">🎛️</span> Drop Settings</div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="genre">Genre *</label>
+                        <select id="genre" name="genre" required>
+                            <option value="amapiano">Amapiano</option>
+                            <option value="dancehall">Dancehall</option>
+                            <option value="radio">Radio</option>
+                            <option value="club_banger" selected>Club Banger</option>
+                            <option value="afrobeat">Afrobeat</option>
+                            <option value="trap">Trap</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="drop_type">Drop Type *</label>
+                        <select id="drop_type" name="drop_type" required>
+                            <option value="intro" selected>Intro</option>
+                            <option value="sweeper">Sweeper</option>
+                            <option value="hype">Hype</option>
+                            <option value="promo">Promo</option>
+                            <option value="producer_tag">Producer Tag</option>
+                            <option value="radio_id">Radio ID</option>
+                            <option value="crowd_call">Crowd Call</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="mood">Mood *</label>
+                        <select id="mood" name="mood" required>
+                            <option value="hype">Hype</option>
+                            <option value="luxury">Luxury</option>
+                            <option value="aggressive" selected>Aggressive</option>
+                            <option value="dark">Dark</option>
+                            <option value="smooth">Smooth</option>
+                            <option value="festival">Festival</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="voice">Neural Voice *</label>
+                        <select id="voice" name="voice" required>
+                            <option value="1">Deep Studio Heavy (Male US)</option>
+                            <option value="2">Crisp Energetic Host (Male UK)</option>
+                            <option value="3">Smooth High-End (Female US)</option>
+                            <option value="4">Natural Afro-Vibe (Male NG)</option>
+                            <option value="5">Bright Radio Host (Female UK)</option>
+                            <option value="6">Warm Afro Voice (Female NG)</option>
+                            <option value="7" selected>Auto by Genre</option>
+                        </select>
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="energy">Energy Level: <span class="range-value" id="energyValue">8</span>/10</label>
+                        <input type="range" id="energy" name="energy" min="1" max="10" value="8">
+                    </div>
+                </div>
+            </div>
+
+            <div class="card conditional" id="promoFields">
+                <div class="card-title"><span class="icon">📅</span> Promo Details</div>
+                <div class="form-group">
+                    <label for="event_name">Event Name</label>
+                    <input type="text" id="event_name" name="event_name" placeholder="e.g. Summer Shutdown 2026">
+                </div>
+            </div>
+
+            <div class="card conditional" id="radioFields">
+                <div class="card-title"><span class="icon">📻</span> Radio Details</div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="station_name">Station Name</label>
+                        <input type="text" id="station_name" name="station_name" placeholder="e.g. Heat FM">
+                    </div>
+                    <div class="form-group">
+                        <label for="slogan">Slogan / Tagline</label>
+                        <input type="text" id="slogan" name="slogan" placeholder="e.g. The Sound of the City">
+                    </div>
+                </div>
+            </div>
+
+            <div class="card conditional" id="crowdFields">
+                <div class="card-title"><span class="icon">👥</span> Crowd Details</div>
+                <div class="form-group">
+                    <label for="crew_tag">Crew Tag</label>
+                    <input type="text" id="crew_tag" name="crew_tag" placeholder="e.g. Team Heavy">
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title"><span class="icon">🎚️</span> FX Engine</div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="genre_fx">Genre for FX Preset *</label>
+                        <select id="genre_fx" name="genre_fx" required>
+                            <option value="amapiano">Amapiano</option>
+                            <option value="dancehall">Dancehall</option>
+                            <option value="radio">Radio</option>
+                            <option value="club_banger" selected>Club Banger</option>
+                            <option value="afrobeat">Afrobeat</option>
+                            <option value="trap">Trap</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="fx_mode">FX Mode</label>
+                        <select id="fx_mode" name="fx_mode">
+                            <option value="auto" selected>Auto Smart FX</option>
+                            <option value="dry">Dry / Minimal</option>
+                            <option value="light">Light FX</option>
+                            <option value="heavy">Heavy FX</option>
+                            <option value="insane">Insane FX</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="vocal_gain">Vocal Gain (default 1.0)</label>
+                        <input type="text" id="vocal_gain" name="vocal_gain" value="1.0" placeholder="1.0">
+                    </div>
+                    <div class="form-group">
+                        <label for="bg_gain">Background Gain (blank = auto)</label>
+                        <input type="text" id="bg_gain" name="bg_gain" placeholder="e.g. 0.25">
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title"><span class="icon">🗣️</span> Neural Voice</div>
+                <div class="form-group">
+                    <label for="voice_shared">Select Voice *</label>
+                    <select id="voice_shared" name="voice_shared" required>
+                        <option value="1">Deep Studio Heavy (Male US)</option>
+                        <option value="2">Crisp Energetic Host (Male UK)</option>
+                        <option value="3">Smooth High-End (Female US)</option>
+                        <option value="4" selected>Natural Afro-Vibe (Male NG)</option>
+                        <option value="5">Bright Radio Host (Female UK)</option>
+                        <option value="6">Warm Afro Voice (Female NG)</option>
+                        <option value="7">Auto by Genre</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title"><span class="icon">🎵</span> Background Track (Optional)</div>
+                <div class="upload-area" id="uploadArea">
+                    <input type="file" id="bg_file" name="bg_file" accept="audio/*">
+                    <div class="upload-icon">📁</div>
+                    <div id="uploadText">Click or drag audio file here</div>
+                    <div id="uploadFilename" style="color: var(--accent); margin-top: 5px; display: none;"></div>
+                </div>
+                <input type="hidden" id="bg_track" name="bg_track" value="">
+            </div>
+
+            <button type="button" class="btn btn-secondary conditional" id="previewBtn">👁️ Preview AI Script</button>
+            <button type="submit" class="btn" id="generateBtn">🔥 Generate Premium Drop</button>
+        </form>
+
+        <div class="spinner" id="spinner">
+            <div class="spinner-ring"></div>
+            <p>Generating your premium drop...</p>
+            <p style="font-size: 0.9rem; color: var(--text-muted);">This may take 10-30 seconds</p>
+        </div>
+
+        <div class="error-msg" id="errorMsg"></div>
+
+        <div class="results" id="results">
+            <div class="card">
+                <div class="card-title"><span class="icon">✨</span> Generated Script</div>
+                <div class="script-box" id="scriptText"></div>
+                <div id="engineBadge" class="engine-badge"></div>
+            </div>
+            <div class="card">
+                <div class="card-title"><span class="icon">🎧</span> Your Drop</div>
+                <audio id="audioPlayer" controls></audio>
+                <a href="#" class="download-link" id="downloadLink" download>⬇ Download MP3</a>
+            </div>
+            <div class="card conditional" id="takesCard">
+                <div class="card-title"><span class="icon">📝</span> Alternative Takes</div>
+                <div class="takes-list" id="takesList"></div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Premium AI DJ Drop Factory v2.1 — Offline PWA Edition</p>
+            <p>Neural voices when online · Robot voice when offline · Always works</p>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // SERVICE WORKER REGISTRATION (PWA)
+        // ============================================================
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then((reg) => console.log('SW registered:', reg.scope))
+                    .catch((err) => console.log('SW registration failed:', err));
+            });
+        }
+
+        // ============================================================
+        // ONLINE / OFFLINE STATUS CHECK
+        // ============================================================
+        async function checkStatus() {
+            try {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+                updateStatusBadge(data.online, data.message);
+            } catch (e) {
+                updateStatusBadge(false, 'Server unreachable');
+            }
+        }
+
+        function updateStatusBadge(online, msg) {
+            const badge = document.getElementById('statusBadge');
+            const text = document.getElementById('statusText');
+            text.textContent = msg;
+            if (online) {
+                badge.className = 'status-badge online';
+            } else {
+                badge.className = 'status-badge offline';
+            }
+        }
+
+        // Check status on load and every 10 seconds
+        checkStatus();
+        setInterval(checkStatus, 10000);
+
+        // Browser online/offline events
+        window.addEventListener('online', () => checkStatus());
+        window.addEventListener('offline', () => updateStatusBadge(false, 'Browser offline'));
+
+        // ============================================================
+        // MODE TOGGLE
+        // ============================================================
+        let currentMode = 'ai';
+        const modeAiBtn = document.getElementById('modeAi');
+        const modeStrictBtn = document.getElementById('modeStrict');
+        const modeDesc = document.getElementById('modeDesc');
+        const aiIdentityCard = document.getElementById('aiIdentityCard');
+        const aiSettingsCard = document.getElementById('aiSettingsCard');
+        const previewBtn = document.getElementById('previewBtn');
+        const strictCard = document.getElementById('strictCard');
+        const promoFields = document.getElementById('promoFields');
+        const radioFields = document.getElementById('radioFields');
+        const crowdFields = document.getElementById('crowdFields');
+        const takesCard = document.getElementById('takesCard');
+
+        function setMode(mode) {
+            currentMode = mode;
+            if (mode === 'ai') {
+                modeAiBtn.classList.add('active');
+                modeStrictBtn.classList.remove('active');
+                aiIdentityCard.classList.add('show');
+                aiSettingsCard.classList.add('show');
+                previewBtn.classList.add('show');
+                strictCard.classList.remove('show');
+                modeDesc.innerHTML = '<strong>AI Mode:</strong> The AI generates smart script variations based on your genre, mood, and energy.';
+            } else {
+                modeStrictBtn.classList.add('active');
+                modeAiBtn.classList.remove('active');
+                aiIdentityCard.classList.remove('show');
+                aiSettingsCard.classList.remove('show');
+                previewBtn.classList.remove('show');
+                promoFields.classList.remove('show');
+                radioFields.classList.remove('show');
+                crowdFields.classList.remove('show');
+                strictCard.classList.add('show');
+                modeDesc.innerHTML = '<strong>Strict Mode:</strong> You type the EXACT words. No AI changes. Works offline too.';
+            }
+        }
+
+        // ============================================================
+        // DOM & EVENTS
+        // ============================================================
+        const form = document.getElementById('dropForm');
+        const dropTypeSelect = document.getElementById('drop_type');
+        const energySlider = document.getElementById('energy');
+        const energyValue = document.getElementById('energyValue');
+        const generateBtn = document.getElementById('generateBtn');
+        const spinner = document.getElementById('spinner');
+        const results = document.getElementById('results');
+        const errorMsg = document.getElementById('errorMsg');
+        const scriptText = document.getElementById('scriptText');
+        const audioPlayer = document.getElementById('audioPlayer');
+        const downloadLink = document.getElementById('downloadLink');
+        const takesList = document.getElementById('takesList');
+        const bgFileInput = document.getElementById('bg_file');
+        const uploadText = document.getElementById('uploadText');
+        const uploadFilename = document.getElementById('uploadFilename');
+        const bgTrackHidden = document.getElementById('bg_track');
+        const engineBadge = document.getElementById('engineBadge');
+
+        energySlider.addEventListener('input', function() {
+            energyValue.textContent = this.value;
+        });
+
+        dropTypeSelect.addEventListener('change', function() {
+            const val = this.value;
+            promoFields.classList.remove('show');
+            radioFields.classList.remove('show');
+            crowdFields.classList.remove('show');
+            if (val === 'promo') promoFields.classList.add('show');
+            if (val === 'radio_id') radioFields.classList.add('show');
+            if (val === 'crowd_call') crowdFields.classList.add('show');
+        });
+
+        bgFileInput.addEventListener('change', async function() {
+            const file = this.files[0];
+            if (!file) return;
+            uploadText.textContent = 'Uploading...';
+            uploadFilename.textContent = file.name;
+            uploadFilename.style.display = 'block';
+            const formData = new FormData();
+            formData.append('file', file);
+            try {
+                const response = await fetch('/upload', { method: 'POST', body: formData });
+                const data = await response.json();
+                if (data.success) {
+                    bgTrackHidden.value = data.filename;
+                    uploadText.textContent = 'Upload complete!';
+                } else {
+                    uploadText.textContent = 'Upload failed';
+                    alert('Upload failed: ' + data.error);
+                }
+            } catch (err) {
+                uploadText.textContent = 'Upload error';
+                alert('Error: ' + err.message);
+            }
+        });
+
+        previewBtn.addEventListener('click', async function() {
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+            data.use_stutter = form.querySelector('#use_stutter').checked;
+            try {
+                const response = await fetch('/api/preview_script', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                if (result.success) {
+                    alert('Best Script:\n\n' + result.best);
+                }
+            } catch (err) {
+                alert('Preview error: ' + err.message);
+            }
+        });
+
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            results.classList.remove('show');
+            errorMsg.classList.remove('show');
+            spinner.classList.add('show');
+            generateBtn.disabled = true;
+
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+            data.mode = currentMode;
+
+            if (currentMode === 'strict') {
+                data.custom_script = data.custom_script || '';
+                data.dj_name = data.strict_dj_name || 'DJ Beshi';
+                data.voice = data.voice_shared;
+                data.genre = data.genre_fx;
+            } else {
+                data.use_stutter = form.querySelector('#use_stutter').checked;
+                data.energy = parseInt(data.energy) || 8;
+                data.voice = data.voice;
+                data.genre = data.genre;
+            }
+
+            data.vocal_gain = parseFloat(data.vocal_gain) || 1.0;
+            data.bg_gain = data.bg_gain ? parseFloat(data.bg_gain) : null;
+
+            if (currentMode === 'strict' && !data.custom_script.trim()) {
+                spinner.classList.remove('show');
+                generateBtn.disabled = false;
+                showError('Please type your script in Strict Mode!');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                spinner.classList.remove('show');
+                generateBtn.disabled = false;
+
+                if (result.success) {
+                    showResults(result);
+                } else {
+                    showError(result.error || 'Generation failed');
+                }
+            } catch (err) {
+                spinner.classList.remove('show');
+                generateBtn.disabled = false;
+                showError('Network error: ' + err.message);
+            }
+        });
+
+        function showResults(result) {
+            scriptText.textContent = result.script;
+            audioPlayer.src = result.download_url;
+            audioPlayer.load();
+            downloadLink.href = result.download_url;
+            downloadLink.download = `dj_drop_${result.project}.mp3`;
+
+            // Show TTS engine badge
+            if (result.offline) {
+                engineBadge.className = 'engine-badge espeak';
+                engineBadge.textContent = '⚠️ Offline Mode: Robot voice (espeak-ng)';
+            } else {
+                engineBadge.className = 'engine-badge edge';
+                engineBadge.textContent = '✅ Online Mode: Neural voice (edge-tts)';
+            }
+
+            if (result.mode === 'ai' && result.takes && result.takes.length > 1) {
+                takesCard.classList.add('show');
+                takesList.innerHTML = '';
+                result.takes.forEach((take, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'take-item' + (index === 0 ? ' best' : '');
+                    div.innerHTML = `<span class="take-score">${take.score}pts</span> ${take.text}`;
+                    takesList.appendChild(div);
+                });
+            } else {
+                takesCard.classList.remove('show');
+            }
+
+            results.classList.add('show');
+            results.scrollIntoView({behavior: 'smooth', block: 'start'});
+        }
+
+        function showError(msg) {
+            errorMsg.textContent = '❌ ' + msg;
+            errorMsg.classList.add('show');
+        }
+    </script>
+</body>
+</html>
