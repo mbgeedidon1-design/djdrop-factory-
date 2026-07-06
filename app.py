@@ -2,7 +2,7 @@
 # PREMIUM AI DJ DROP FACTORY v3.0
 # Created by: Macdonald Barasa
 # Email: simiyumacdonal1@gmail.com
-# Features: AI Training Mode, Loud Audio, PWA Install
+# Features: AI Training Mode, Loud Audio, Voice Effects, PWA Install
 # ============================================================
 
 import os
@@ -74,7 +74,6 @@ class AITrainingEngine:
     Extracts patterns, style, energy level, and mimics them.
     """
     
-    # Store training examples
     TRAINING_FILE = TRAINING_DIR / "trained_examples.json"
     
     @classmethod
@@ -130,22 +129,17 @@ class AITrainingEngine:
         Create a new drop that mimics the style of the example.
         Preserves structure, energy, and flow while changing content.
         """
-        # Analyze the example
         style = cls.analyze_style(example_text)
         
-        # Extract patterns
         has_opener = bool(re.match(r'^[^.!?]+[!.,]', example_text))
         has_closer = bool(re.search(r'[!.,]\s*[^.!?]+[!.,]?$', example_text))
         
-        # Build mimic based on style
         parts = []
         
-        # Opener pattern
         if style["has_callout"]:
             openers = ["Yo!", "Listen up!", "Check it!", "Ayo!"]
             parts.append(random.choice(openers))
         
-        # DJ name with optional stutter
         if style["has_stutter"] or random.random() < 0.5:
             first_letter = dj_name[0] if dj_name else "D"
             stutter_patterns = [
@@ -160,7 +154,6 @@ class AITrainingEngine:
         
         parts.append(dj_display)
         
-        # Energy phrase based on original energy level
         energy_phrases = {
             "amapiano": ["log drum pressure", "piano vibes only", "strictly smooth", "private school settings"],
             "dancehall": ["sound system active", "riddim pressure", "madness only", "pull up selectah"],
@@ -173,7 +166,6 @@ class AITrainingEngine:
         genre_key = genre.lower().replace(" ", "_").strip()
         phrases = energy_phrases.get(genre_key, energy_phrases["club_banger"])
         
-        # Add energy-appropriate phrases
         if energy >= 8:
             parts.append(random.choice(phrases) + "!!!")
         elif energy >= 5:
@@ -181,17 +173,14 @@ class AITrainingEngine:
         else:
             parts.append(random.choice(phrases))
         
-        # Location/callout if original had it
         if style["has_location"]:
             locations = ["in the building", "worldwide", "to the world", "in full effect"]
             parts.append(random.choice(locations))
         
-        # Closer pattern
         closers = ["Let's go!", "Make some noise!", "We outside!", "No sleep tonight!", "Take it higher!"]
         if has_closer or energy >= 7:
             parts.append(random.choice(closers))
         
-        # Join and clean up
         result = " ".join(parts)
         result = re.sub(r'\s+', ' ', result).strip()
         
@@ -201,21 +190,16 @@ class AITrainingEngine:
     def generate_from_training(cls, dj_name, genre, energy, example_text=None):
         """Generate a drop using training data or a fresh example."""
         if example_text and example_text.strip():
-            # Save this example for future learning
             cls.save_training(example_text, genre, "user_provided")
-            # Mimic it
             return cls.mimic_drop(example_text, dj_name, genre, energy)
         
-        # Try to use past training
         examples = cls.load_training()
         if examples:
-            # Pick the best matching example by genre
             genre_examples = [e for e in examples if e.get("genre") == genre]
             if genre_examples:
                 best = max(genre_examples, key=lambda x: x.get("exclamation_count", 0) * energy / 10)
                 return cls.mimic_drop(best["text"], dj_name, genre, energy)
         
-        # No training data - return None to use default AI
         return None
 
 
@@ -365,7 +349,7 @@ class PremiumDJScriptAI:
         if not use_stutter:
             return "none"
         mapping = {
-            "dancehall": "classic",
+                        "dancehall": "classic",
             "club_banger": "build_up",
             "amapiano": "echo_name",
             "radio": "none",
@@ -566,7 +550,6 @@ class PremiumAudioStudio:
     def get_fx_profile(cls, style: str, energy: int):
         style = style.lower().strip()
 
-        # LOUD profile - boosted for maximum impact
         profile = {
             "highpass": 100,
             "compressor": "acompressor=threshold=-14dB:ratio=6:attack=5:release=100",
@@ -577,12 +560,12 @@ class PremiumAudioStudio:
             "space": "",
             "phaser": "",
             "stereo": "",
-            "loudness": "loudnorm=I=-10:TP=-0.5:LRA=5",  # LOUDER than before
+            "loudness": "loudnorm=I=-10:TP=-0.5:LRA=5",
             "limiter": "alimiter=limit=0.95:level=1",
             "duck_threshold": "0.02",
             "duck_release": "200",
             "bg_gain": 0.20,
-            "vocal_gain": 1.2  # Boosted vocal
+            "vocal_gain": 1.2
         }
 
         if style == "amapiano":
@@ -678,7 +661,6 @@ class PremiumAudioStudio:
         p = cls.get_fx_profile(style, energy)
         chain = []
 
-        # Core cleanup and LOUD tone
         chain.append(f"highpass=f={p['highpass']}")
         chain.append(p["compressor"])
         chain.append(p["presence_eq"])
@@ -765,7 +747,6 @@ class PremiumAudioStudio:
                 if p["stereo"]:
                     chain.append(p["stereo"])
 
-        # LOUDNESS and LIMITER for maximum volume
         chain.append(p["loudness"])
         chain.append(p["limiter"])
         return ",".join([x for x in chain if x]), p
@@ -781,7 +762,6 @@ class PremiumAudioStudio:
                          fx_mode="auto", vocal_gain=1.0):
         vocal_fx, p = cls.build_vocal_fx_chain(style_preset, energy, fx_mode)
 
-        # Apply boosted vocal gain
         final_gain = vocal_gain * p["vocal_gain"]
         if abs(final_gain - 1.0) > 0.0001:
             vocal_fx = f"volume={final_gain:.2f},{vocal_fx}"
@@ -935,7 +915,6 @@ async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track,
 
     # Handle AI Training mode
     if training_example and training_example.strip():
-        # AI Training / Mimic mode
         mimic_result = AITrainingEngine.generate_from_training(
             dj_name=dj_name,
             genre=genre,
@@ -946,7 +925,6 @@ async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track,
             selected = mimic_result
             takes = [{"text": selected, "score": 15, "mimic": True}]
         else:
-            # Fallback to standard AI
             takes = PremiumDJScriptAI.generate(
                 dj_name=dj_name, genre=genre, use_stutter=use_stutter,
                 drop_type=drop_type, mood=mood, energy=energy, city=city,
@@ -1088,13 +1066,12 @@ def api_train():
         dj_name = data.get("dj_name", "DJ Beshi").strip()
         genre = data.get("genre", "club_banger")
         energy = int(data.get("energy", 8))
-        mode = data.get("train_mode", "mimic")  # "mimic" or "exact"
+        mode = data.get("train_mode", "mimic")
 
         if not example_text:
             return jsonify({"success": False, "error": "No example text provided"}), 400
 
         if mode == "exact":
-            # Exact copy mode - just save and return as-is
             AITrainingEngine.save_training(example_text, genre, "exact_copy")
             return jsonify({
                 "success": True,
@@ -1103,7 +1080,6 @@ def api_train():
                 "message": "Exact copy saved and ready to use!"
             })
 
-        # Mimic mode - analyze and create variation
         mimic = AITrainingEngine.generate_from_training(
             dj_name=dj_name,
             genre=genre,
@@ -1257,6 +1233,191 @@ def preview_script():
 
 
 # ============================================================
+# VOICE EFFECTS PROCESSOR
+# ============================================================
+
+@app.route("/api/process_voice", methods=["POST"])
+def process_voice_effect():
+    """
+    Receive a recorded voice, apply audio effect using FFmpeg,
+    and return the processed MP3.
+    """
+    try:
+        if not FFMPEG_AVAILABLE:
+            return jsonify({
+                "success": False, 
+                "error": "FFmpeg is not available on this server. Cannot apply voice effects."
+            }), 503
+
+        if "audio" not in request.files:
+            return jsonify({"success": False, "error": "No audio file provided"}), 400
+
+        audio_file = request.files["audio"]
+        effect = request.form.get("effect", "none")
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        input_path = UPLOAD_DIR / f"voice_raw_{timestamp}.webm"
+        output_path = UPLOAD_DIR / f"voice_effect_{effect}_{timestamp}.mp3"
+        audio_file.save(str(input_path))
+
+        filter_chain = None
+
+        if effect == "helium":
+            filter_chain = "asetrate=44100*1.8,atempo=1/1.8,highpass=f=80,acompressor=threshold=-18dB:ratio=4,loudnorm=I=-14:TP=-1.0"
+
+        elif effect == "low":
+            filter_chain = "asetrate=44100*0.55,atempo=1/0.55,highpass=f=60,acompressor=threshold=-16dB:ratio=5,loudnorm=I=-14:TP=-1.0"
+
+        elif effect == "robot":
+            filter_chain = (
+                "highpass=f=200,"
+                "aecho=0.8:0.6:5:0.3,"
+                "vibrato=f=8:d=0.5,"
+                "equalizer=f=3000:width_type=q:width=2:g=6,"
+                "equalizer=f=800:width_type=q:width=1.5:g=4,"
+                "acompressor=threshold=-14dB:ratio=6,"
+                "loudnorm=I=-12:TP=-0.5"
+            )
+
+        elif effect == "echo":
+            filter_chain = (
+                "aecho=0.85:0.65:180|360:0.25|0.15,"
+                "aecho=0.80:0.50:650|900:0.12|0.08,"
+                "highpass=f=100,"
+                "acompressor=threshold=-16dB:ratio=4,"
+                "loudnorm=I=-14:TP=-1.0"
+            )
+
+        elif effect == "phone":
+            filter_chain = (
+                "highpass=f=300,lowpass=f=3400,"
+                "equalizer=f=1000:width_type=q:width=1.5:g=3,"
+                "acompressor=threshold=-14dB:ratio=5,"
+                "loudnorm=I=-14:TP=-1.0"
+            )
+
+        elif effect == "slow":
+            filter_chain = "atempo=0.5,asetrate=22050,aresample=44100,acompressor=threshold=-16dB:ratio=4,loudnorm=I=-14:TP=-1.0"
+
+        elif effect == "fast":
+            filter_chain = "atempo=2.0,asetrate=88200,aresample=44100,acompressor=threshold=-16dB:ratio=4,loudnorm=I=-14:TP=-1.0"
+
+        else:
+            filter_chain = "highpass=f=@app.route("/api/process_voice", methods=["POST"])
+def process_voice_effect():
+    """
+    Receive a recorded voice, apply audio effect using FFmpeg,
+    and return the processed MP3.
+    """
+    try:
+        if not FFMPEG_AVAILABLE:
+            return jsonify({
+                "success": False, 
+                "error": "FFmpeg is not available on this server. Cannot apply voice effects."
+            }), 503
+
+        if "audio" not in request.files:
+            return jsonify({"success": False, "error": "No audio file provided"}), 400
+
+        audio_file = request.files["audio"]
+        effect = request.form.get("effect", "none")
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        input_path = UPLOAD_DIR / f"voice_raw_{timestamp}.webm"
+        output_path = UPLOAD_DIR / f"voice_effect_{effect}_{timestamp}.mp3"
+        audio_file.save(str(input_path))
+
+        filter_chain = None
+
+        if effect == "helium":
+            filter_chain = "asetrate=44100*1.8,atempo=1/1.8,highpass=f=80,acompressor=threshold=-18dB:ratio=4,loudnorm=I=-14:TP=-1.0"
+
+        elif effect == "low":
+            filter_chain = "asetrate=44100*0.55,atempo=1/0.55,highpass=f=60,acompressor=threshold=-16dB:ratio=5,loudnorm=I=-14:TP=-1.0"
+
+        elif effect == "robot":
+            filter_chain = (
+                "highpass=f=200,"
+                "aecho=0.8:0.6:5:0.3,"
+                "vibrato=f=8:d=0.5,"
+                "equalizer=f=3000:width_type=q:width=2:g=6,"
+                "equalizer=f=800:width_type=q:width=1.5:g=4,"
+                "acompressor=threshold=-14dB:ratio=6,"
+                "loudnorm=I=-12:TP=-0.5"
+            )
+
+        elif effect == "echo":
+            filter_chain = (
+                "aecho=0.85:0.65:180|360:0.25|0.15,"
+                "aecho=0.80:0.50:650|900:0.12|0.08,"
+                "highpass=f=100,"
+                "acompressor=threshold=-16dB:ratio=4,"
+                "loudnorm=I=-14:TP=-1.0"
+            )
+
+        elif effect == "phone":
+            filter_chain = (
+                "highpass=f=300,lowpass=f=3400,"
+                "equalizer=f=1000:width_type=q:width=1.5:g=3,"
+                "acompressor=threshold=-14dB:ratio=5,"
+                "loudnorm=I=-14:TP=-1.0"
+            )
+
+        elif effect == "slow":
+            filter_chain = "atempo=0.5,asetrate=22050,aresample=44100,acompressor=threshold=-16dB:ratio=4,loudnorm=I=-14:TP=-1.0"
+
+        elif effect == "fast":
+            filter_chain = "atempo=2.0,asetrate=88200,aresample=44100,acompressor=threshold=-16dB:ratio=4,loudnorm=I=-14:TP=-1.0"
+
+        else:
+            filter_chain = "highpass=f=80,acompressor=threshold=-18dB:ratio=3,loudnorm=I=-14:TP=-1.0"
+
+        cmd = [
+            "ffmpeg", "-y",
+            "-i", str(input_path),
+            "-af", filter_chain,
+            "-b:a", "320k",
+            str(output_path)
+        ]
+
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        
+        if input_path.exists():
+            input_path.unlink()
+
+        if result.returncode != 0:
+            return jsonify({
+                "success": False, 
+                "error": f"FFmpeg processing failed: {result.stderr}"
+            }), 500
+
+        if not output_path.exists():
+            return jsonify({"success": False, "error": "Output file not created"}), 500
+
+        filename = output_path.name
+        
+        return jsonify({
+            "success": True,
+            "filename": filename,
+            "audio_url": f"/uploads/{filename}",
+            "download_url": f"/uploads/{filename}",
+            "effect": effect,
+            "message": f"Voice effect '{effect}' applied successfully!"
+        })
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/uploads/<filename>")
+def serve_upload(filename):
+    file_path = UPLOAD_DIR / filename
+    if file_path.exists():
+        return send_file(str(file_path))
+    return jsonify({"success": False, "error": "File not found"}), 404
+
+
+# ============================================================
 # 6) APP STARTUP
 # ============================================================
 
@@ -1266,6 +1427,7 @@ if __name__ == "__main__":
     print("   Created by: Macdonald Barasa")
     print("   Email: simiyumacdonal1@gmail.com")
     print("=" * 60)
-    print("Features: AI Training Mode | Loud Audio | PWA Install")
+    print("Features: AI Training Mode | Loud Audio | Voice Effects | PWA Install")
     print("=" * 60)
     app.run(host="0.0.0.0", port=5000, debug=True)
+

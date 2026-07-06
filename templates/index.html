@@ -41,7 +41,6 @@
 
         .container { max-width: 900px; margin: 0 auto; padding: 20px; }
 
-        /* INSTALL BAR */
         .install-bar {
             display: none;
             background: linear-gradient(135deg, var(--accent), #e85d04);
@@ -65,7 +64,6 @@
             font-size: 0.9rem;
         }
 
-        /* CREDITS */
         .credits {
             text-align: center;
             padding: 15px;
@@ -290,6 +288,76 @@
             color: var(--training);
             background: rgba(155,89,182,0.1);
         }
+
+        /* Voice Recorder Styles */
+        .recorder-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .recorder-controls .btn {
+            flex: 1;
+            min-width: 120px;
+            margin-top: 0;
+        }
+        #recordBtn { background: linear-gradient(135deg, #ff4757, #c0392b); }
+        #recordBtn.recording {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            animation: pulse-red 1s infinite;
+        }
+        @keyframes pulse-red {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.7); }
+            50% { box-shadow: 0 0 0 15px rgba(255, 71, 87, 0); }
+        }
+        #stopBtn { background: linear-gradient(135deg, #2c3e50, #34495e); }
+        #voiceVisualizer {
+            width: 100%;
+            height: 80px;
+            background: var(--bg-input);
+            border-radius: 10px;
+            margin-bottom: 15px;
+            display: none;
+            border: 1px solid var(--border);
+        }
+        .effect-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        @media (max-width: 600px) {
+            .effect-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        .effect-btn {
+            background: var(--bg-input);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 15px 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--text-muted);
+        }
+        .effect-btn:hover {
+            border-color: var(--accent);
+            color: var(--text);
+            transform: translateY(-2px);
+        }
+        .effect-btn.active {
+            border-color: var(--accent);
+            background: rgba(255, 107, 53, 0.1);
+            color: var(--accent);
+        }
+        .effect-btn .effect-icon {
+            font-size: 1.8rem;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .effect-btn .effect-name {
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -310,7 +378,7 @@
 
         <div class="header">
             <h1>🔥 Premium AI DJ Drop Factory</h1>
-            <p>AI Training | Loud Audio | PWA Install</p>
+            <p>AI Training | Loud Audio | Voice Effects | PWA Install</p>
             <div id="statusBadge" class="status-badge offline">
                 <span class="status-dot"></span>
                 <span id="statusText">Checking...</span>
@@ -553,6 +621,87 @@
                 </div>
             </div>
 
+            <!-- ============================================ -->
+            <!-- VOICE RECORDER & EFFECTS -->
+            <!-- ============================================ -->
+            <div class="card" id="voiceRecorderCard">
+                <div class="card-title"><span class="icon">🎙️</span> Voice Recorder & Effects</div>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">
+                    Record your voice, then apply effects like Helium, Deep, Robot, Echo, Phone, Slow, or Fast!
+                </p>
+
+                <!-- Recording Controls -->
+                <div class="recorder-controls">
+                    <button type="button" class="btn" id="recordBtn">🎙️ Record</button>
+                    <button type="button" class="btn" id="stopBtn" disabled>⏹️ Stop</button>
+                </div>
+
+                <!-- Visualizer -->
+                <canvas id="voiceVisualizer" width="600" height="80"></canvas>
+
+                <!-- Playback before effect -->
+                <div id="rawPlaybackSection" style="display: none; margin-bottom: 15px;">
+                    <label style="font-size: 0.85rem; color: var(--text-muted);">Original Recording:</label>
+                    <audio id="rawAudioPlayer" controls style="width: 100%; margin-top: 5px;"></audio>
+                </div>
+
+                <!-- Effect Selector Grid -->
+                <label style="font-size: 0.9rem; color: var(--text-muted); font-weight: 500; margin-bottom: 10px; display: block;">Choose Audio Effect:</label>
+                <div class="effect-grid" id="effectGrid">
+                    <div class="effect-btn active" data-effect="none">
+                        <span class="effect-icon">🚫</span>
+                        <span class="effect-name">None</span>
+                    </div>
+                    <div class="effect-btn" data-effect="helium">
+                        <span class="effect-icon">🎈</span>
+                        <span class="effect-name">Helium</span>
+                    </div>
+                    <div class="effect-btn" data-effect="low">
+                        <span class="effect-icon">🐻</span>
+                        <span class="effect-name">Low</span>
+                    </div>
+                    <div class="effect-btn" data-effect="robot">
+                        <span class="effect-icon">🤖</span>
+                        <span class="effect-name">Robot</span>
+                    </div>
+                    <div class="effect-btn" data-effect="echo">
+                        <span class="effect-icon">📢</span>
+                        <span class="effect-name">Echo</span>
+                    </div>
+                    <div class="effect-btn" data-effect="phone">
+                        <span class="effect-icon">☎️</span>
+                        <span class="effect-name">Phone</span>
+                    </div>
+                    <div class="effect-btn" data-effect="slow">
+                        <span class="effect-icon">🐌</span>
+                        <span class="effect-name">Slow</span>
+                    </div>
+                    <div class="effect-btn" data-effect="fast">
+                        <span class="effect-icon">⚡</span>
+                        <span class="effect-name">Fast</span>
+                    </div>
+                </div>
+
+                <!-- Apply Effect Button -->
+                <button type="button" class="btn btn-secondary" id="applyEffectBtn" disabled>✨ Apply Effect & Process</button>
+
+                <!-- Loading for effect -->
+                <div class="spinner" id="effectSpinner" style="padding: 15px;">
+                    <div class="spinner-ring" style="width: 30px; height: 30px; border-width: 3px;"></div>
+                    <p>Processing your voice effect...</p>
+                </div>
+
+                <!-- Processed Result -->
+                <div id="processedResult" style="display: none;">
+                    <label style="font-size: 0.85rem; color: var(--accent); font-weight: 600;">🎧 Processed with Effect:</label>
+                    <audio id="processedAudioPlayer" controls style="width: 100%; margin-top: 5px;"></audio>
+                    <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+                        <a href="#" class="download-link" id="processedDownloadLink" download style="flex: 1; text-align: center;">⬇ Download Effect</a>
+                        <button type="button" class="btn btn-secondary" id="useAsBgTrackBtn" style="flex: 1; margin-top: 0;">🎵 Use as Background Track</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- SHARED: BACKGROUND TRACK -->
             <div class="card">
                 <div class="card-title"><span class="icon">🎵</span> Background Track (Optional)</div>
@@ -599,7 +748,7 @@
         <div class="footer">
             <p><strong>Premium AI DJ Drop Factory v3.0</strong></p>
             <p>Created by <a href="mailto:simiyumacdonal1@gmail.com">Macdonald Barasa</a></p>
-            <p>AI Training | Loud Audio | PWA Install</p>
+            <p>AI Training | Loud Audio | Voice Effects | PWA Install</p>
         </div>
     </div>
 
@@ -627,7 +776,6 @@
             deferredPrompt = null;
         });
 
-        // Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/service-worker.js')
@@ -805,10 +953,8 @@
 
         document.getElementById('useTrainingBtn').addEventListener('click', function() {
             if (!trainedScript) return;
-            // Switch to strict mode with the trained script
             document.getElementById('custom_script').value = trainedScript;
             setMode('strict');
-            // Auto-submit
             form.dispatchEvent(new Event('submit'));
         });
 
@@ -928,6 +1074,185 @@
             errorMsg.textContent = '❌ ' + msg;
             errorMsg.classList.add('show');
         }
+
+        // ============================================================
+        // VOICE RECORDER & EFFECTS ENGINE
+        // ============================================================
+
+        const recordBtn = document.getElementById('recordBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const voiceVisualizer = document.getElementById('voiceVisualizer');
+        const rawAudioPlayer = document.getElementById('rawAudioPlayer');
+        const rawPlaybackSection = document.getElementById('rawPlaybackSection');
+        const applyEffectBtn = document.getElementById('applyEffectBtn');
+        const effectSpinner = document.getElementById('effectSpinner');
+        const processedResult = document.getElementById('processedResult');
+        const processedAudioPlayer = document.getElementById('processedAudioPlayer');
+        const processedDownloadLink = document.getElementById('processedDownloadLink');
+        const useAsBgTrackBtn = document.getElementById('useAsBgTrackBtn');
+        const effectGrid = document.getElementById('effectGrid');
+
+        let mediaRecorder;
+        let audioChunks = [];
+        let recordedBlob = null;
+        let audioContext = null;
+        let analyser = null;
+        let dataArray = null;
+        let animationId = null;
+        let selectedEffect = 'none';
+        let processedFilename = null;
+
+        // Effect selection
+        effectGrid.querySelectorAll('.effect-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                effectGrid.querySelectorAll('.effect-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedEffect = btn.dataset.effect;
+            });
+        });
+
+        // Recording
+        recordBtn.addEventListener('click', async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const source = audioContext.createMediaStreamSource(stream);
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                source.connect(analyser);
+                dataArray = new Uint8Array(analyser.frequencyBinCount);
+                voiceVisualizer.style.display = 'block';
+                drawVisualizer();
+
+                mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+                audioChunks = [];
+                
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) audioChunks.push(e.data);
+                };
+                
+                mediaRecorder.onstop = () => {
+                    recordedBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    const url = URL.createObjectURL(recordedBlob);
+                    rawAudioPlayer.src = url;
+                    rawPlaybackSection.style.display = 'block';
+                    applyEffectBtn.disabled = false;
+                    
+                    cancelAnimationFrame(animationId);
+                    voiceVisualizer.style.display = 'none';
+                    if (audioContext) audioContext.close();
+                    
+                    stream.getTracks().forEach(t => t.stop());
+                };
+                
+                mediaRecorder.start();
+                recordBtn.disabled = true;
+                stopBtn.disabled = false;
+                recordBtn.classList.add('recording');
+                recordBtn.textContent = '🔴 Recording...';
+                
+            } catch (err) {
+                alert('Microphone access denied or not available: ' + err.message);
+            }
+        });
+
+        stopBtn.addEventListener('click', () => {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+            recordBtn.disabled = false;
+            stopBtn.disabled = true;
+            recordBtn.classList.remove('recording');
+            recordBtn.textContent = '🎙️ Record';
+        });
+
+        function drawVisualizer() {
+            const canvas = voiceVisualizer;
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+            
+            function draw() {
+                animationId = requestAnimationFrame(draw);
+                analyser.getByteFrequencyData(dataArray);
+                
+                ctx.fillStyle = '#1a1a25';
+                ctx.fillRect(0, 0, width, height);
+                
+                const barWidth = (width / dataArray.length) * 2.5;
+                let x = 0;
+                
+                for (let i = 0; i < dataArray.length; i++) {
+                    const barHeight = (dataArray[i] / 255) * height;
+                    const gradient = ctx.createLinearGradient(0, height, 0, height - barHeight);
+                    gradient.addColorStop(0, '#ff6b35');
+                    gradient.addColorStop(1, '#f7c531');
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(x, height - barHeight, barWidth, barHeight);
+                    x += barWidth + 1;
+                }
+            }
+            draw();
+        }
+
+        // Apply Effect
+        applyEffectBtn.addEventListener('click', async () => {
+            if (!recordedBlob) return;
+            
+            if (selectedEffect === 'none') {
+                processedAudioPlayer.src = URL.createObjectURL(recordedBlob);
+                processedResult.style.display = 'block';
+                return;
+            }
+            
+            effectSpinner.classList.add('show');
+            applyEffectBtn.disabled = true;
+            
+            const formData = new FormData();
+            formData.append('audio', recordedBlob, 'recording.webm');
+            formData.append('effect', selectedEffect);
+            
+            try {
+                const response = await fetch('/api/process_voice', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) throw new Error('Server error: ' + response.status);
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    processedFilename = result.filename;
+                    processedAudioPlayer.src = result.audio_url;
+                    processedDownloadLink.href = result.download_url;
+                    processedDownloadLink.download = `dj_beshi_voice_${selectedEffect}.mp3`;
+                    processedResult.style.display = 'block';
+                    processedResult.scrollIntoView({ behavior: 'smooth' });
+                } else {
+                    alert('Effect failed: ' + (result.error || 'Unknown error'));
+                }
+            } catch (err) {
+                alert('Error applying effect: ' + err.message);
+            } finally {
+                effectSpinner.classList.remove('show');
+                applyEffectBtn.disabled = false;
+            }
+        });
+
+        // Use processed voice as background track
+        useAsBgTrackBtn.addEventListener('click', () => {
+            if (!processedFilename) return;
+            
+            bgTrackHidden.value = processedFilename;
+            uploadText.textContent = 'Voice effect set as background track!';
+            uploadFilename.textContent = processedFilename;
+            uploadFilename.style.display = 'block';
+            
+            document.getElementById('generateBtn').scrollIntoView({ behavior: 'smooth' });
+            alert('✅ Voice effect is now set as your background track! Click "Generate Premium Drop" to mix it with your DJ drop.');
+        });
     </script>
 </body>
 </html>
