@@ -12,9 +12,9 @@ import asyncio
 import subprocess
 import shutil
 import urllib.request
+import json
 from pathlib import Path
 from datetime import datetime
-from difflib import SequenceMatcher
 
 from flask import Flask, render_template, request, jsonify, send_file, send_from_directory
 import edge_tts
@@ -29,8 +29,6 @@ OUTPUT_DIR = BASE_DIR / "generated_drops"
 OUTPUT_DIR.mkdir(exist_ok=True)
 UPLOAD_DIR = BASE_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
-
-# AI Training storage
 TRAINING_DIR = BASE_DIR / "training_data"
 TRAINING_DIR.mkdir(exist_ok=True)
 
@@ -69,17 +67,10 @@ print("=" * 60)
 # ============================================================
 
 class AITrainingEngine:
-    """
-    Learns from user-provided example drops.
-    Extracts patterns, style, energy level, and mimics them.
-    """
-    
     TRAINING_FILE = TRAINING_DIR / "trained_examples.json"
     
     @classmethod
     def save_training(cls, example_text, genre, style_notes):
-        """Save a training example for future mimicry."""
-        import json
         examples = []
         if cls.TRAINING_FILE.exists():
             with open(cls.TRAINING_FILE, 'r') as f:
@@ -103,8 +94,6 @@ class AITrainingEngine:
     
     @classmethod
     def load_training(cls):
-        """Load all training examples."""
-        import json
         if not cls.TRAINING_FILE.exists():
             return []
         with open(cls.TRAINING_FILE, 'r') as f:
@@ -112,7 +101,6 @@ class AITrainingEngine:
     
     @classmethod
     def analyze_style(cls, text):
-        """Analyze the style of a drop text."""
         return {
             "length": len(text),
             "words": text.split(),
@@ -125,12 +113,7 @@ class AITrainingEngine:
     
     @classmethod
     def mimic_drop(cls, example_text, dj_name, genre="club_banger", energy=8):
-        """
-        Create a new drop that mimics the style of the example.
-        Preserves structure, energy, and flow while changing content.
-        """
         style = cls.analyze_style(example_text)
-        
         has_opener = bool(re.match(r'^[^.!?]+[!.,]', example_text))
         has_closer = bool(re.search(r'[!.,]\s*[^.!?]+[!.,]?$', example_text))
         
@@ -188,7 +171,6 @@ class AITrainingEngine:
     
     @classmethod
     def generate_from_training(cls, dj_name, genre, energy, example_text=None):
-        """Generate a drop using training data or a fresh example."""
         if example_text and example_text.strip():
             cls.save_training(example_text, genre, "user_provided")
             return cls.mimic_drop(example_text, dj_name, genre, energy)
@@ -204,7 +186,7 @@ class AITrainingEngine:
 
 
 # ============================================================
-# 1) SCRIPT AI ENGINE
+# SCRIPT AI ENGINE
 # ============================================================
 
 class PremiumDJScriptAI:
@@ -291,21 +273,18 @@ class PremiumDJScriptAI:
         }
     }
 
-    DROP_TYPES = ["intro", "sweeper", "hype", "promo",
-                  "producer_tag", "radio_id", "crowd_call"]
-
     @classmethod
-    def clean_name(cls, dj_name: str) -> str:
+    def clean_name(cls, dj_name):
         return re.sub(r"\s+", " ", (dj_name or "").strip()) or "DJ Beshi"
 
     @classmethod
-    def normalize_for_stutter(cls, txt: str) -> str:
+    def normalize_for_stutter(cls, txt):
         txt = txt.strip()
         txt = re.sub(r"\s+", " ", txt)
         return txt
 
     @classmethod
-    def apply_stutter(cls, dj_name: str, style: str = "classic", user_stutter: str = "") -> str:
+    def apply_stutter(cls, dj_name, style="classic", user_stutter=""):
         name = cls.clean_name(dj_name)
         words = name.split()
         if not words:
@@ -335,7 +314,7 @@ class PremiumDJScriptAI:
         return name
 
     @classmethod
-    def energy_profile(cls, energy: int):
+    def energy_profile(cls, energy):
         if energy <= 3:
             return {"exclaim": "", "extra": "steady vibes only."}
         elif energy <= 6:
@@ -345,11 +324,11 @@ class PremiumDJScriptAI:
         return {"exclaim": "!!!", "extra": "shutdown mode."}
 
     @classmethod
-    def choose_stutter_style(cls, genre: str, use_stutter: bool) -> str:
+    def choose_stutter_style(cls, genre, use_stutter):
         if not use_stutter:
             return "none"
         mapping = {
-                        "dancehall": "classic",
+            "dancehall": "classic",
             "club_banger": "build_up",
             "amapiano": "echo_name",
             "radio": "none",
@@ -359,7 +338,7 @@ class PremiumDJScriptAI:
         return mapping.get(genre, "classic")
 
     @classmethod
-    def score_line(cls, text: str, genre: str, energy: int, drop_type: str) -> int:
+    def score_line(cls, text, genre, energy, drop_type):
         score = 0
         t = text.lower()
 
@@ -398,14 +377,20 @@ class PremiumDJScriptAI:
         p = cls.energy_profile(energy)
         city_part = f" in {city}" if city else ""
 
-        options = [
-            f"{opener} {display_name} is {verb}{city_part}. {energy_line.capitalize()}{p['exclaim']} {closer.capitalize()}",
-            f"{opener} Locked in with {display_name}{city_part}. {energy_line.capitalize()}{p['exclaim']} {p['extra']}",
-        ]
+        opt1 = (
+            f"{opener} {display_name} is {verb}{city_part}. "
+            f"{energy_line.capitalize()}{p['exclaim']} {closer.capitalize()}"
+        )
+        opt2 = (
+            f"{opener} Locked in with {display_name}{city_part}. "
+            f"{energy_line.capitalize()}{p['exclaim']} {p['extra']}"
+        )
+        options = [opt1, opt2]
 
         if mood == "luxury":
             options.append(
-                f"{opener} Premium settings only. {display_name}{city_part} is {verb}. {energy_line.capitalize()}."
+                f"{opener} Premium settings only. {display_name}{city_part} is {verb}. "
+                f"{energy_line.capitalize()}."
             )
         elif mood == "aggressive":
             options.append(
@@ -413,11 +398,13 @@ class PremiumDJScriptAI:
             )
         elif mood == "dark":
             options.append(
-                f"{opener} {display_name}{city_part}. Dark pressure. {energy_line.capitalize()}{p['exclaim']}"
+                f"{opener} {display_name}{city_part}. Dark pressure. "
+                f"{energy_line.capitalize()}{p['exclaim']}"
             )
         elif mood == "festival":
             options.append(
-                f"{opener} {display_name}{city_part}. Main-stage pressure. {energy_line.capitalize()}{p['exclaim']}"
+                f"{opener} {display_name}{city_part}. Main-stage pressure. "
+                f"{energy_line.capitalize()}{p['exclaim']}"
             )
 
         return random.choice(options)
@@ -445,7 +432,10 @@ class PremiumDJScriptAI:
         closer = random.choice(data["closers"])
         p = cls.energy_profile(energy)
         city_part = f" {city} stand up!" if city else ""
-        return f"{opener} {display_name} in full effect{p['exclaim']} {city_part} {closer.capitalize()} {p['extra']}"
+        return (
+            f"{opener} {display_name} in full effect{p['exclaim']} "
+            f"{city_part} {closer.capitalize()} {p['extra']}"
+        )
 
     @classmethod
     def build_promo(cls, display_name, data, city, event_name):
@@ -466,8 +456,11 @@ class PremiumDJScriptAI:
     def build_radio_id(cls, display_name, city="", station_name="", slogan=""):
         city_part = f" in {city}" if city else ""
         station_part = f" on {station_name}" if station_name else ""
-        slogan_part = f" — {slogan}" if slogan else ""
-        return f"You're locked in with {display_name}{city_part}{station_part}{slogan_part}. Premium radio sound."
+        slogan_part = f" -- {slogan}" if slogan else ""
+        return (
+            f"You're locked in with {display_name}{city_part}{station_part}{slogan_part}. "
+            f"Premium radio sound."
+        )
 
     @classmethod
     def build_crowd_call(cls, display_name, city="", crew_tag=""):
@@ -533,21 +526,18 @@ class PremiumDJScriptAI:
 
 
 # ============================================================
-# 2) AUDIO / FX ENGINE - LOUD VERSION
+# AUDIO / FX ENGINE - LOUD VERSION
 # ============================================================
 
 class PremiumAudioStudio:
-    """
-    Audio engine with LOUD output for maximum impact.
-    """
     
     @classmethod
-    def safe_stereo(cls, mlev: float) -> str:
+    def safe_stereo(cls, mlev):
         mlev = max(0.015625, min(64.0, float(mlev)))
         return f"stereotools=mlev={mlev:.6f}"
 
     @classmethod
-    def get_fx_profile(cls, style: str, energy: int):
+    def get_fx_profile(cls, style, energy):
         style = style.lower().strip()
 
         profile = {
@@ -638,7 +628,7 @@ class PremiumAudioStudio:
                 "vocal_gain": 1.35
             })
 
-        else:  # club_banger - MAXIMUM LOUD
+        else:  # club_banger
             profile.update({
                 "highpass": 100,
                 "presence_eq": "equalizer=f=3400:width_type=q:width=1.0:g=4.5",
@@ -657,7 +647,7 @@ class PremiumAudioStudio:
         return profile
 
     @classmethod
-    def build_vocal_fx_chain(cls, style: str, energy: int, fx_mode: str = "auto"):
+    def build_vocal_fx_chain(cls, style, energy, fx_mode="auto"):
         p = cls.get_fx_profile(style, energy)
         chain = []
 
@@ -812,7 +802,7 @@ class PremiumAudioStudio:
 
 
 # ============================================================
-# 3) VOICE PRESETS - LOUD
+# VOICE PRESETS
 # ============================================================
 
 VOICE_PRESETS = {
@@ -843,7 +833,7 @@ AUTO_GENRE_VOICE = {
 }
 
 
-def safe_filename(name: str) -> str:
+def safe_filename(name):
     name = (name or "").strip()
     name = re.sub(r"[^\w\-\. ]+", "", name)
     name = re.sub(r"\s+", "_", name)
@@ -896,7 +886,7 @@ async def synthesize_tts_smart(text, voice, out_path, rate, volume):
 
 
 # ============================================================
-# 4) MAIN GENERATION FUNCTION
+# MAIN GENERATION FUNCTION
 # ============================================================
 
 async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track,
@@ -904,16 +894,11 @@ async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track,
                              user_stutter, station_name, slogan, crew_tag,
                              fx_mode, vocal_gain, bg_gain, mode="ai", custom_script="",
                              training_example=None):
-    """
-    Generate a drop with optional AI training.
-    training_example: A drop text to mimic/copy
-    """
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     project_name = f"{safe_filename(dj_name)}_{timestamp}"
     out_dir = OUTPUT_DIR / project_name
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # Handle AI Training mode
     if training_example and training_example.strip():
         mimic_result = AITrainingEngine.generate_from_training(
             dj_name=dj_name,
@@ -946,7 +931,6 @@ async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track,
         )
         selected = takes[0]["text"]
 
-    # Save takes
     takes_file = out_dir / "takes.txt"
     with open(takes_file, "w", encoding="utf-8") as f:
         for i, item in enumerate(takes, 1):
@@ -958,12 +942,10 @@ async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track,
 
     preset = VOICE_PRESETS.get(genre.lower(), {"rate": "+5%", "volume": "+10%"})
 
-    # Step 1: TTS
     tts_engine = await synthesize_tts_smart(
         selected, voice, str(raw_vocal), preset["rate"], preset["volume"]
     )
 
-    # Step 2: Apply FX if FFmpeg available
     if FFMPEG_AVAILABLE and raw_vocal.exists() and raw_vocal.stat().st_size > 0:
         try:
             PremiumAudioStudio.render_wet_vocal(
@@ -976,13 +958,10 @@ async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track,
             )
         except Exception as e:
             print(f"Wet FX failed: {e}")
-            import shutil as sh
-            sh.copy(str(raw_vocal), str(wet_vocal))
+            shutil.copy(str(raw_vocal), str(wet_vocal))
     else:
-        import shutil as sh
-        sh.copy(str(raw_vocal), str(wet_vocal))
+        shutil.copy(str(raw_vocal), str(wet_vocal))
 
-    # Step 3: Final master mix
     if FFMPEG_AVAILABLE and wet_vocal.exists() and wet_vocal.stat().st_size > 0:
         try:
             PremiumAudioStudio.render_final_master(
@@ -995,11 +974,9 @@ async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track,
             )
         except Exception as e:
             print(f"Final master failed: {e}")
-            import shutil as sh
-            sh.copy(str(wet_vocal), str(final_master))
+            shutil.copy(str(wet_vocal), str(final_master))
     else:
-        import shutil as sh
-        sh.copy(str(wet_vocal), str(final_master))
+        shutil.copy(str(wet_vocal), str(final_master))
 
     return {
         "project_name": project_name,
@@ -1017,7 +994,7 @@ async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track,
 
 
 # ============================================================
-# 5) FLASK ROUTES
+# FLASK ROUTES
 # ============================================================
 
 @app.route("/")
@@ -1057,9 +1034,6 @@ def get_voices():
 
 @app.route("/api/train", methods=["POST"])
 def api_train():
-    """
-    Save a training example and return a mimicked version.
-    """
     try:
         data = request.get_json()
         example_text = data.get("example", "").strip()
@@ -1238,10 +1212,6 @@ def preview_script():
 
 @app.route("/api/process_voice", methods=["POST"])
 def process_voice_effect():
-    """
-    Receive a recorded voice, apply audio effect using FFmpeg,
-    and return the processed MP3.
-    """
     try:
         if not FFMPEG_AVAILABLE:
             return jsonify({
@@ -1263,15 +1233,22 @@ def process_voice_effect():
         filter_chain = None
 
         if effect == "helium":
-            filter_chain = "asetrate=44100*1.8,atempo=1/1.8,highpass=f=80,acompressor=threshold=-18dB:ratio=4,loudnorm=I=-14:TP=-1.0"
+            filter_chain = (
+                "asetrate=44100*1.8,atempo=1/1.8,"
+                "highpass=f=80,acompressor=threshold=-18dB:ratio=4,"
+                "loudnorm=I=-14:TP=-1.0"
+            )
 
         elif effect == "low":
-            filter_chain = "asetrate=44100*0.55,atempo=1/0.55,highpass=f=60,acompressor=threshold=-16dB:ratio=5,loudnorm=I=-14:TP=-1.0"
+            filter_chain = (
+                "asetrate=44100*0.55,atempo=1/0.55,"
+                "highpass=f=60,acompressor=threshold=-16dB:ratio=5,"
+                "loudnorm=I=-14:TP=-1.0"
+            )
 
         elif effect == "robot":
             filter_chain = (
-                "highpass=f=200,"
-                "aecho=0.8:0.6:5:0.3,"
+                "highpass=f=200,aecho=0.8:0.6:5:0.3,"
                 "vibrato=f=8:d=0.5,"
                 "equalizer=f=3000:width_type=q:width=2:g=6,"
                 "equalizer=f=800:width_type=q:width=1.5:g=4,"
@@ -1283,8 +1260,7 @@ def process_voice_effect():
             filter_chain = (
                 "aecho=0.85:0.65:180|360:0.25|0.15,"
                 "aecho=0.80:0.50:650|900:0.12|0.08,"
-                "highpass=f=100,"
-                "acompressor=threshold=-16dB:ratio=4,"
+                "highpass=f=100,acompressor=threshold=-16dB:ratio=4,"
                 "loudnorm=I=-14:TP=-1.0"
             )
 
@@ -1297,80 +1273,24 @@ def process_voice_effect():
             )
 
         elif effect == "slow":
-            filter_chain = "atempo=0.5,asetrate=22050,aresample=44100,acompressor=threshold=-16dB:ratio=4,loudnorm=I=-14:TP=-1.0"
-
-        elif effect == "fast":
-            filter_chain = "atempo=2.0,asetrate=88200,aresample=44100,acompressor=threshold=-16dB:ratio=4,loudnorm=I=-14:TP=-1.0"
-
-        else:
-            filter_chain = "highpass=f=@app.route("/api/process_voice", methods=["POST"])
-def process_voice_effect():
-    """
-    Receive a recorded voice, apply audio effect using FFmpeg,
-    and return the processed MP3.
-    """
-    try:
-        if not FFMPEG_AVAILABLE:
-            return jsonify({
-                "success": False, 
-                "error": "FFmpeg is not available on this server. Cannot apply voice effects."
-            }), 503
-
-        if "audio" not in request.files:
-            return jsonify({"success": False, "error": "No audio file provided"}), 400
-
-        audio_file = request.files["audio"]
-        effect = request.form.get("effect", "none")
-
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        input_path = UPLOAD_DIR / f"voice_raw_{timestamp}.webm"
-        output_path = UPLOAD_DIR / f"voice_effect_{effect}_{timestamp}.mp3"
-        audio_file.save(str(input_path))
-
-        filter_chain = None
-
-        if effect == "helium":
-            filter_chain = "asetrate=44100*1.8,atempo=1/1.8,highpass=f=80,acompressor=threshold=-18dB:ratio=4,loudnorm=I=-14:TP=-1.0"
-
-        elif effect == "low":
-            filter_chain = "asetrate=44100*0.55,atempo=1/0.55,highpass=f=60,acompressor=threshold=-16dB:ratio=5,loudnorm=I=-14:TP=-1.0"
-
-        elif effect == "robot":
             filter_chain = (
-                "highpass=f=200,"
-                "aecho=0.8:0.6:5:0.3,"
-                "vibrato=f=8:d=0.5,"
-                "equalizer=f=3000:width_type=q:width=2:g=6,"
-                "equalizer=f=800:width_type=q:width=1.5:g=4,"
-                "acompressor=threshold=-14dB:ratio=6,"
-                "loudnorm=I=-12:TP=-0.5"
-            )
-
-        elif effect == "echo":
-            filter_chain = (
-                "aecho=0.85:0.65:180|360:0.25|0.15,"
-                "aecho=0.80:0.50:650|900:0.12|0.08,"
-                "highpass=f=100,"
+                "atempo=0.5,asetrate=22050,aresample=44100,"
                 "acompressor=threshold=-16dB:ratio=4,"
                 "loudnorm=I=-14:TP=-1.0"
             )
 
-        elif effect == "phone":
+        elif effect == "fast":
             filter_chain = (
-                "highpass=f=300,lowpass=f=3400,"
-                "equalizer=f=1000:width_type=q:width=1.5:g=3,"
-                "acompressor=threshold=-14dB:ratio=5,"
+                "atempo=2.0,asetrate=88200,aresample=44100,"
+                "acompressor=threshold=-16dB:ratio=4,"
                 "loudnorm=I=-14:TP=-1.0"
             )
 
-        elif effect == "slow":
-            filter_chain = "atempo=0.5,asetrate=22050,aresample=44100,acompressor=threshold=-16dB:ratio=4,loudnorm=I=-14:TP=-1.0"
-
-        elif effect == "fast":
-            filter_chain = "atempo=2.0,asetrate=88200,aresample=44100,acompressor=threshold=-16dB:ratio=4,loudnorm=I=-14:TP=-1.0"
-
         else:
-            filter_chain = "highpass=f=80,acompressor=threshold=-18dB:ratio=3,loudnorm=I=-14:TP=-1.0"
+            filter_chain = (
+                "highpass=f=80,acompressor=threshold=-18dB:ratio=3,"
+                "loudnorm=I=-14:TP=-1.0"
+            )
 
         cmd = [
             "ffmpeg", "-y",
@@ -1418,7 +1338,7 @@ def serve_upload(filename):
 
 
 # ============================================================
-# 6) APP STARTUP
+# APP STARTUP
 # ============================================================
 
 if __name__ == "__main__":
@@ -1430,4 +1350,3 @@ if __name__ == "__main__":
     print("Features: AI Training Mode | Loud Audio | Voice Effects | PWA Install")
     print("=" * 60)
     app.run(host="0.0.0.0", port=5000, debug=True)
-
