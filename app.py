@@ -1,8 +1,8 @@
 # ============================================================
-# PREMIUM AI DJ DROP FACTORY v3.0
+# DJ DROP FACTORY PRO v3.0
 # Created by: Macdonald Barasa
 # Email: simiyumacdonal1@gmail.com
-# Features: AI Training Mode, Loud Audio, Voice Effects, PWA Install
+# Features: AI Training, Loud Audio, Voice Effects, Library API
 # ============================================================
 
 import os
@@ -19,10 +19,6 @@ from datetime import datetime
 from flask import Flask, render_template, request, jsonify, send_file, send_from_directory
 import edge_tts
 
-# ============================================================
-# FLASK APP
-# ============================================================
-
 app = Flask(__name__)
 BASE_DIR = Path(__file__).parent.resolve()
 OUTPUT_DIR = BASE_DIR / "generated_drops"
@@ -33,7 +29,7 @@ TRAINING_DIR = BASE_DIR / "training_data"
 TRAINING_DIR.mkdir(exist_ok=True)
 
 # ============================================================
-# DETECT AVAILABLE TOOLS
+# TOOLS CHECK
 # ============================================================
 
 def has_internet(timeout=3):
@@ -53,8 +49,7 @@ FFMPEG_AVAILABLE = check_ffmpeg() is not None
 ESPEAK_AVAILABLE = check_espeak() is not None
 
 print("=" * 60)
-print("DJ DROP FACTORY v3.0 - Macdonald Barasa")
-print("Email: simiyumacdonal1@gmail.com")
+print("DJ DROP FACTORY PRO v3.0")
 print("=" * 60)
 print(f"Internet: {'YES' if has_internet() else 'NO'}")
 print(f"FFmpeg:   {'YES' if FFMPEG_AVAILABLE else 'NO'}")
@@ -628,7 +623,7 @@ class PremiumAudioStudio:
                 "vocal_gain": 1.35
             })
 
-        else:  # club_banger
+        else:
             profile.update({
                 "highpass": 100,
                 "presence_eq": "equalizer=f=3400:width_type=q:width=1.0:g=4.5",
@@ -692,7 +687,7 @@ class PremiumAudioStudio:
                 chain.append(p["stereo"])
             chain.append("acompressor=threshold=-12dB:ratio=4:attack=2:release=80")
 
-        else:  # auto
+        else:
             if style_key == "radio":
                 if p["slap"]:
                     chain.append(p["slap"])
@@ -729,7 +724,7 @@ class PremiumAudioStudio:
                 if p["stereo"]:
                     chain.append(p["stereo"])
 
-            else:  # club_banger
+            else:
                 if p["echo"]:
                     chain.append(p["echo"])
                 if energy >= 7 and p["phaser"]:
@@ -1338,15 +1333,72 @@ def serve_upload(filename):
 
 
 # ============================================================
+# LIBRARY API - Save/Load drops server-side
+# ============================================================
+
+LIBRARY_FILE = BASE_DIR / "library.json"
+
+def load_library():
+    if LIBRARY_FILE.exists():
+        with open(LIBRARY_FILE, 'r') as f:
+            return json.load(f)
+    return []
+
+def save_library(library):
+    with open(LIBRARY_FILE, 'w') as f:
+        json.dump(library, f, indent=2)
+
+@app.route("/api/library", methods=["GET"])
+def get_library():
+    return jsonify({"success": True, "drops": load_library()})
+
+@app.route("/api/library", methods=["POST"])
+def add_to_library():
+    try:
+        data = request.get_json()
+        library = load_library()
+        
+        drop = {
+            "id": data.get("id", int(datetime.now().timestamp() * 1000)),
+            "title": data.get("title", "Untitled Drop"),
+            "script": data.get("script", ""),
+            "genre": data.get("genre", "club_banger"),
+            "date": data.get("date", datetime.now().isoformat()),
+            "project": data.get("project", ""),
+            "url": data.get("url", ""),
+            "dj_name": data.get("dj_name", "DJ Beshi")
+        }
+        
+        library.insert(0, drop)
+        if len(library) > 100:
+            library = library[:100]
+        
+        save_library(library)
+        return jsonify({"success": True, "drop": drop})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/library/<drop_id>", methods=["DELETE"])
+def delete_from_library(drop_id):
+    try:
+        library = load_library()
+        library = [d for d in library if str(d.get("id")) != str(drop_id)]
+        save_library(library)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ============================================================
 # APP STARTUP
 # ============================================================
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("   PREMIUM AI DJ DROP FACTORY v3.0")
+    print("   DJ DROP FACTORY PRO v3.0")
     print("   Created by: Macdonald Barasa")
     print("   Email: simiyumacdonal1@gmail.com")
     print("=" * 60)
-    print("Features: AI Training Mode | Loud Audio | Voice Effects | PWA Install")
+    print("Features: AI Training | Loud Audio | Voice Effects | Library | PWA")
     print("=" * 60)
     app.run(host="0.0.0.0", port=5000, debug=True)
