@@ -1,1839 +1,1839 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#0a0a0f">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="author" content="Macdonald Barasa">
-    <title>DJ Drop Factory Pro</title>
-    <link rel="manifest" href="/manifest.json">
-    <link rel="apple-touch-icon" href="/static/icon-192.png">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DJ Drop Factory Pro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0e1a;
+      --bg-elevated: #0f1528;
+      --card: #111835;
+      --card-hover: #161e3d;
+      --text: #e8ecff;
+      --text-secondary: #8b95c4;
+      --text-muted: #5a6490;
+      --border: #1e2750;
+      --border-hover: #2a3570;
+      --accent: #6366f1;
+      --accent-glow: rgba(99, 102, 241, 0.15);
+      --accent2: #06b6d4;
+      --accent2-glow: rgba(6, 182, 212, 0.15);
+      --good: #22c55e;
+      --good-glow: rgba(34, 197, 94, 0.15);
+      --warn: #f59e0b;
+      --warn-glow: rgba(245, 158, 11, 0.15);
+      --bad: #ef4444;
+      --bad-glow: rgba(239, 68, 68, 0.15);
+      --radius-sm: 10px;
+      --radius-md: 16px;
+      --radius-lg: 24px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.3);
+      --shadow-lg: 0 12px 40px rgba(0,0,0,0.4);
+      --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
 
-        :root {
-            --bg: #050508;
-            --bg-elevated: #0f0f16;
-            --bg-card: #16161f;
-            --bg-hover: #1e1e2a;
-            --bg-input: #252532;
-            --accent: #ff6b35;
-            --accent-glow: rgba(255, 107, 53, 0.4);
-            --accent-soft: rgba(255, 107, 53, 0.1);
-            --accent2: #00d084;
-            --accent2-glow: rgba(0, 208, 132, 0.3);
-            --text: #ffffff;
-            --text-secondary: #a0a0b0;
-            --text-muted: #5a5a6a;
-            --border: #2a2a3a;
-            --success: #00d084;
-            --error: #ff4757;
-            --warning: #f7c531;
-            --purple: #9b59b6;
-            --blue: #3498db;
-        }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        * { 
-            margin: 0; 
-            padding: 0; 
-            box-sizing: border-box; 
-            -webkit-tap-highlight-color: transparent;
-        }
-        
-        html { scroll-behavior: smooth; }
-        
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            min-height: 100vh;
-            line-height: 1.5;
-            font-weight: 400;
-            -webkit-font-smoothing: antialiased;
-            overflow-x: hidden;
-        }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
 
-        /* Animated Background */
-        .bg-glow {
-            position: fixed;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: 
-                radial-gradient(ellipse at 20% 20%, rgba(255, 107, 53, 0.08) 0%, transparent 50%),
-                radial-gradient(ellipse at 80% 80%, rgba(155, 89, 182, 0.06) 0%, transparent 50%),
-                radial-gradient(ellipse at 50% 50%, rgba(0, 208, 132, 0.04) 0%, transparent 50%);
-            animation: bgFloat 20s ease-in-out infinite;
-            pointer-events: none;
-            z-index: 0;
-        }
-        @keyframes bgFloat {
-            0%, 100% { transform: translate(0, 0) rotate(0deg); }
-            33% { transform: translate(30px, -30px) rotate(2deg); }
-            66% { transform: translate(-20px, 20px) rotate(-1deg); }
-        }
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
 
-        @media (prefers-reduced-motion: reduce) {
-            .bg-glow, .hero-card::before, .recorder-ring.recording, .hero-dot { animation: none !important; }
-        }
+    /* Layout */
+    .app {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px;
+    }
 
-        /* App Container */
-        .app-container { 
-            max-width: 430px; 
-            margin: 0 auto; 
-            position: relative; 
-            min-height: 100vh;
-            z-index: 1;
-        }
+    /* Header / Hero */
+    .hero {
+      position: relative;
+      background: linear-gradient(135deg, var(--card) 0%, var(--bg-elevated) 100%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
 
-        /* Status Bar */
-        .status-bar {
-            height: 44px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 24px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            background: rgba(5, 5, 8, 0.85);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-        }
-        .status-time { font-size: 15px; font-weight: 600; letter-spacing: -0.3px; }
-        .status-icons { display: flex; gap: 6px; align-items: center; }
-        .signal-bars { display: flex; gap: 2px; align-items: flex-end; height: 12px; }
-        .signal-bar { width: 3px; background: var(--text); border-radius: 1px; opacity: 0.9; }
-        .signal-bar:nth-child(1) { height: 4px; }
-        .signal-bar:nth-child(2) { height: 6px; }
-        .signal-bar:nth-child(3) { height: 8px; }
-        .signal-bar:nth-child(4) { height: 10px; }
-        .wifi-icon { font-size: 14px; }
-        .battery { 
-            width: 22px; 
-            height: 11px; 
-            border: 1.5px solid var(--text); 
-            border-radius: 3px; 
-            position: relative; 
-            display: flex; 
-            align-items: center; 
-            padding: 1px; 
-        }
-        .battery::after { 
-            content: ''; 
-            position: absolute; 
-            right: -3px; 
-            width: 2px; 
-            height: 5px; 
-            background: var(--text); 
-            border-radius: 0 1px 1px 0; 
-        }
-        .battery-fill { 
-            height: 100%; 
-            width: 75%; 
-            background: linear-gradient(90deg, var(--success), #2ecc71); 
-            border-radius: 1px; 
-        }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -10%;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
 
-        /* Screens */
-        .screen {
-            display: none;
-            padding: 0 20px 100px;
-            animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .screen.active { display: block; }
-        @keyframes fadeIn { 
-            from { opacity: 0; transform: translateY(20px); } 
-            to { opacity: 1; transform: translateY(0); } 
-        }
+    .hero::after {
+      content: '';
+      position: absolute;
+      top: -30%;
+      left: -5%;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(6,182,212,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
 
-        /* Navigation Header */
-        .nav-header {
-            padding: 16px 0 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .nav-title {
-            font-size: 32px;
-            font-weight: 800;
-            letter-spacing: -1px;
-            background: linear-gradient(135deg, var(--text) 0%, var(--text-secondary) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .nav-subtitle {
-            font-size: 13px;
-            color: var(--text-muted);
-            margin-top: 2px;
-            font-weight: 500;
-        }
-        .nav-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 14px;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            color: var(--accent);
-            font-size: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        .nav-btn:hover { 
-            background: var(--accent-soft); 
-            border-color: var(--accent); 
-            transform: scale(1.05); 
-        }
-        .nav-btn:active { transform: scale(0.95); }
-        .nav-btn:focus-visible, .segment:focus-visible, .effect-chip:focus-visible,
-        .tab-item:focus-visible, .btn-primary:focus-visible, .btn-secondary:focus-visible,
-        .library-item:focus-visible, .toggle-switch:focus-visible {
-            outline: 2px solid var(--accent);
-            outline-offset: 2px;
-        }
+    .hero h1 {
+      font-size: clamp(32px, 5vw, 48px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      position: relative;
+      z-index: 1;
+    }
 
-        /* Hero Card */
-        .hero-card {
-            background: linear-gradient(135deg, var(--accent) 0%, #e85d04 50%, var(--purple) 100%);
-            border-radius: 24px;
-            padding: 28px;
-            margin-bottom: 24px;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 20px 60px rgba(255, 107, 53, 0.3);
-        }
-        .hero-card::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 60%);
-            animation: heroShine 8s ease-in-out infinite;
-        }
-        @keyframes heroShine {
-            0%, 100% { transform: translate(0, 0); }
-            50% { transform: translate(-20%, 20%); }
-        }
-        .hero-title {
-            font-size: 24px;
-            font-weight: 800;
-            color: #fff;
-            position: relative;
-            z-index: 1;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
-        }
-        .hero-text {
-            font-size: 14px;
-            color: rgba(255,255,255,0.85);
-            margin-top: 8px;
-            position: relative;
-            z-index: 1;
-            font-weight: 500;
-        }
-        .hero-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: rgba(255,255,255,0.2);
-            backdrop-filter: blur(10px);
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            margin-top: 16px;
-            position: relative;
-            z-index: 1;
-            color: #fff;
-        }
-        .hero-dot {
-            width: 8px;
-            height: 8px;
-            background: var(--success);
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0, 208, 132, 0.7); }
-            50% { opacity: 0.8; box-shadow: 0 0 0 8px rgba(0, 208, 132, 0); }
-        }
+    .hero p {
+      color: var(--text-secondary);
+      font-size: 16px;
+      max-width: 700px;
+      position: relative;
+      z-index: 1;
+    }
 
-        /* Section Cards */
-        .section-card {
-            background: var(--bg-card);
-            border-radius: 20px;
-            border: 1px solid var(--border);
-            margin-bottom: 16px;
-            overflow: hidden;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .section-card:hover { 
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3); 
-        }
+    /* Status Bar */
+    .status-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-top: 24px;
+      position: relative;
+      z-index: 1;
+    }
 
-        .section-header {
-            padding: 16px 20px 8px;
-            font-size: 13px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: var(--accent);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
+    .status-pill {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      transition: var(--transition);
+    }
 
-        /* Segmented Control */
-        .segmented-control {
-            display: flex;
-            background: var(--bg-input);
-            border-radius: 14px;
-            padding: 3px;
-            margin: 0 20px 20px;
-            border: 1px solid var(--border);
-        }
-        .segment {
-            flex: 1;
-            padding: 10px 8px;
-            text-align: center;
-            border-radius: 12px;
-            border: none;
-            background: transparent;
-            color: var(--text-muted);
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            font-family: inherit;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-        }
-        .segment.active {
-            background: linear-gradient(135deg, var(--accent), #e85d04);
-            color: #fff;
-            box-shadow: 0 4px 15px var(--accent-glow);
-        }
+    .status-pill:hover {
+      border-color: var(--border-hover);
+      background: rgba(255,255,255,0.05);
+    }
 
-        /* Form Elements */
-        .form-group { 
-            padding: 0 20px 16px; 
-        }
-        .form-label {
-            display: block;
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-        .form-input, .form-select {
-            width: 100%;
-            padding: 14px 16px;
-            border-radius: 14px;
-            border: 1.5px solid var(--border);
-            background: var(--bg-input);
-            color: var(--text);
-            font-size: 16px;
-            font-family: inherit;
-            outline: none;
-            transition: all 0.2s ease;
-        }
-        .form-input:focus, .form-select:focus { 
-            border-color: var(--accent); 
-            box-shadow: 0 0 0 4px var(--accent-soft); 
-        }
-        .form-select { 
-            cursor: pointer; 
-            appearance: none; 
-            -webkit-appearance: none; 
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23a0a0b0' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 16px center;
-            padding-right: 40px;
-        }
-        .form-textarea {
-            width: 100%;
-            padding: 14px 16px;
-            border-radius: 14px;
-            border: 1.5px solid var(--border);
-            background: var(--bg-input);
-            color: var(--text);
-            font-size: 16px;
-            font-family: inherit;
-            outline: none;
-            resize: vertical;
-            min-height: 100px;
-            transition: all 0.2s ease;
-        }
-        .form-textarea:focus { 
-            border-color: var(--accent); 
-            box-shadow: 0 0 0 4px var(--accent-soft); 
-        }
+    .status-pill .label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
 
-        /* Slider */
-        .slider-wrap { padding: 8px 20px 20px; }
-        .slider-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-        .slider-label { 
-            font-size: 13px; 
-            font-weight: 600; 
-            color: var(--text-secondary); 
-            text-transform: uppercase; 
-            letter-spacing: 0.05em; 
-        }
-        .slider-value { 
-            font-size: 20px; 
-            font-weight: 800; 
-            color: var(--accent); 
-        }
-        input[type="range"] {
-            width: 100%;
-            height: 6px;
-            border-radius: 3px;
-            background: linear-gradient(to right, var(--accent) var(--progress, 80%), var(--bg-input) var(--progress, 80%));
-            outline: none;
-            -webkit-appearance: none;
-        }
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--accent), #e85d04);
-            cursor: pointer;
-            box-shadow: 0 2px 12px var(--accent-glow);
-            border: 3px solid var(--bg);
-        }
-        input[type="range"]::-moz-range-thumb {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--accent), #e85d04);
-            cursor: pointer;
-            box-shadow: 0 2px 12px var(--accent-glow);
-            border: 3px solid var(--bg);
-        }
-        input[type="range"]::-moz-range-progress {
-            background: var(--accent);
-            height: 6px;
-            border-radius: 3px;
-        }
+    .status-pill .value {
+      font-size: 15px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
 
-        /* Toggle */
-        .toggle-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 14px 20px;
-            border-bottom: 1px solid var(--border);
-        }
-        .toggle-row:last-child { border-bottom: none; }
-        .toggle-info {}
-        .toggle-title { font-size: 16px; font-weight: 500; color: var(--text); }
-        .toggle-desc { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
-        .toggle-switch {
-            width: 51px;
-            height: 31px;
-            border-radius: 15.5px;
-            background: var(--bg-input);
-            position: relative;
-            cursor: pointer;
-            transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            flex-shrink: 0;
-            border: 1px solid var(--border);
-        }
-        .toggle-switch.on { 
-            background: linear-gradient(135deg, var(--accent), #e85d04); 
-            border-color: transparent; 
-        }
-        .toggle-knob {
-            width: 27px;
-            height: 27px;
-            border-radius: 50%;
-            background: #fff;
-            position: absolute;
-            top: 1px;
-            left: 1px;
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-        }
-        .toggle-switch.on .toggle-knob { transform: translateX(20px); }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      animation: pulse 2s infinite;
+    }
 
-        /* Voice Recorder */
-        .recorder-section {
-            text-align: center;
-            padding: 20px;
-        }
-        .recorder-ring {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--bg-card), var(--bg-hover));
-            border: 2px solid var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto;
-            position: relative;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-        }
-        .recorder-ring:hover { 
-            border-color: var(--accent); 
-            transform: scale(1.05); 
-        }
-        .recorder-ring.recording {
-            border-color: var(--error);
-            background: linear-gradient(135deg, rgba(255, 71, 87, 0.2), rgba(255, 71, 87, 0.05));
-            animation: pulse-ring 1.5s infinite;
-        }
-        @keyframes pulse-ring {
-            0% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.5); }
-            70% { box-shadow: 0 0 0 25px rgba(255, 71, 87, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0); }
-        }
-        .recorder-icon { font-size: 36px; transition: transform 0.2s ease; }
-        .recorder-ring:active .recorder-icon { transform: scale(0.9); }
-        .recorder-label {
-            font-size: 14px;
-            color: var(--text-secondary);
-            margin-top: 12px;
-            font-weight: 500;
-        }
-        .recorder-time {
-            font-size: 28px;
-            font-weight: 800;
-            color: var(--error);
-            margin-top: 4px;
-            font-variant-numeric: tabular-nums;
-        }
+    .status-dot.online { background: var(--good); box-shadow: 0 0 8px var(--good-glow); }
+    .status-dot.offline { background: var(--bad); box-shadow: 0 0 8px var(--bad-glow); }
+    .status-dot.warn { background: var(--warn); box-shadow: 0 0 8px var(--warn-glow); }
+    .status-dot.checking { background: var(--text-muted); animation: pulse 1s infinite; }
 
-        /* Visualizer */
-        .visualizer {
-            display: flex;
-            align-items: flex-end;
-            justify-content: center;
-            gap: 3px;
-            height: 50px;
-            margin: 16px 0;
-        }
-        .viz-bar {
-            width: 4px;
-            background: linear-gradient(to top, var(--accent), var(--purple));
-            border-radius: 2px;
-            transition: height 0.08s ease;
-        }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
 
-        /* Effect Grid */
-        .effect-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-            padding: 0 20px 20px;
-        }
-        .effect-chip {
-            aspect-ratio: 1;
-            border-radius: 18px;
-            background: var(--bg-input);
-            border: 2px solid transparent;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            padding: 8px;
-        }
-        .effect-chip:hover { 
-            background: var(--bg-hover); 
-            transform: translateY(-2px); 
-        }
-        .effect-chip:active { transform: scale(0.95); }
-        .effect-chip.active {
-            border-color: var(--accent);
-            background: linear-gradient(135deg, var(--accent-soft), rgba(155, 89, 182, 0.1));
-            box-shadow: 0 4px 20px var(--accent-glow);
-        }
-        .effect-chip-icon { font-size: 26px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); }
-        .effect-chip-label { 
-            font-size: 10px; 
-            font-weight: 700; 
-            color: var(--text-muted); 
-            text-transform: uppercase; 
-            letter-spacing: 0.05em; 
-        }
-        .effect-chip.active .effect-chip-label { color: var(--accent); }
+    /* Main Grid */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 0.6fr;
+      gap: 24px;
+      align-items: start;
+    }
 
-        /* Buttons */
-        .btn-primary {
-            width: calc(100% - 40px);
-            margin: 0 20px 16px;
-            padding: 18px;
-            border-radius: 16px;
-            border: none;
-            background: linear-gradient(135deg, var(--accent), #e85d04);
-            color: #fff;
-            font-size: 17px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-family: inherit;
-            letter-spacing: -0.3px;
-            box-shadow: 0 8px 30px var(--accent-glow);
-            position: relative;
-            overflow: hidden;
-        }
-        .btn-primary::before {
-            content: '';
-            position: absolute;
-            top: 0; left: -100%;
-            width: 100%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s ease;
-        }
-        .btn-primary:hover::before { left: 100%; }
-        .btn-primary:active { transform: scale(0.97); box-shadow: 0 4px 15px var(--accent-glow); }
-        .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    @media (max-width: 1100px) {
+      .main-grid { grid-template-columns: 1fr; }
+    }
 
-        .btn-secondary {
-            width: calc(100% - 40px);
-            margin: 0 20px 16px;
-            padding: 16px;
-            border-radius: 16px;
-            border: 1.5px solid var(--border);
-            background: var(--bg-card);
-            color: var(--accent);
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-family: inherit;
-        }
-        .btn-secondary:hover { 
-            border-color: var(--accent); 
-            background: var(--accent-soft); 
-        }
-        .btn-secondary:active { transform: scale(0.97); }
-        .btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
+    /* Cards */
+    .card {
+      background: linear-gradient(180deg, var(--card) 0%, var(--bg-elevated) 100%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin-bottom: 20px;
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
 
-        /* Audio Player */
-        .audio-wrap {
-            padding: 0 20px 16px;
-        }
-        audio {
-            width: 100%;
-            height: 44px;
-            border-radius: 12px;
-        }
-        audio::-webkit-media-controls-panel {
-            background: var(--bg-input);
-        }
+    .card:hover {
+      border-color: var(--border-hover);
+    }
 
-        /* Library Items */
-        .library-item {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            padding: 14px;
-            background: var(--bg-card);
-            border-radius: 16px;
-            margin-bottom: 10px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            border: 1px solid var(--border);
-        }
-        .library-item:hover { 
-            border-color: var(--accent); 
-            transform: translateX(4px); 
-        }
-        .library-item:active { transform: scale(0.98); }
-        .library-art {
-            width: 52px;
-            height: 52px;
-            border-radius: 14px;
-            background: linear-gradient(135deg, var(--accent), var(--purple));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 22px;
-            flex-shrink: 0;
-            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
-        }
-        .library-info { flex: 1; min-width: 0; }
-        .library-title {
-            font-size: 15px;
-            font-weight: 600;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .library-meta {
-            font-size: 12px;
-            color: var(--text-muted);
-            margin-top: 3px;
-            font-weight: 500;
-        }
-        .library-play {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--accent), #e85d04);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            flex-shrink: 0;
-            box-shadow: 0 4px 12px var(--accent-glow);
-            transition: transform 0.2s ease;
-        }
-        .library-play:hover { transform: scale(1.1); }
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
 
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 80px 20px;
-            color: var(--text-muted);
-        }
-        .empty-icon { 
-            font-size: 72px; 
-            margin-bottom: 20px; 
-            opacity: 0.3; 
-            filter: grayscale(1); 
-        }
-        .empty-title { 
-            font-size: 20px; 
-            font-weight: 700; 
-            margin-bottom: 8px; 
-            color: var(--text-secondary); 
-        }
-        .empty-subtitle { 
-            font-size: 15px; 
-            line-height: 1.5; 
-        }
+    .card h2 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
 
-        /* Player Bar */
-        .player-bar {
-            position: fixed;
-            bottom: 90px;
-            left: 50%;
-            transform: translateX(-50%) translateY(100px);
-            width: calc(100% - 40px);
-            max-width: 390px;
-            background: linear-gradient(135deg, var(--bg-card), var(--bg-elevated));
-            border-radius: 20px;
-            padding: 14px;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            z-index: 90;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-            border: 1px solid var(--border);
-            backdrop-filter: blur(20px);
-            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .player-bar.show { transform: translateX(-50%) translateY(0); }
-        .player-art {
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
-            background: linear-gradient(135deg, var(--accent), var(--purple));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            flex-shrink: 0;
-        }
-        .player-info { flex: 1; min-width: 0; }
-        .player-title { 
-            font-size: 14px; 
-            font-weight: 600; 
-            white-space: nowrap; 
-            overflow: hidden; 
-            text-overflow: ellipsis; 
-        }
-        .player-artist { 
-            font-size: 12px; 
-            color: var(--text-muted); 
-            margin-top: 2px; 
-        }
-        .player-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--accent), #e85d04);
-            border: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            cursor: pointer;
-            flex-shrink: 0;
-            box-shadow: 0 4px 12px var(--accent-glow);
-            color: #fff;
-        }
+    .card h2 .icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
 
-        /* Tab Bar */
-        .tab-bar {
-            position: fixed;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 100%;
-            max-width: 430px;
-            height: 80px;
-            background: linear-gradient(to top, rgba(5,5,8,0.98), rgba(15,15,22,0.95));
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-top: 1px solid var(--border);
-            display: flex;
-            justify-content: space-around;
-            align-items: flex-start;
-            padding-top: 10px;
-            z-index: 100;
-            padding-bottom: env(safe-area-inset-bottom);
-        }
-        .tab-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            padding: 4px 16px;
-            cursor: pointer;
-            color: var(--text-muted);
-            transition: all 0.2s ease;
-            border: none;
-            background: none;
-            font-family: inherit;
-            position: relative;
-        }
-        .tab-item.active { color: var(--accent); }
-        .tab-item.active::after {
-            content: '';
-            position: absolute;
-            top: -10px;
-            width: 4px;
-            height: 4px;
-            border-radius: 50%;
-            background: var(--accent);
-            box-shadow: 0 0 8px var(--accent);
-        }
-        .tab-icon { font-size: 24px; line-height: 1; transition: transform 0.2s ease; }
-        .tab-item:active .tab-icon { transform: scale(0.85); }
-        .tab-label { font-size: 10px; font-weight: 600; letter-spacing: 0.05em; }
+    .card-description {
+      color: var(--text-secondary);
+      font-size: 14px;
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
 
-        /* Loading */
-        .loading-overlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(5, 5, 8, 0.9);
-            backdrop-filter: blur(20px);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            gap: 20px;
-            z-index: 200;
-        }
-        .loading-overlay.show { display: flex; }
-        .spinner-wrap {
-            position: relative;
-            width: 60px;
-            height: 60px;
-        }
-        .spinner {
-            width: 60px;
-            height: 60px;
-            border: 3px solid var(--bg-input);
-            border-top-color: var(--accent);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        .spinner-inner {
-            position: absolute;
-            top: 10px; left: 10px;
-            width: 40px; height: 40px;
-            border: 3px solid transparent;
-            border-top-color: var(--purple);
-            border-radius: 50%;
-            animation: spin 0.7s linear infinite reverse;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .loading-text { font-size: 18px; font-weight: 700; }
-        .loading-sub { font-size: 14px; color: var(--text-muted); }
+    /* Section Divider */
+    .section-divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+      margin: 24px 0;
+    }
 
-        /* Toast */
-        .toast {
-            position: fixed;
-            top: 60px;
-            left: 50%;
-            transform: translateX(-50%) translateY(-120px);
-            background: linear-gradient(135deg, var(--bg-card), var(--bg-elevated));
-            color: var(--text);
-            padding: 14px 24px;
-            border-radius: 16px;
-            font-size: 15px;
-            font-weight: 600;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-            z-index: 300;
-            opacity: 0;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            pointer-events: none;
-            max-width: 90%;
-            text-align: center;
-            border: 1px solid var(--border);
-            backdrop-filter: blur(10px);
-        }
-        .toast.show {
-            transform: translateX(-50%) translateY(0);
-            opacity: 1;
-        }
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
 
-        /* Scrollbar hide */
-        ::-webkit-scrollbar { display: none; }
+    /* Forms */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
 
-        /* Credits */
-        .credits {
-            text-align: center;
-            padding: 20px;
-            color: var(--text-muted);
-            font-size: 12px;
-            font-weight: 500;
-        }
-        .credits a { color: var(--accent); text-decoration: none; }
+    .form-grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
 
-        /* Result Card */
-        .result-card {
-            background: linear-gradient(135deg, var(--bg-card), var(--bg-elevated));
-            border-radius: 20px;
-            padding: 20px;
-            margin: 0 20px 16px;
-            border: 1px solid var(--border);
-        }
-        .result-script {
-            font-size: 18px;
-            font-weight: 600;
-            line-height: 1.6;
-            color: var(--text);
-            padding: 16px;
-            background: var(--bg-input);
-            border-radius: 14px;
-            border-left: 4px solid var(--accent);
-            margin-bottom: 16px;
-            white-space: pre-wrap;
-        }
-        .result-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 700;
-            background: var(--accent-soft);
-            color: var(--accent);
-            margin-bottom: 12px;
-        }
+    @media (max-width: 760px) {
+      .form-grid, .form-grid-3 { grid-template-columns: 1fr; }
+    }
 
-        /* Delete button */
-        .delete-btn {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: rgba(255, 71, 87, 0.1);
-            border: none;
-            color: var(--error);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 16px;
-            flex-shrink: 0;
-            transition: all 0.2s ease;
-        }
-        .delete-btn:hover { 
-            background: rgba(255, 71, 87, 0.2); 
-            transform: scale(1.1); 
-        }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
 
-        /* Responsive */
-        @media (min-width: 431px) {
-            body { 
-                background: #111; 
-            }
-            .app-container { 
-                box-shadow: 0 0 60px rgba(0,0,0,0.5); 
-            }
-        }
-    </style>
+    .field label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .field input,
+    .field select,
+    .field textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      transition: var(--transition);
+      outline: none;
+    }
+
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .field input::placeholder,
+    .field textarea::placeholder {
+      color: var(--text-muted);
+    }
+
+    .field textarea {
+      min-height: 120px;
+      resize: vertical;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .field select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%235a6490' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 36px;
+    }
+
+    .field select option {
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    /* Checkbox */
+    .checkbox-field {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 16px;
+      padding: 12px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .checkbox-field:hover {
+      background: rgba(255,255,255,0.04);
+      border-color: var(--border-hover);
+    }
+
+    .checkbox-field input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .checkbox-field label {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    /* Upload Area */
+    .upload-area {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      padding: 16px;
+      background: rgba(255,255,255,0.02);
+      border: 2px dashed var(--border);
+      border-radius: var(--radius-sm);
+      transition: var(--transition);
+    }
+
+    .upload-area:hover {
+      border-color: var(--accent);
+      background: var(--accent-glow);
+    }
+
+    .upload-area input[type="file"] {
+      display: none;
+    }
+
+    .file-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .file-label:hover {
+      border-color: var(--accent);
+      color: var(--text);
+    }
+
+    .upload-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+      color: var(--warn);
+    }
+
+    .upload-status.success {
+      background: rgba(34, 197, 94, 0.1);
+      border-color: rgba(34, 197, 94, 0.2);
+      color: var(--good);
+    }
+
+    /* Buttons */
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    button, .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 20px;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      outline: none;
+      position: relative;
+      overflow: hidden;
+    }
+
+    button:disabled, .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    button:not(:disabled):hover, .btn:not(:disabled):hover {
+      transform: translateY(-1px);
+    }
+
+    button:not(:disabled):active, .btn:not(:disabled):active {
+      transform: translateY(0);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #818cf8);
+      color: white;
+      box-shadow: 0 4px 16px rgba(99, 102, 241, 0.25);
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 6px 24px rgba(99, 102, 241, 0.35);
+    }
+
+    .btn-secondary {
+      background: linear-gradient(135deg, var(--accent2), #22d3ee);
+      color: white;
+      box-shadow: 0 4px 16px rgba(6, 182, 212, 0.25);
+    }
+
+    .btn-secondary:hover {
+      box-shadow: 0 6px 24px rgba(6, 182, 212, 0.35);
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, var(--good), #4ade80);
+      color: white;
+      box-shadow: 0 4px 16px rgba(34, 197, 94, 0.25);
+    }
+
+    .btn-success:hover {
+      box-shadow: 0 6px 24px rgba(34, 197, 94, 0.35);
+    }
+
+    .btn-warn {
+      background: linear-gradient(135deg, var(--warn), #fbbf24);
+      color: #1a1a1a;
+      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.25);
+    }
+
+    .btn-warn:hover {
+      box-shadow: 0 6px 24px rgba(245, 158, 11, 0.35);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--border-hover);
+      color: var(--text);
+      background: rgba(255,255,255,0.03);
+    }
+
+    .btn-sm {
+      padding: 8px 14px;
+      font-size: 12px;
+    }
+
+    /* Result Boxes */
+    .result-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      margin-top: 16px;
+      position: relative;
+    }
+
+    .result-box::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: var(--radius-md) var(--radius-md) 0 0;
+      opacity: 0;
+      transition: var(--transition);
+    }
+
+    .result-box.active::before {
+      opacity: 1;
+    }
+
+    .result-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .script-display {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--text);
+      white-space: pre-wrap;
+      word-break: break-word;
+      padding: 16px;
+      background: rgba(0,0,0,0.2);
+      border-radius: var(--radius-sm);
+      border-left: 3px solid var(--accent);
+    }
+
+    /* Takes */
+    .takes-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .take-item {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      transition: var(--transition);
+      cursor: pointer;
+    }
+
+    .take-item:hover {
+      border-color: var(--accent);
+      background: rgba(99, 102, 241, 0.05);
+    }
+
+    .take-score {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent2);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .take-text {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    /* Audio Player */
+    .audio-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    audio {
+      width: 100%;
+      border-radius: var(--radius-sm);
+      height: 40px;
+    }
+
+    audio::-webkit-media-controls-panel {
+      background: var(--card);
+    }
+
+    /* Badges */
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+    }
+
+    .badge .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .badge .dot.good { background: var(--good); box-shadow: 0 0 6px var(--good-glow); }
+    .badge .dot.warn { background: var(--warn); box-shadow: 0 0 6px var(--warn-glow); }
+    .badge .dot.bad { background: var(--bad); box-shadow: 0 0 6px var(--bad-glow); }
+
+    /* Library */
+    .library-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .library-item {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .library-item::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: linear-gradient(180deg, var(--accent), var(--accent2));
+      opacity: 0;
+      transition: var(--transition);
+    }
+
+    .library-item:hover {
+      border-color: var(--border-hover);
+      transform: translateX(2px);
+    }
+
+    .library-item:hover::before {
+      opacity: 1;
+    }
+
+    .library-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .library-title {
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--text);
+    }
+
+    .library-meta {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .library-script {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text-secondary);
+      white-space: pre-wrap;
+      margin-bottom: 12px;
+      padding: 12px;
+      background: rgba(0,0,0,0.15);
+      border-radius: var(--radius-sm);
+    }
+
+    .library-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+    }
+
+    .empty-state-icon {
+      font-size: 40px;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+
+    /* Loading */
+    .loading-shimmer {
+      background: linear-gradient(90deg, var(--border) 25%, var(--border-hover) 50%, var(--border) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: var(--radius-sm);
+      height: 20px;
+      margin-bottom: 8px;
+    }
+
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* Toast */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    .toast {
+      min-width: 300px;
+      max-width: 450px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      transform: translateX(120%);
+      opacity: 0;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      pointer-events: auto;
+    }
+
+    .toast.show {
+      transform: translateX(0);
+      opacity: 1;
+    }
+
+    .toast-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .toast-content {
+      flex: 1;
+    }
+
+    .toast-title {
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 2px;
+    }
+
+    .toast-message {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .toast.success { border-left: 3px solid var(--good); }
+    .toast.error { border-left: 3px solid var(--bad); }
+    .toast.info { border-left: 3px solid var(--accent); }
+    .toast.warn { border-left: 3px solid var(--warn); }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px);
+      z-index: 9000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: var(--shadow-lg);
+      transform: scale(0.95);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .modal-overlay.active .modal {
+      transform: scale(1);
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .modal-text {
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 4px;
+      margin-bottom: 20px;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 10px 16px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: var(--transition);
+      font-family: inherit;
+    }
+
+    .tab.active {
+      background: var(--accent);
+      color: white;
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+    }
+
+    .tab:not(.active):hover {
+      color: var(--text);
+      background: rgba(255,255,255,0.03);
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-in {
+      animation: fadeIn 0.4s ease forwards;
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .app { padding: 16px; }
+      .hero { padding: 24px; }
+      .card { padding: 20px; }
+      .btn-row { flex-direction: column; }
+      .btn-row button, .btn-row .btn { width: 100%; }
+    }
+
+    /* Utility */
+    .hidden { display: none !important; }
+    .text-muted { color: var(--text-muted); }
+    .text-secondary { color: var(--text-secondary); }
+    .mb-0 { margin-bottom: 0 !important; }
+    .mt-4 { margin-top: 16px; }
+    .mt-6 { margin-top: 24px; }
+  </style>
 </head>
 <body>
-    <div class="bg-glow"></div>
 
-    <div class="app-container">
-        <!-- Status Bar -->
-        <div class="status-bar">
-            <span class="status-time" id="clock">9:41</span>
-            <div class="status-icons">
-                <div class="signal-bars">
-                    <div class="signal-bar"></div>
-                    <div class="signal-bar"></div>
-                    <div class="signal-bar"></div>
-                    <div class="signal-bar"></div>
-                </div>
-                <span class="wifi-icon">📶</span>
-                <div class="battery"><div class="battery-fill"></div></div>
-            </div>
+<div class="app">
+  <!-- Hero -->
+  <section class="hero animate-in">
+    <h1>DJ Drop Factory Pro</h1>
+    <p>Generate DJ drops, radio IDs, crowd calls, producer tags, promos, AI-trained scripts, voice FX, mastered audio, and a saved drop library — all from one dashboard.</p>
+    
+    <div class="status-bar">
+      <div class="status-pill">
+        <span class="label">Internet</span>
+        <span class="value" id="status-online"><span class="status-dot checking"></span>Checking...</span>
+      </div>
+      <div class="status-pill">
+        <span class="label">FFmpeg</span>
+        <span class="value" id="status-ffmpeg"><span class="status-dot checking"></span>Checking...</span>
+      </div>
+      <div class="status-pill">
+        <span class="label">eSpeak</span>
+        <span class="value" id="status-espeak"><span class="status-dot checking"></span>Checking...</span>
+      </div>
+      <div class="status-pill">
+        <span class="label">Audio Engine</span>
+        <span class="value" id="status-message"><span class="status-dot checking"></span>Loading...</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Grid -->
+  <div class="main-grid">
+    <!-- LEFT COLUMN -->
+    <div>
+      <!-- Generator Card -->
+      <section class="card animate-in" style="animation-delay: 0.1s;">
+        <div class="card-header">
+          <h2>
+            <span class="icon">🎤</span>
+            Generate DJ Drop
+          </h2>
+        </div>
+        <p class="card-description">Build a script, synthesize the voice, apply FX, and generate a downloadable mastered file.</p>
+
+        <!-- Tabs -->
+        <div class="tabs">
+          <button class="tab active" data-tab="generator" onclick="switchTab('generator')">Generator</button>
+          <button class="tab" data-tab="training" onclick="switchTab('training')">AI Training</button>
+          <button class="tab" data-tab="effects" onclick="switchTab('effects')">Voice FX</button>
         </div>
 
-        <!-- ==================== HOME SCREEN ==================== -->
-        <div class="screen active" id="screenHome">
-            <div class="nav-header">
-                <div>
-                    <div class="nav-title">Create</div>
-                    <div class="nav-subtitle">Generate your DJ drop</div>
-                </div>
-                <button class="nav-btn" onclick="showScreen('screenSettings')" aria-label="Settings">⚙️</button>
+        <!-- Generator Tab -->
+        <div id="tab-generator" class="tab-panel">
+          <div class="form-grid">
+            <div class="field">
+              <label for="dj_name">DJ Name</label>
+              <input id="dj_name" type="text" placeholder="DJ Beshi" value="DJ Beshi" />
             </div>
-
-            <!-- Hero Card -->
-            <div class="hero-card">
-                <div class="hero-title">🔥 DJ Drop Factory</div>
-                <div class="hero-text">AI-powered drops with premium voice effects</div>
-                <div class="hero-badge">
-                    <span class="hero-dot"></span>
-                    <span id="statusText">Checking status…</span>
-                </div>
+            <div class="field">
+              <label for="genre">Genre</label>
+              <select id="genre">
+                <option value="amapiano">Amapiano</option>
+                <option value="dancehall">Dancehall</option>
+                <option value="radio">Radio</option>
+                <option value="club_banger" selected>Club Banger</option>
+                <option value="afrobeat">Afrobeat</option>
+                <option value="trap">Trap</option>
+              </select>
             </div>
-
-            <!-- Mode Selector -->
-            <div class="segmented-control" role="tablist">
-                <button class="segment active" onclick="setMode('ai', this)">AI Drop</button>
-                <button class="segment" onclick="setMode('strict', this)">My Script</button>
-                <button class="segment" onclick="setMode('training', this)">Train AI</button>
+            <div class="field">
+              <label for="voice">Voice</label>
+              <select id="voice">
+                <option value="7">Auto (best for genre)</option>
+              </select>
             </div>
-
-            <!-- AI Mode Form -->
-            <div id="aiForm">
-                <div class="section-card">
-                    <div class="section-header">🎤 DJ Identity</div>
-                    <div class="form-group">
-                        <label class="form-label" for="djName">DJ Name</label>
-                        <input type="text" class="form-input" id="djName" value="DJ Beshi" placeholder="Enter your DJ name">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="city">City / Location</label>
-                        <input type="text" class="form-input" id="city" placeholder="e.g. Lagos, London, NYC">
-                    </div>
-                </div>
-
-                <div class="section-card">
-                    <div class="section-header">🎛️ Drop Settings</div>
-                    <div class="form-group">
-                        <label class="form-label" for="genre">Genre</label>
-                        <select class="form-select" id="genre">
-                            <option value="amapiano">🎹 Amapiano</option>
-                            <option value="dancehall">🔥 Dancehall</option>
-                            <option value="radio">📻 Radio</option>
-                            <option value="club_banger" selected>💥 Club Banger</option>
-                            <option value="afrobeat">🌍 Afrobeat</option>
-                            <option value="trap">🎤 Trap</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="dropType">Drop Type</label>
-                        <select class="form-select" id="dropType">
-                            <option value="intro" selected>🎬 Intro</option>
-                            <option value="sweeper">🌊 Sweeper</option>
-                            <option value="hype">🔥 Hype</option>
-                            <option value="promo">📢 Promo</option>
-                            <option value="producer_tag">🏷️ Producer Tag</option>
-                            <option value="radio_id">📡 Radio ID</option>
-                            <option value="crowd_call">👥 Crowd Call</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="mood">Mood</label>
-                        <select class="form-select" id="mood">
-                            <option value="hype">⚡ Hype</option>
-                            <option value="luxury">💎 Luxury</option>
-                            <option value="aggressive" selected>😤 Aggressive</option>
-                            <option value="dark">🌑 Dark</option>
-                            <option value="smooth">🍫 Smooth</option>
-                            <option value="festival">🎆 Festival</option>
-                        </select>
-                    </div>
-                    <div class="slider-wrap">
-                        <div class="slider-header">
-                            <span class="slider-label">Energy Level</span>
-                            <span class="slider-value" id="energyValue">8</span>
-                        </div>
-                        <input type="range" id="energy" min="1" max="10" value="8" style="--progress: 80%">
-                    </div>
-                </div>
-
-                <div class="section-card">
-                    <div class="section-header">🗣️ Voice</div>
-                    <div class="form-group">
-                        <select class="form-select" id="voice">
-                            <option value="1">🧔 Deep Studio Heavy (Male US)</option>
-                            <option value="2">🧔 Crisp Energetic Host (Male UK)</option>
-                            <option value="3">👩 Smooth High-End (Female US)</option>
-                            <option value="4" selected>🧔 Natural Afro-Vibe (Male NG)</option>
-                            <option value="5">👩 Bright Radio Host (Female UK)</option>
-                            <option value="6">👩 Warm Afro Voice (Female NG)</option>
-                            <option value="7">✨ Auto by Genre</option>
-                        </select>
-                    </div>
-                </div>
+            <div class="field">
+              <label for="drop_type">Drop Type</label>
+              <select id="drop_type">
+                <option value="intro" selected>Intro</option>
+                <option value="sweeper">Sweeper</option>
+                <option value="hype">Hype</option>
+                <option value="promo">Promo</option>
+                <option value="producer_tag">Producer Tag</option>
+                <option value="radio_id">Radio ID</option>
+                <option value="crowd_call">Crowd Call</option>
+              </select>
             </div>
-
-            <!-- Strict Mode Form -->
-            <div id="strictForm" style="display: none;">
-                <div class="section-card">
-                    <div class="section-header">✍️ Your Script</div>
-                    <div class="form-group">
-                        <textarea class="form-textarea" id="customScript" placeholder="Type exactly what you want the DJ to say..."></textarea>
-                    </div>
-                </div>
+            <div class="field">
+              <label for="mood">Mood</label>
+              <select id="mood">
+                <option value="hype" selected>Hype</option>
+                <option value="luxury">Luxury</option>
+                <option value="aggressive">Aggressive</option>
+                <option value="dark">Dark</option>
+                <option value="festival">Festival</option>
+              </select>
             </div>
-
-            <!-- Training Mode Form -->
-            <div id="trainingForm" style="display: none;">
-                <div class="section-card">
-                    <div class="section-header">🧠 Train AI</div>
-                    <div class="form-group">
-                        <label class="form-label" for="trainingExample">Example Drop</label>
-                        <textarea class="form-textarea" id="trainingExample" placeholder="Paste a DJ drop you want the AI to learn from..."></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="trainDjName">Your DJ Name</label>
-                        <input type="text" class="form-input" id="trainDjName" value="DJ Beshi">
-                    </div>
-                </div>
+            <div class="field">
+              <label for="energy">Energy (1–10)</label>
+              <input id="energy" type="number" min="1" max="10" value="8" />
             </div>
-
-            <!-- Voice Recorder Section -->
-            <div class="section-card">
-                <div class="section-header">🎙️ Voice Recorder & Effects</div>
-                <div class="recorder-section">
-                    <div class="recorder-ring" id="recorderRing" onclick="toggleRecording()" role="button" tabindex="0" aria-label="Start or stop recording">
-                        <span class="recorder-icon" id="recorderIcon">🎙️</span>
-                    </div>
-                    <div class="recorder-label" id="recorderLabel">Tap to Record</div>
-                    <div class="recorder-time" id="recorderTime" style="display: none;">00:00</div>
-                    
-                    <div class="visualizer" id="visualizer" style="display: none;"></div>
-
-                    <div class="audio-wrap" id="recordedPlayback" style="display: none;">
-                        <audio id="rawAudio" controls></audio>
-                    </div>
-                </div>
-
-                <div class="section-header">✨ Effects</div>
-                <div class="effect-grid" id="effectGrid">
-                    <div class="effect-chip active" data-effect="none" onclick="selectEffect(this)" role="button" tabindex="0">
-                        <span class="effect-chip-icon">🚫</span>
-                        <span class="effect-chip-label">None</span>
-                    </div>
-                    <div class="effect-chip" data-effect="helium" onclick="selectEffect(this)" role="button" tabindex="0">
-                        <span class="effect-chip-icon">🎈</span>
-                        <span class="effect-chip-label">Helium</span>
-                    </div>
-                    <div class="effect-chip" data-effect="low" onclick="selectEffect(this)" role="button" tabindex="0">
-                        <span class="effect-chip-icon">🐻</span>
-                        <span class="effect-chip-label">Low</span>
-                    </div>
-                    <div class="effect-chip" data-effect="robot" onclick="selectEffect(this)" role="button" tabindex="0">
-                        <span class="effect-chip-icon">🤖</span>
-                        <span class="effect-chip-label">Robot</span>
-                    </div>
-                    <div class="effect-chip" data-effect="echo" onclick="selectEffect(this)" role="button" tabindex="0">
-                        <span class="effect-chip-icon">📢</span>
-                        <span class="effect-chip-label">Echo</span>
-                    </div>
-                    <div class="effect-chip" data-effect="phone" onclick="selectEffect(this)" role="button" tabindex="0">
-                        <span class="effect-chip-icon">☎️</span>
-                        <span class="effect-chip-label">Phone</span>
-                    </div>
-                    <div class="effect-chip" data-effect="slow" onclick="selectEffect(this)" role="button" tabindex="0">
-                        <span class="effect-chip-icon">🐌</span>
-                        <span class="effect-chip-label">Slow</span>
-                    </div>
-                    <div class="effect-chip" data-effect="fast" onclick="selectEffect(this)" role="button" tabindex="0">
-                        <span class="effect-chip-icon">⚡</span>
-                        <span class="effect-chip-label">Fast</span>
-                    </div>
-                </div>
-
-                <button class="btn-secondary" id="applyEffectBtn" onclick="applyVoiceEffect()" disabled>✨ Apply Effect</button>
-                
-                <div class="audio-wrap" id="processedPlayback" style="display: none;">
-                    <audio id="processedAudio" controls></audio>
-                    <button class="btn-secondary" style="margin-top: 10px;" onclick="useAsBackground()">🎵 Use as Background Track</button>
-                </div>
+            <div class="field">
+              <label for="city">City / Location</label>
+              <input id="city" type="text" placeholder="Nairobi" />
             </div>
+            <div class="field">
+              <label for="event_name">Event Name</label>
+              <input id="event_name" type="text" placeholder="Friday Shutdown" />
+            </div>
+            <div class="field">
+              <label for="station_name">Station Name</label>
+              <input id="station_name" type="text" placeholder="Urban FM" />
+            </div>
+            <div class="field">
+              <label for="slogan">Slogan</label>
+              <input id="slogan" type="text" placeholder="The sound of the city" />
+            </div>
+            <div class="field">
+              <label for="crew_tag">Crew Tag</label>
+              <input id="crew_tag" type="text" placeholder="Team Trouble" />
+            </div>
+            <div class="field">
+              <label for="user_stutter">Custom Stutter</label>
+              <input id="user_stutter" type="text" placeholder="D... D... DJ Beshi" />
+            </div>
+            <div class="field">
+              <label for="fx_mode">FX Mode</label>
+              <select id="fx_mode">
+                <option value="auto" selected>Auto</option>
+                <option value="dry">Dry</option>
+                <option value="light">Light</option>
+                <option value="heavy">Heavy</option>
+                <option value="insane">Insane</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="vocal_gain">Vocal Gain</label>
+              <input id="vocal_gain" type="number" step="0.1" value="1.0" />
+            </div>
+            <div class="field">
+              <label for="bg_gain">Background Gain</label>
+              <input id="bg_gain" type="number" step="0.01" placeholder="Optional e.g. 0.20" />
+            </div>
+            <div class="field">
+              <label for="mode">Generation Mode</label>
+              <select id="mode">
+                <option value="ai" selected>AI Generate</option>
+                <option value="strict">Strict Custom Script</option>
+              </select>
+            </div>
+          </div>
 
-            <button class="btn-primary" id="generateBtn" onclick="generateDrop()">
-                🔥 Generate Premium Drop
+          <div class="checkbox-field" onclick="document.getElementById('use_stutter').click()">
+            <input id="use_stutter" type="checkbox" checked />
+            <label for="use_stutter">Use stutter / name effect</label>
+          </div>
+
+          <!-- Background Track -->
+          <div class="section-divider"></div>
+          <div class="section-title">🎵 Background Track Upload</div>
+          <div class="upload-area" id="uploadArea">
+            <input id="bg_file" type="file" accept="audio/*" onchange="handleFileSelect()" />
+            <label for="bg_file" class="file-label" id="fileLabel">
+              📁 Choose Audio File
+            </label>
+            <button class="btn btn-secondary btn-sm" id="uploadBgBtn" onclick="uploadBackgroundTrack()">Upload Track</button>
+            <span class="upload-status" id="bgUploadStatus">
+              <span class="status-dot warn"></span>No track uploaded
+            </span>
+          </div>
+          <div class="text-muted" style="font-size:12px; margin-top:8px;" id="bgTrackName"></div>
+
+          <!-- Custom Script -->
+          <div class="section-divider"></div>
+          <div class="section-title">📝 Custom Script</div>
+          <div class="field">
+            <textarea id="custom_script" placeholder="Write the exact script you want the voice to say... (used when mode = Strict Custom Script)"></textarea>
+          </div>
+
+          <!-- Training Example -->
+          <div class="section-divider"></div>
+          <div class="section-title">🧠 Training Example (Optional)</div>
+          <div class="field">
+            <textarea id="training_example" placeholder="Paste a previous DJ drop and the AI will mimic the style..."></textarea>
+          </div>
+
+          <!-- Actions -->
+          <div class="btn-row">
+            <button class="btn btn-ghost" id="previewBtn" onclick="previewScript()">
+              👁️ Preview Script
             </button>
-
-            <!-- Results -->
-            <div id="resultsArea" style="display: none;">
-                <div class="result-card">
-                    <div class="result-badge" id="resultBadge">✅ Neural Voice + LOUD FX</div>
-                    <div class="result-script" id="resultScript"></div>
-                    <div class="audio-wrap">
-                        <audio id="resultAudio" controls></audio>
-                    </div>
-                    <button class="btn-secondary" onclick="saveToLibrary()">💾 Save to Library</button>
-                </div>
-            </div>
-
-            <div class="credits">
-                Created by <strong>Macdonald Barasa</strong><br>
-                <a href="mailto:simiyumacdonal1@gmail.com">simiyumacdonal1@gmail.com</a>
-            </div>
-        </div>
-
-        <!-- ==================== LIBRARY SCREEN ==================== -->
-        <div class="screen" id="screenLibrary">
-            <div class="nav-header">
-                <div>
-                    <div class="nav-title">Library</div>
-                    <div class="nav-subtitle" id="libraryCount">0 drops saved</div>
-                </div>
-                <button class="nav-btn" onclick="showScreen('screenSettings')" aria-label="Settings">⚙️</button>
-            </div>
-
-            <div id="libraryEmpty" class="empty-state">
-                <div class="empty-icon">🎵</div>
-                <div class="empty-title">No Drops Yet</div>
-                <div class="empty-subtitle">Your generated drops will appear here.<br>Tap Create to make your first drop!</div>
-            </div>
-
-            <div id="libraryList"></div>
-        </div>
-
-        <!-- ==================== SETTINGS SCREEN ==================== -->
-        <div class="screen" id="screenSettings">
-            <div class="nav-header">
-                <button class="nav-btn" onclick="goBack()" aria-label="Back">←</button>
-                <div>
-                    <div class="nav-title">Settings</div>
-                </div>
-                <div style="width: 40px;"></div>
-            </div>
-
-            <div class="section-card">
-                <div class="section-header">👤 Account</div>
-                <div style="padding: 16px 20px; display: flex; align-items: center; gap: 14px;">
-                    <div style="width: 56px; height: 56px; border-radius: 18px; background: linear-gradient(135deg, var(--accent), var(--purple)); display: flex; align-items: center; justify-content: center; font-size: 24px;">👤</div>
-                    <div>
-                        <div style="font-size: 17px; font-weight: 700;">Macdonald Barasa</div>
-                        <div style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">simiyumacdonal1@gmail.com</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="section-card">
-                <div class="section-header">⚙️ Preferences</div>
-                <div class="toggle-row">
-                    <div class="toggle-info">
-                        <div class="toggle-title">Auto-Stutter</div>
-                        <div class="toggle-desc">Add stutter effects automatically</div>
-                    </div>
-                    <div class="toggle-switch on" onclick="toggleSwitch(this)" id="autoStutterToggle" role="switch" aria-checked="true" tabindex="0">
-                        <div class="toggle-knob"></div>
-                    </div>
-                </div>
-                <div class="toggle-row">
-                    <div class="toggle-info">
-                        <div class="toggle-title">High Quality Audio</div>
-                        <div class="toggle-desc">320kbps MP3 output</div>
-                    </div>
-                    <div class="toggle-switch on" onclick="toggleSwitch(this)" role="switch" aria-checked="true" tabindex="0">
-                        <div class="toggle-knob"></div>
-                    </div>
-                </div>
-                <div class="toggle-row">
-                    <div class="toggle-info">
-                        <div class="toggle-title">Offline Mode</div>
-                        <div class="toggle-desc">Use basic TTS when offline</div>
-                    </div>
-                    <div class="toggle-switch" onclick="toggleSwitch(this)" role="switch" aria-checked="false" tabindex="0">
-                        <div class="toggle-knob"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="section-card">
-                <div class="section-header">🎚️ Audio</div>
-                <div class="toggle-row" style="cursor: pointer;" onclick="showToast('FX presets updated')">
-                    <div class="toggle-info">
-                        <div class="toggle-title">FX Presets</div>
-                        <div class="toggle-desc">Customize default effects</div>
-                    </div>
-                    <span style="color: var(--text-muted); font-size: 20px;">›</span>
-                </div>
-                <div class="toggle-row" style="cursor: pointer;" onclick="showToast('Voice settings saved')">
-                    <div class="toggle-info">
-                        <div class="toggle-title">Default Voice</div>
-                        <div class="toggle-desc">Afro-Vibe (Male NG)</div>
-                    </div>
-                    <span style="color: var(--text-muted); font-size: 20px;">›</span>
-                </div>
-            </div>
-
-            <div class="section-card">
-                <div class="section-header">ℹ️ About</div>
-                <div class="toggle-row">
-                    <div class="toggle-info">
-                        <div class="toggle-title">Version</div>
-                    </div>
-                    <span style="color: var(--accent); font-weight: 700; font-size: 15px;">3.0 Pro</span>
-                </div>
-                <div class="toggle-row" style="cursor: pointer;" onclick="showToast('Thanks for rating! ⭐⭐⭐⭐⭐')">
-                    <div class="toggle-info">
-                        <div class="toggle-title">Rate DJ Drop Factory</div>
-                    </div>
-                    <span style="color: var(--text-muted); font-size: 20px;">›</span>
-                </div>
-            </div>
-
-            <div class="credits">
-                <strong>Premium AI DJ Drop Factory v3.0</strong><br>
-                Created by Macdonald Barasa<br>
-                AI Training | Loud Audio | Voice Effects | Library
-            </div>
-        </div>
-
-        <!-- Player Bar -->
-        <div class="player-bar" id="playerBar">
-            <div class="player-art">🎵</div>
-            <div class="player-info">
-                <div class="player-title" id="playerTitle">DJ Drop</div>
-                <div class="player-artist" id="playerArtist">DJ Beshi</div>
-            </div>
-            <button class="player-btn" id="playerPlayBtn" onclick="togglePlayer()" aria-label="Play or pause">▶️</button>
-        </div>
-
-        <!-- Tab Bar -->
-        <div class="tab-bar">
-            <button class="tab-item active" onclick="showScreen('screenHome')">
-                <span class="tab-icon">🏠</span>
-                <span class="tab-label">Create</span>
+            <button class="btn btn-primary" id="generateBtn" onclick="generateDrop()">
+              ⚡ Generate Drop
             </button>
-            <button class="tab-item" onclick="showScreen('screenLibrary')">
-                <span class="tab-icon">🎵</span>
-                <span class="tab-label">Library</span>
+            <button class="btn btn-success" id="saveCurrentBtn" onclick="saveCurrentToLibrary()">
+              💾 Save to Library
             </button>
-        </div>
+          </div>
 
-        <!-- Loading Overlay -->
-        <div class="loading-overlay" id="loadingOverlay">
-            <div class="spinner-wrap">
-                <div class="spinner"></div>
-                <div class="spinner-inner"></div>
+          <!-- Results -->
+          <div class="result-box" id="scriptResultBox">
+            <div class="result-label">✨ Best Script</div>
+            <div id="bestScript" class="script-display">Your generated script will appear here.</div>
+          </div>
+
+          <div class="result-box" id="takesResultBox">
+            <div class="result-label">🎯 Generated Takes</div>
+            <div id="takesList" class="takes-list">
+              <div class="empty-state">
+                <div class="empty-state-icon">📝</div>
+                <div>No takes available yet.</div>
+              </div>
             </div>
-            <div class="loading-text" id="loadingText">Generating...</div>
-            <div class="loading-sub">This may take 10-30 seconds</div>
+          </div>
+
+          <div class="result-box" id="audioResultBox">
+            <div class="result-label">🔊 Audio Result</div>
+            <div id="audioResult" class="audio-wrap">
+              <div class="empty-state">
+                <div class="empty-state-icon">🎧</div>
+                <div>No generated audio yet.</div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <!-- Toast -->
-        <div class="toast" id="toast" role="status" aria-live="polite"></div>
+        <!-- Training Tab -->
+        <div id="tab-training" class="tab-panel hidden">
+          <p class="card-description">Save an example DJ drop, analyze its style, and generate a fresh version in the same vibe.</p>
+          
+          <div class="form-grid">
+            <div class="field">
+              <label for="train_dj_name">DJ Name</label>
+              <input id="train_dj_name" type="text" placeholder="DJ Beshi" value="DJ Beshi" />
+            </div>
+            <div class="field">
+              <label for="train_genre">Genre</label>
+              <select id="train_genre">
+                <option value="amapiano">Amapiano</option>
+                <option value="dancehall">Dancehall</option>
+                <option value="radio">Radio</option>
+                <option value="club_banger" selected>Club Banger</option>
+                <option value="afrobeat">Afrobeat</option>
+                <option value="trap">Trap</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="train_energy">Energy</label>
+              <input id="train_energy" type="number" min="1" max="10" value="8" />
+            </div>
+            <div class="field">
+              <label for="train_mode">Train Mode</label>
+              <select id="train_mode">
+                <option value="mimic" selected>Mimic Style</option>
+                <option value="exact">Save Exact Example</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field mt-4">
+            <textarea id="train_example" placeholder="Paste the example drop text here..."></textarea>
+          </div>
+
+          <div class="btn-row">
+            <button class="btn btn-secondary" id="trainBtn" onclick="trainAI()">
+              🎓 Train AI
+            </button>
+          </div>
+
+          <div class="result-box" id="trainResultBox">
+            <div class="result-label">📊 Training Result</div>
+            <div id="trainResult" class="text-secondary">Training output will appear here.</div>
+          </div>
+        </div>
+
+        <!-- Effects Tab -->
+        <div id="tab-effects" class="tab-panel hidden">
+          <p class="card-description">Upload recorded voice audio and apply an effect using FFmpeg.</p>
+          
+          <div class="form-grid">
+            <div class="field">
+              <label for="voice_audio">Voice Audio File</label>
+              <div class="upload-area">
+                <input id="voice_audio" type="file" accept="audio/*,video/webm" />
+                <label for="voice_audio" class="file-label">📁 Choose Audio File</label>
+              </div>
+            </div>
+            <div class="field">
+              <label for="voice_effect">Effect</label>
+              <select id="voice_effect">
+                <option value="none">Clean / Normal</option>
+                <option value="helium">Helium</option>
+                <option value="low">Low / Deep</option>
+                <option value="robot">Robot</option>
+                <option value="echo">Echo</option>
+                <option value="phone">Phone</option>
+                <option value="slow">Slow</option>
+                <option value="fast">Fast</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="btn-row">
+            <button class="btn btn-warn" id="processVoiceBtn" onclick="processVoice()">
+              🎛️ Process Voice
+            </button>
+          </div>
+
+          <div class="result-box" id="voiceResultBox">
+            <div class="result-label">🔊 Processed Voice Output</div>
+            <div id="voiceProcessResult" class="audio-wrap">
+              <div class="empty-state">
+                <div class="empty-state-icon">🎚️</div>
+                <div>Processed audio will appear here.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
 
-    <script>
-        // ==================== STATE ====================
-        let currentScreen = 'screenHome';
-        let currentMode = 'ai';
-        let selectedEffect = 'none';
-        let isRecording = false;
-        let mediaRecorder = null;
-        let audioChunks = [];
-        let recordedBlob = null;
-        let processedResult = null;
-        let currentAudio = null;
-        let isPlaying = false;
-        let recordingTimer = null;
-        let recordingSeconds = 0;
-        let lastGeneratedDrop = null;
-        let activeStream = null;
+    <!-- RIGHT COLUMN -->
+    <div>
+      <!-- Library Card -->
+      <section class="card animate-in" style="animation-delay: 0.2s;">
+        <div class="card-header">
+          <h2>
+            <span class="icon">📚</span>
+            Library
+          </h2>
+          <button class="btn btn-ghost btn-sm" id="refreshLibraryBtn" onclick="loadLibrary()">
+            🔄 Refresh
+          </button>
+        </div>
+        <p class="card-description">Save generated drops and reload your best scripts later.</p>
 
-        // ==================== CLOCK ====================
-        function updateClock() {
-            const now = new Date();
-            document.getElementById('clock').textContent = 
-                now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-        }
-        setInterval(updateClock, 1000);
-        updateClock();
+        <div id="libraryList" class="library-list">
+          <div class="loading-shimmer" style="height:80px;"></div>
+          <div class="loading-shimmer" style="height:80px;"></div>
+        </div>
+      </section>
 
-        // ==================== NAVIGATION ====================
-        function showScreen(screenId) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById(screenId).classList.add('active');
-            
-            document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
-            if (screenId === 'screenHome') document.querySelectorAll('.tab-item')[0].classList.add('active');
-            if (screenId === 'screenLibrary') document.querySelectorAll('.tab-item')[1].classList.add('active');
-            
-            currentScreen = screenId;
-            
-            if (screenId === 'screenLibrary') renderLibrary();
-        }
+      <!-- Quick Guide -->
+      <section class="card animate-in" style="animation-delay: 0.3s;">
+        <div class="card-header">
+          <h2>
+            <span class="icon">📖</span>
+            Quick Guide
+          </h2>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div style="display:flex; gap:12px; align-items:flex-start;">
+            <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;">1</div>
+            <div style="color:var(--text-secondary);font-size:14px;line-height:1.6;">Fill in DJ name, genre, drop type, mood, and energy.</div>
+          </div>
+          <div style="display:flex; gap:12px; align-items:flex-start;">
+            <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;">2</div>
+            <div style="color:var(--text-secondary);font-size:14px;line-height:1.6;">Upload a background beat if you want the final drop mixed with music.</div>
+          </div>
+          <div style="display:flex; gap:12px; align-items:flex-start;">
+            <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;">3</div>
+            <div style="color:var(--text-secondary);font-size:14px;line-height:1.6;">Use <strong style="color:var(--text);">Preview Script</strong> to see script options before generating audio.</div>
+          </div>
+          <div style="display:flex; gap:12px; align-items:flex-start;">
+            <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;">4</div>
+            <div style="color:var(--text-secondary);font-size:14px;line-height:1.6;">Use <strong style="color:var(--text);">Training Example</strong> if you want the AI to mimic a specific style.</div>
+          </div>
+          <div style="display:flex; gap:12px; align-items:flex-start;">
+            <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;">5</div>
+            <div style="color:var(--text-secondary);font-size:14px;line-height:1.6;">Use the <strong style="color:var(--text);">Voice Effects Processor</strong> to transform uploaded voice recordings.</div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
 
-        function goBack() {
-            showScreen('screenHome');
-        }
+  <div class="footer">
+    DJ Drop Factory Pro — Flask frontend dashboard
+  </div>
+</div>
 
-        // ==================== MODE SWITCHING ====================
-        function setMode(mode, btn) {
-            currentMode = mode;
-            document.querySelectorAll('.segment').forEach(s => s.classList.remove('active'));
-            btn.classList.add('active');
-            
-            document.getElementById('aiForm').style.display = mode === 'ai' ? 'block' : 'none';
-            document.getElementById('strictForm').style.display = mode === 'strict' ? 'block' : 'none';
-            document.getElementById('trainingForm').style.display = mode === 'training' ? 'block' : 'none';
-        }
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
 
-        // ==================== ENERGY SLIDER (real fill) ====================
-        const energySlider = document.getElementById('energy');
-        const energyValue = document.getElementById('energyValue');
-        function updateEnergyFill() {
-            const min = parseFloat(energySlider.min);
-            const max = parseFloat(energySlider.max);
-            const pct = ((energySlider.value - min) / (max - min)) * 100;
-            energySlider.style.setProperty('--progress', pct + '%');
-            energyValue.textContent = energySlider.value;
-        }
-        energySlider.addEventListener('input', updateEnergyFill);
-        updateEnergyFill();
+<!-- Delete Confirmation Modal -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <div class="modal-title">Delete Drop?</div>
+    <div class="modal-text">This action cannot be undone. The drop will be permanently removed from your library.</div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeDeleteModal()">Cancel</button>
+      <button class="btn btn-warn" id="confirmDeleteBtn" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
 
-        // ==================== TOGGLE SWITCH ====================
-        function toggleSwitch(el) {
-            el.classList.toggle('on');
-            if (el.getAttribute('role') === 'switch') {
-                el.setAttribute('aria-checked', el.classList.contains('on') ? 'true' : 'false');
-            }
-        }
-        // Keyboard support for role="switch" / role="button" elements
-        document.addEventListener('keydown', (e) => {
-            if (e.key !== 'Enter' && e.key !== ' ') return;
-            const el = e.target;
-            if (el.matches('.toggle-switch, .effect-chip, .recorder-ring')) {
-                e.preventDefault();
-                el.click();
-            }
-        });
+<script>
+  // ========== STATE ==========
+  let uploadedBgFilename = "";
+  let lastGenerated = null;
+  let voicesLoaded = false;
+  let deleteTargetId = null;
 
-        // ==================== TOAST ====================
-        function showToast(msg) {
-            const toast = document.getElementById('toast');
-            toast.textContent = msg;
-            toast.classList.add('show');
-            clearTimeout(showToast._t);
-            showToast._t = setTimeout(() => toast.classList.remove('show'), 2500);
-        }
+  // ========== UTILS ==========
+  const $ = (id) => document.getElementById(id);
+  const escapeHtml = (str) => (str || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 
-        // ==================== LOADING ====================
-        function showLoading(text) {
-            document.getElementById('loadingText').textContent = text;
-            document.getElementById('loadingOverlay').classList.add('show');
-        }
-        function hideLoading() {
-            document.getElementById('loadingOverlay').classList.remove('show');
-        }
+  // ========== TOAST SYSTEM ==========
+  function showToast(message, type = "info", title = "") {
+    const container = $("toastContainer");
+    const toast = document.createElement("div");
+    toast.className = `toast ${type}`;
+    
+    const icons = { success: "✅", error: "❌", info: "ℹ️", warn: "⚠️" };
+    const titles = { success: "Success", error: "Error", info: "Info", warn: "Warning" };
+    
+    toast.innerHTML = `
+      <span class="toast-icon">${icons[type] || "ℹ️"}</span>
+      <div class="toast-content">
+        <div class="toast-title">${title || titles[type] || "Info"}</div>
+        <div class="toast-message">${escapeHtml(message)}</div>
+      </div>
+    `;
+    
+    container.appendChild(toast);
+    
+    requestAnimationFrame(() => toast.classList.add("show"));
+    
+    setTimeout(() => {
+      toast.classList.remove("show");
+      setTimeout(() => toast.remove(), 400);
+    }, 3500);
+  }
 
-        // ==================== VISUALIZER ====================
-        function initVisualizer() {
-            const viz = document.getElementById('visualizer');
-            viz.innerHTML = '';
-            for (let i = 0; i < 20; i++) {
-                const bar = document.createElement('div');
-                bar.className = 'viz-bar';
-                bar.style.height = '4px';
-                viz.appendChild(bar);
-            }
-        }
-        initVisualizer();
+  // ========== TABS ==========
+  function switchTab(tabName) {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll(".tab-panel").forEach(p => p.classList.add("hidden"));
+    
+    document.querySelector(`[data-tab="${tabName}"]`).classList.add("active");
+    $(`tab-${tabName}`).classList.remove("hidden");
+  }
 
-        // ==================== VOICE RECORDER ====================
-        async function toggleRecording() {
-            if (isRecording) {
-                stopRecording();
-            } else {
-                startRecording();
-            }
-        }
+  // ========== FILE UPLOAD ==========
+  function handleFileSelect() {
+    const file = $("bg_file").files[0];
+    if (file) {
+      $("fileLabel").textContent = `📁 ${file.name}`;
+      $("bgUploadStatus").innerHTML = `<span class="status-dot checking"></span>Ready to upload`;
+    }
+  }
 
-        async function startRecording() {
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                showToast('❌ Recording is not supported on this device/browser');
-                return;
-            }
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                activeStream = stream;
-                mediaRecorder = new MediaRecorder(stream);
-                audioChunks = [];
-                
-                mediaRecorder.ondataavailable = e => {
-                    if (e.data.size > 0) audioChunks.push(e.data);
-                };
-                
-                mediaRecorder.onstop = () => {
-                    recordedBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
-                    const url = URL.createObjectURL(recordedBlob);
-                    document.getElementById('rawAudio').src = url;
-                    document.getElementById('recordedPlayback').style.display = 'block';
-                    document.getElementById('applyEffectBtn').disabled = false;
-                    document.getElementById('visualizer').style.display = 'none';
-                    clearInterval(recordingTimer);
-                    stream.getTracks().forEach(t => t.stop());
-                    activeStream = null;
-                };
-                
-                mediaRecorder.start();
-                isRecording = true;
-                recordingSeconds = 0;
-                document.getElementById('recorderRing').classList.add('recording');
-                document.getElementById('recorderIcon').textContent = '⏹️';
-                document.getElementById('recorderLabel').textContent = 'Recording... Tap to Stop';
-                document.getElementById('recorderTime').style.display = 'block';
-                document.getElementById('recorderTime').textContent = '00:00';
-                document.getElementById('visualizer').style.display = 'flex';
-                animateVisualizer();
-                
-                recordingTimer = setInterval(() => {
-                    recordingSeconds++;
-                    const mins = Math.floor(recordingSeconds / 60).toString().padStart(2, '0');
-                    const secs = (recordingSeconds % 60).toString().padStart(2, '0');
-                    document.getElementById('recorderTime').textContent = `${mins}:${secs}`;
-                }, 1000);
-                
-            } catch (err) {
-                showToast('❌ Microphone access denied');
-            }
-        }
+  // ========== API HELPERS ==========
+  async function fetchJSON(url, options = {}) {
+    const res = await fetch(url, options);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || data.message || `Request failed (${res.status})`);
+    }
+    return data;
+  }
 
-        function stopRecording() {
-            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-                mediaRecorder.stop();
-            }
-            isRecording = false;
-            document.getElementById('recorderRing').classList.remove('recording');
-            document.getElementById('recorderIcon').textContent = '🎙️';
-            document.getElementById('recorderLabel').textContent = 'Tap to Record';
-            document.getElementById('recorderTime').style.display = 'none';
-            clearInterval(recordingTimer);
-        }
+  // ========== STATUS ==========
+  async function loadStatus() {
+    try {
+      const data = await fetchJSON("/api/status");
+      
+      const setStatus = (id, online) => {
+        const el = $(id);
+        const isOn = online === true || online === "Available" || online === "Online" || online === "Ready";
+        const isWarn = online === "Checking..." || online === "Loading...";
+        el.innerHTML = `<span class="status-dot ${isOn ? 'online' : isWarn ? 'checking' : 'offline'}"></span>${online}`;
+      };
+      
+      setStatus("status-online", data.online ? "Online" : "Offline");
+      setStatus("status-ffmpeg", data.ffmpeg_available ? "Available" : "Missing");
+      setStatus("status-espeak", data.espeak_available ? "Available" : "Missing");
+      setStatus("status-message", data.message || "Ready");
+    } catch (err) {
+      ["status-online", "status-ffmpeg", "status-espeak", "status-message"].forEach(id => {
+        $(id).innerHTML = `<span class="status-dot offline"></span>Unavailable`;
+      });
+    }
+  }
 
-        function animateVisualizer() {
-            if (!isRecording) return;
-            const bars = document.querySelectorAll('.viz-bar');
-            bars.forEach(bar => {
-                const height = Math.random() * 45 + 4;
-                bar.style.height = height + 'px';
-            });
-            requestAnimationFrame(animateVisualizer);
-        }
+  // ========== VOICES ==========
+  async function loadVoices() {
+    if (voicesLoaded) return;
+    try {
+      const data = await fetchJSON("/api/voices");
+      const voiceSelect = $("voice");
+      
+      Object.entries(data.voices || {}).forEach(([key, val]) => {
+        const label = Array.isArray(val) ? val[0] : String(val);
+        const opt = document.createElement("option");
+        opt.value = key;
+        opt.textContent = `${key} — ${label}`;
+        voiceSelect.appendChild(opt);
+      });
+      
+      voicesLoaded = true;
+    } catch (err) {
+      showToast("Could not load voices: " + err.message, "warn");
+    }
+  }
 
-        // ==================== EFFECT SELECTION ====================
-        function selectEffect(el) {
-            document.querySelectorAll('.effect-chip').forEach(c => c.classList.remove('active'));
-            el.classList.add('active');
-            selectedEffect = el.dataset.effect;
-        }
+  // ========== PAYLOAD BUILDER ==========
+  function collectGeneratorPayload() {
+    return {
+      mode: $("mode").value,
+      custom_script: $("custom_script").value.trim(),
+      training_example: $("training_example").value.trim(),
+      dj_name: $("dj_name").value.trim(),
+      genre: $("genre").value,
+      voice: $("voice").value,
+      use_stutter: $("use_stutter").checked,
+      drop_type: $("drop_type").value,
+      mood: $("mood").value,
+      energy: Number($("energy").value || 8),
+      city: $("city").value.trim(),
+      event_name: $("event_name").value.trim(),
+      user_stutter: $("user_stutter").value.trim(),
+      station_name: $("station_name").value.trim(),
+      slogan: $("slogan").value.trim(),
+      crew_tag: $("crew_tag").value.trim(),
+      fx_mode: $("fx_mode").value,
+      vocal_gain: Number($("vocal_gain").value || 1),
+      bg_gain: $("bg_gain").value.trim() || null,
+      bg_track: uploadedBgFilename || ""
+    };
+  }
 
-        // ==================== APPLY VOICE EFFECT ====================
-        async function applyVoiceEffect() {
-            if (!recordedBlob) return;
-            
-            showLoading('Processing effect...');
-            
-            const formData = new FormData();
-            formData.append('audio', recordedBlob, 'recording.webm');
-            formData.append('effect', selectedEffect);
-            
-            try {
-                const res = await fetch('/api/process_voice', { method: 'POST', body: formData });
-                const data = await res.json();
-                
-                hideLoading();
-                
-                if (data.success) {
-                    processedResult = data;
-                    document.getElementById('processedAudio').src = data.audio_url;
-                    document.getElementById('processedPlayback').style.display = 'block';
-                    showToast(`✨ ${selectedEffect.toUpperCase()} effect applied!`);
-                } else {
-                    showToast('❌ Effect failed: ' + (data.error || 'unknown error'));
-                }
-            } catch (err) {
-                hideLoading();
-                showToast('❌ Network error');
-            }
-        }
+  // ========== RENDERERS ==========
+  function renderTakes(takes = []) {
+    const box = $("takesList");
+    if (!takes.length) {
+      box.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">📝</div>
+          <div>No takes available.</div>
+        </div>`;
+      return;
+    }
 
-        function useAsBackground() {
-            showToast('🎵 Voice effect set as background track');
-        }
+    box.innerHTML = takes.map((t, i) => `
+      <div class="take-item" style="animation-delay: ${i * 0.05}s">
+        <div class="take-score">⭐ Score: ${escapeHtml(String(t.score ?? "-"))}</div>
+        <div class="take-text">${escapeHtml(t.text || "")}</div>
+      </div>
+    `).join("");
+    
+    $("takesResultBox").classList.add("active");
+  }
 
-        // ==================== GENERATE DROP ====================
-        async function generateDrop() {
-            const generateBtn = document.getElementById('generateBtn');
-            generateBtn.disabled = true;
-            showLoading('Generating your premium drop...');
-            
-            const data = {
-                mode: currentMode,
-                dj_name: (currentMode === 'training'
-                    ? document.getElementById('trainDjName').value
-                    : document.getElementById('djName').value) || 'DJ Beshi',
-                genre: document.getElementById('genre').value,
-                drop_type: document.getElementById('dropType').value,
-                mood: document.getElementById('mood').value,
-                energy: parseInt(document.getElementById('energy').value, 10),
-                voice: document.getElementById('voice').value,
-                city: document.getElementById('city').value,
-                use_stutter: document.getElementById('autoStutterToggle').classList.contains('on'),
-                custom_script: currentMode === 'strict' ? document.getElementById('customScript').value : '',
-                training_example: currentMode === 'training' ? document.getElementById('trainingExample').value : ''
-            };
-            
-            try {
-                const res = await fetch('/api/generate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                const result = await res.json();
-                
-                hideLoading();
-                generateBtn.disabled = false;
-                
-                if (result.success) {
-                    lastGeneratedDrop = result;
-                    
-                    document.getElementById('resultScript').textContent = result.script;
-                    document.getElementById('resultAudio').src = result.download_url;
-                    document.getElementById('resultsArea').style.display = 'block';
-                    
-                    const badge = document.getElementById('resultBadge');
-                    if (result.offline) {
-                        badge.textContent = '⚠️ Basic Audio Mode';
-                        badge.style.background = 'rgba(247, 197, 49, 0.1)';
-                        badge.style.color = 'var(--warning)';
-                    } else {
-                        badge.textContent = '✅ Neural Voice + LOUD FX';
-                        badge.style.background = 'rgba(0, 208, 132, 0.1)';
-                        badge.style.color = 'var(--success)';
-                    }
-                    
-                    document.getElementById('resultsArea').scrollIntoView({ behavior: 'smooth' });
-                    showToast('🔥 Drop generated successfully!');
-                } else {
-                    showToast('❌ Generation failed: ' + (result.error || 'unknown error'));
-                }
-            } catch (err) {
-                hideLoading();
-                generateBtn.disabled = false;
-                showToast('❌ Network error');
-            }
-        }
+  function renderGeneratedResult(data) {
+    $("bestScript").textContent = data.script || "No script returned.";
+    $("scriptResultBox").classList.add("active");
+    
+    renderTakes(data.takes || []);
 
-        // ==================== SAVE TO LIBRARY ====================
-        async function saveToLibrary() {
-            if (!lastGeneratedDrop) return;
-            
-            const drop = {
-                id: Date.now(),
-                title: lastGeneratedDrop.script.length > 50
-                    ? lastGeneratedDrop.script.substring(0, 50) + '...'
-                    : lastGeneratedDrop.script,
-                script: lastGeneratedDrop.script,
-                url: lastGeneratedDrop.download_url,
-                genre: document.getElementById('genre').value,
-                date: new Date().toLocaleDateString(),
-                project: lastGeneratedDrop.project,
-                dj_name: document.getElementById('djName').value || 'DJ Beshi'
-            };
-            
-            try {
-                const res = await fetch('/api/library', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(drop)
-                });
-                if (!res.ok) throw new Error('Server rejected save');
-                showToast('💾 Saved to Library!');
-            } catch (err) {
-                // Fallback to localStorage if the backend call fails
-                let library = JSON.parse(localStorage.getItem('djDrops') || '[]');
-                library.unshift(drop);
-                localStorage.setItem('djDrops', JSON.stringify(library));
-                showToast('💾 Saved locally (offline)');
-            }
-        }
+    const msg = data.message || "Drop generated";
+    const ttsBadge = data.tts_engine 
+      ? `<span class="badge"><span class="dot good"></span>TTS: ${escapeHtml(data.tts_engine)}</span>` 
+      : "";
+    const downloadBtn = data.download_url
+      ? `<a href="${data.download_url}" target="_blank" class="btn btn-secondary btn-sm">⬇️ Download Master</a>`
+      : "";
 
-        // ==================== LIBRARY ====================
-        function escapeHtml(str) {
-            const div = document.createElement('div');
-            div.textContent = str == null ? '' : String(str);
-            return div.innerHTML;
-        }
+    $("audioResult").innerHTML = `
+      <div class="badge-row">
+        ${ttsBadge}
+        ${downloadBtn}
+      </div>
+      <div class="text-secondary" style="font-size:14px;">${escapeHtml(msg)}</div>
+      ${data.download_url ? `<audio controls src="${data.download_url}"></audio>` : ""}
+    `;
+    
+    $("audioResultBox").classList.add("active");
+  }
 
-        async function renderLibrary() {
-            const list = document.getElementById('libraryList');
-            const empty = document.getElementById('libraryEmpty');
-            const countEl = document.getElementById('libraryCount');
-            
-            let library = [];
-            
-            try {
-                const res = await fetch('/api/library');
-                const data = await res.json();
-                if (data.success) library = data.drops;
-                else throw new Error('bad response');
-            } catch (err) {
-                library = JSON.parse(localStorage.getItem('djDrops') || '[]');
-            }
-            
-            countEl.textContent = `${library.length} drop${library.length !== 1 ? 's' : ''} saved`;
-            
-            if (library.length === 0) {
-                list.innerHTML = '';
-                empty.style.display = 'block';
-                return;
-            }
-            
-            empty.style.display = 'none';
+  // ========== GENERATOR ACTIONS ==========
+  async function previewScript() {
+    const btn = $("previewBtn");
+    try {
+      btn.disabled = true;
+      btn.innerHTML = "⏳ Loading...";
+      
+      const payload = collectGeneratorPayload();
+      const data = await fetchJSON("/api/preview_script", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
 
-            // Build with data-* attributes (not string-interpolated onclick handlers)
-            // so titles/urls containing quotes can never break the markup.
-            list.innerHTML = library.map(drop => `
-                <div class="library-item" data-id="${escapeHtml(drop.id)}" data-url="${escapeHtml(drop.url)}" data-title="${escapeHtml(drop.title)}">
-                    <div class="library-art">🎵</div>
-                    <div class="library-info">
-                        <div class="library-title">${escapeHtml(drop.title)}</div>
-                        <div class="library-meta">${escapeHtml(drop.genre || 'Unknown')} • ${escapeHtml(drop.date)}</div>
-                    </div>
-                    <div class="library-play" data-action="play">▶️</div>
-                    <button class="delete-btn" data-action="delete" aria-label="Delete drop">🗑️</button>
-                </div>
-            `).join('');
-        }
+      $("bestScript").textContent = data.best || "No preview returned.";
+      $("scriptResultBox").classList.add("active");
+      
+      renderTakes((data.scripts || []).map((text, idx) => ({ score: 3 - idx, text })));
+      showToast("Preview generated successfully", "success");
+    } catch (err) {
+      showToast("Preview failed: " + err.message, "error");
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = "👁️ Preview Script";
+    }
+  }
 
-        // Event delegation for library actions (play / delete)
-        document.getElementById('libraryList').addEventListener('click', (e) => {
-            const item = e.target.closest('.library-item');
-            if (!item) return;
-            const action = e.target.closest('[data-action]')?.dataset.action;
-            const id = item.dataset.id;
-            const url = item.dataset.url;
-            const title = item.dataset.title;
+  async function generateDrop() {
+    const btn = $("generateBtn");
+    try {
+      btn.disabled = true;
+      btn.innerHTML = "⚡ Generating...";
+      
+      const payload = collectGeneratorPayload();
+      if (!payload.dj_name) throw new Error("DJ name is required");
 
-            if (action === 'delete') {
-                e.stopPropagation();
-                deleteDrop(id);
-            } else {
-                playDrop(url, title);
-            }
-        });
+      const data = await fetchJSON("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
 
-        async function deleteDrop(id) {
-            try {
-                const res = await fetch(`/api/library/${encodeURIComponent(id)}`, { method: 'DELETE' });
-                if (!res.ok) throw new Error('Server rejected delete');
-            } catch (err) {
-                let library = JSON.parse(localStorage.getItem('djDrops') || '[]');
-                library = library.filter(d => String(d.id) !== String(id));
-                localStorage.setItem('djDrops', JSON.stringify(library));
-            }
-            
-            showToast('🗑️ Drop deleted');
-            renderLibrary();
-        }
+      lastGenerated = { ...data, payload };
+      renderGeneratedResult(data);
+      showToast("Drop generated successfully!", "success");
+    } catch (err) {
+      showToast("Generate failed: " + err.message, "error");
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = "⚡ Generate Drop";
+    }
+  }
 
-        function playDrop(url, title) {
-            if (currentAudio) {
-                currentAudio.pause();
-                currentAudio = null;
-            }
-            
-            currentAudio = new Audio(url);
-            currentAudio.play().catch(() => showToast('❌ Could not play audio'));
-            isPlaying = true;
-            
-            document.getElementById('playerTitle').textContent =
-                title.length > 25 ? title.substring(0, 25) + '...' : title;
-            document.getElementById('playerArtist').textContent = 'DJ Beshi';
-            document.getElementById('playerPlayBtn').textContent = '⏸️';
-            document.getElementById('playerBar').classList.add('show');
-            
-            currentAudio.onended = () => {
-                isPlaying = false;
-                document.getElementById('playerPlayBtn').textContent = '▶️';
-            };
-        }
+  // ========== BACKGROUND UPLOAD ==========
+  async function uploadBackgroundTrack() {
+    const fileInput = $("bg_file");
+    const file = fileInput.files[0];
+    if (!file) {
+      showToast("Choose a background audio file first", "warn");
+      return;
+    }
 
-        function togglePlayer() {
-            if (!currentAudio) return;
-            
-            if (isPlaying) {
-                currentAudio.pause();
-                document.getElementById('playerPlayBtn').textContent = '▶️';
-            } else {
-                currentAudio.play();
-                document.getElementById('playerPlayBtn').textContent = '⏸️';
-            }
-            isPlaying = !isPlaying;
-        }
+    const form = new FormData();
+    form.append("file", file);
 
-        // ==================== STATUS CHECK ====================
-        async function checkStatus() {
-            try {
-                const res = await fetch('/api/status');
-                const data = await res.json();
-                const statusText = document.getElementById('statusText');
-                if (data.online && data.ffmpeg_available) {
-                    statusText.textContent = 'Ready to generate';
-                } else if (data.ffmpeg_available) {
-                    statusText.textContent = 'Offline mode - Basic audio';
-                } else {
-                    statusText.textContent = 'Script only mode';
-                }
-            } catch (e) {
-                document.getElementById('statusText').textContent = 'Server offline';
-            }
-        }
-        checkStatus();
+    const btn = $("uploadBgBtn");
+    try {
+      btn.disabled = true;
+      btn.textContent = "⏳ Uploading...";
 
-        // ==================== PWA ====================
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/service-worker.js').catch(() => {});
-        }
+      const res = await fetch("/upload", { method: "POST", body: form });
+      const data = await res.json();
 
-        // Clean up mic if the user navigates away mid-recording
-        window.addEventListener('beforeunload', () => {
-            if (activeStream) activeStream.getTracks().forEach(t => t.stop());
-        });
-    </script>
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Upload failed");
+      }
+
+      uploadedBgFilename = data.filename;
+      $("bgTrackName").textContent = `Uploaded: ${data.filename}`;
+      $("bgUploadStatus").innerHTML = `<span class="status-dot online"></span>Background track uploaded`;
+      $("bgUploadStatus").classList.add("success");
+      showToast("Background track uploaded", "success");
+    } catch (err) {
+      showToast("Upload failed: " + err.message, "error");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Upload Track";
+    }
+  }
+
+  // ========== TRAINING ==========
+  async function trainAI() {
+    const example = $("train_example").value.trim();
+    if (!example) {
+      showToast("Paste a training example first", "warn");
+      return;
+    }
+
+    const payload = {
+      example,
+      dj_name: $("train_dj_name").value.trim() || "DJ Beshi",
+      genre: $("train_genre").value,
+      energy: Number($("train_energy").value || 8),
+      train_mode: $("train_mode").value
+    };
+
+    const btn = $("trainBtn");
+    try {
+      btn.disabled = true;
+      btn.innerHTML = "⏳ Training...";
+
+      const data = await fetchJSON("/api/train", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      let html = "";
+      if (data.mode === "exact") {
+        html = `
+          <div style="margin-bottom:8px;"><span class="badge"><span class="dot good"></span>Mode: Exact Save</span></div>
+          <div class="script-display">${escapeHtml(data.script || "")}</div>
+        `;
+      } else {
+        html = `
+          <div style="margin-bottom:8px;"><span class="badge"><span class="dot good"></span>Mode: Mimic Style</span></div>
+          <div class="script-display">${escapeHtml(data.script || "")}</div>
+          <div class="text-muted" style="margin-top:12px; font-size:12px;">Original style analyzed and stored successfully.</div>
+        `;
+      }
+
+      $("trainResult").innerHTML = html;
+      $("trainResultBox").classList.add("active");
+      showToast("Training complete!", "success");
+    } catch (err) {
+      showToast("Training failed: " + err.message, "error");
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = "🎓 Train AI";
+    }
+  }
+
+  // ========== VOICE EFFECTS ==========
+  async function processVoice() {
+    const file = $("voice_audio").files[0];
+    if (!file) {
+      showToast("Choose an audio file first", "warn");
+      return;
+    }
+
+    const form = new FormData();
+    form.append("audio", file);
+    form.append("effect", $("voice_effect").value);
+
+    const btn = $("processVoiceBtn");
+    try {
+      btn.disabled = true;
+      btn.innerHTML = "⏳ Processing...";
+
+      const res = await fetch("/api/process_voice", { method: "POST", body: form });
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Voice processing failed");
+      }
+
+      $("voiceProcessResult").innerHTML = `
+        <div class="badge-row">
+          <span class="badge"><span class="dot good"></span>${escapeHtml(data.message || "Voice processed")}</span>
+          <a href="${data.download_url}" target="_blank" class="btn btn-secondary btn-sm">⬇️ Download</a>
+        </div>
+        <audio controls src="${data.audio_url}"></audio>
+      `;
+      
+      $("voiceResultBox").classList.add("active");
+      showToast("Voice processed successfully!", "success");
+    } catch (err) {
+      showToast("Voice processing failed: " + err.message, "error");
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = "🎛️ Process Voice";
+    }
+  }
+
+  // ========== LIBRARY ==========
+  async function loadLibrary() {
+    const box = $("libraryList");
+    box.innerHTML = `<div class="loading-shimmer" style="height:80px;"></div><div class="loading-shimmer" style="height:80px;"></div>`;
+    
+    try {
+      const data = await fetchJSON("/api/library");
+      const list = data.drops || [];
+
+      if (!list.length) {
+        box.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📭</div>
+            <div>No saved drops yet.</div>
+            <div style="font-size:12px; margin-top:4px;">Generate a drop and save it to see it here.</div>
+          </div>`;
+        return;
+      }
+
+      box.innerHTML = list.map((item, i) => `
+        <div class="library-item" style="animation: fadeIn 0.3s ease ${i * 0.05}s forwards; opacity:0;">
+          <div class="library-head">
+            <div>
+              <div class="library-title">${escapeHtml(item.title || "Untitled Drop")}</div>
+              <div class="library-meta">${escapeHtml(item.genre || "club_banger")} • ${escapeHtml(item.dj_name || "DJ")} • ${escapeHtml(item.date || "")}</div>
+            </div>
+          </div>
+          <div class="library-script">${escapeHtml(item.script || "")}</div>
+          <div class="library-actions">
+            ${item.url ? `<a href="${item.url}" target="_blank" class="btn btn-secondary btn-sm">▶️ Open</a>` : ""}
+            <button class="btn btn-ghost btn-sm" onclick="promptDelete('${String(item.id).replace(/'/g, "\\'")}')">🗑️ Delete</button>
+          </div>
+        </div>
+      `).join("");
+    } catch (err) {
+      box.innerHTML = `<div class="empty-state"><div class="empty-state-icon">❌</div><div>Failed to load library</div><div style="font-size:12px; margin-top:4px;">${escapeHtml(err.message)}</div></div>`;
+    }
+  }
+
+  async function saveCurrentToLibrary() {
+    if (!lastGenerated) {
+      showToast("Generate a drop first before saving", "warn");
+      return;
+    }
+
+    const payload = {
+      title: `${lastGenerated.payload.dj_name} - ${lastGenerated.payload.drop_type}`,
+      script: lastGenerated.script || "",
+      genre: lastGenerated.payload.genre || "club_banger",
+      project: lastGenerated.project || "",
+      url: lastGenerated.download_url || "",
+      dj_name: lastGenerated.payload.dj_name || "DJ Beshi"
+    };
+
+    try {
+      await fetchJSON("/api/library", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      
+      showToast("Saved to library!", "success");
+      loadLibrary();
+    } catch (err) {
+      showToast("Save failed: " + err.message, "error");
+    }
+  }
+
+  // ========== DELETE MODAL ==========
+  function promptDelete(id) {
+    deleteTargetId = id;
+    $("deleteModal").classList.add("active");
+  }
+
+  function closeDeleteModal() {
+    $("deleteModal").classList.remove("active");
+    deleteTargetId = null;
+  }
+
+  async function confirmDelete() {
+    if (!deleteTargetId) return;
+    
+    const btn = $("confirmDeleteBtn");
+    try {
+      btn.disabled = true;
+      btn.textContent = "Deleting...";
+      
+      const res = await fetch(`/api/library/${encodeURIComponent(deleteTargetId)}`, { method: "DELETE" });
+      const data = await res.json();
+      
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Delete failed");
+      }
+      
+      showToast("Deleted from library", "success");
+      loadLibrary();
+    } catch (err) {
+      showToast("Delete failed: " + err.message, "error");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Delete";
+      closeDeleteModal();
+    }
+  }
+
+  // Close modal on overlay click
+  $("deleteModal").addEventListener("click", (e) => {
+    if (e.target === $("deleteModal")) closeDeleteModal();
+  });
+
+  // ========== INIT ==========
+  document.addEventListener("DOMContentLoaded", async () => {
+    await loadStatus();
+    await loadVoices();
+    await loadLibrary();
+  });
+</script>
+
 </body>
 </html>
