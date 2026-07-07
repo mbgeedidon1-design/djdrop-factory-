@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="author" content="Macdonald Barasa">
-    <title>DJ Drop Factory Pro v4</title>
+    <title>DJ Drop Factory Pro v4.5 — Live</title>
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/static/icon-192.png">
     <style>
@@ -67,7 +67,7 @@
         }
 
         @media (prefers-reduced-motion: reduce) {
-            .bg-glow, .hero-card::before, .recorder-ring.recording, .hero-dot { animation: none !important; }
+            .bg-glow, .hero-card::before, .recorder-ring.recording, .hero-dot, .live-dot { animation: none !important; }
         }
 
         .app-container { max-width: 430px; margin: 0 auto; position: relative; min-height: 100vh; z-index: 1; }
@@ -600,6 +600,35 @@
         .review-label { font-size: 13px; color: var(--text-muted); font-weight: 500; }
         .review-value { font-size: 14px; color: var(--text); font-weight: 600; text-align: right; }
 
+        /* Live Preview Card */
+        #livePreviewCard {
+            display: none;
+            margin: 0 20px 16px;
+            animation: fadeIn 0.4s ease;
+        }
+        .live-dot {
+            width: 8px; height: 8px; background: var(--accent); border-radius: 50%;
+            animation: pulse 2s infinite; display: inline-block;
+        }
+
+        /* Recovery Banner */
+        #recoveryBanner {
+            position: fixed; top: 44px; left: 0; right: 0; z-index: 250;
+            background: linear-gradient(90deg, var(--accent), #e85d04);
+            padding: 12px 20px; display: none;
+            justify-content: space-between; align-items: center;
+            animation: slideDown 0.3s ease;
+        }
+        @keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+
+        /* Pull to refresh hint */
+        .pull-hint {
+            text-align: center; padding: 10px; color: var(--text-muted);
+            font-size: 13px; font-weight: 500; opacity: 0;
+            transition: opacity 0.3s ease; pointer-events: none;
+        }
+        .pull-hint.show { opacity: 1; }
+
         /* Responsive */
         @media (min-width: 431px) {
             body { background: #111; }
@@ -618,7 +647,19 @@
 <body>
     <div class="bg-glow"></div>
 
+    <!-- Recovery Banner -->
+    <div id="recoveryBanner">
+        <span style="font-weight:600;font-size:14px;color:#fff;">🔄 Unsaved draft found</span>
+        <div style="display:flex;gap:10px;">
+            <button style="background:rgba(255,255,255,0.2);border:none;border-radius:8px;padding:6px 14px;color:#fff;font-weight:600;cursor:pointer;" onclick="liveEngine.restoreDraft();document.getElementById('recoveryBanner').style.display='none';">Restore</button>
+            <button style="background:rgba(255,255,255,0.2);border:none;border-radius:8px;padding:6px 14px;color:#fff;font-weight:600;cursor:pointer;" onclick="localStorage.removeItem('df_draft');document.getElementById('recoveryBanner').style.display='none';">Discard</button>
+        </div>
+    </div>
+
     <div class="app-container">
+        <!-- Pull to refresh hint -->
+        <div class="pull-hint" id="pullHint">⬇️ Pull down to refresh</div>
+
         <!-- Status Bar -->
         <div class="status-bar">
             <span class="status-time" id="clock">9:41</span>
@@ -627,7 +668,7 @@
                     <div class="signal-bar"></div><div class="signal-bar"></div>
                     <div class="signal-bar"></div><div class="signal-bar"></div>
                 </div>
-                <span class="wifi-icon">📶</span>
+                <span class="wifi-icon" id="wifiIcon">📶</span>
                 <div class="battery"><div class="battery-fill"></div></div>
             </div>
         </div>
@@ -644,8 +685,8 @@
 
             <!-- Hero Card -->
             <div class="hero-card">
-                <div class="hero-title">🔥 DJ Drop Factory v4</div>
-                <div class="hero-text">AI + Web Data + String Wizard</div>
+                <div class="hero-title">🔥 DJ Drop Factory v4.5</div>
+                <div class="hero-text">AI + Web Data + String Wizard + Live Sync</div>
                 <div class="hero-badge">
                     <span class="hero-dot"></span>
                     <span id="statusText">Checking status…</span>
@@ -850,6 +891,15 @@
                 </div>
             </div>
 
+            <!-- Live Preview Card -->
+            <div class="result-card" id="livePreviewCard">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                    <span class="live-dot"></span>
+                    <span style="font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.05em;">Live Preview</span>
+                </div>
+                <div class="result-script" id="livePreviewText" style="font-size:15px;margin-bottom:0;"></div>
+            </div>
+
             <!-- Voice Recorder Section -->
             <div class="section-card">
                 <div class="section-header">🎙️ Voice Recorder & Effects</div>
@@ -1000,7 +1050,7 @@
 
             <div class="section-card">
                 <div class="section-header">ℹ️ About</div>
-                <div class="toggle-row"><div class="toggle-info"><div class="toggle-title">Version</div></div><span style="color: var(--accent); font-weight: 700; font-size: 15px;">4.0 Pro</span></div>
+                <div class="toggle-row"><div class="toggle-info"><div class="toggle-title">Version</div></div><span style="color: var(--accent); font-weight: 700; font-size: 15px;">4.5 Live</span></div>
                 <div class="toggle-row" style="cursor: pointer;" onclick="showToast('Thanks for rating! ⭐⭐⭐⭐⭐')">
                     <div class="toggle-info"><div class="toggle-title">Rate DJ Drop Factory</div></div>
                     <span style="color: var(--text-muted); font-size: 20px;">›</span>
@@ -1008,9 +1058,9 @@
             </div>
 
             <div class="credits">
-                <strong>Premium AI DJ Drop Factory v4.0</strong><br>
+                <strong>Premium AI DJ Drop Factory v4.5 — Live Edition</strong><br>
                 Created by Macdonald Barasa<br>
-                AI Training | Loud Audio | Voice Effects | Library | Web Data | String Wizard
+                AI Training | Loud Audio | Voice Effects | Library | Web Data | String Wizard | Live Sync
             </div>
         </div>
 
@@ -1063,6 +1113,8 @@
         let activeStream = null;
         let wizardStep = 1;
         let debounceTimer = null;
+        let livePreviewDebounce = null;
+        let liveEngine = null;
 
         // ==================== CLOCK ====================
         function updateClock() {
@@ -1094,11 +1146,15 @@
             document.getElementById('aiForm').style.display = mode === 'ai' ? 'block' : 'none';
             document.getElementById('strictForm').style.display = mode === 'strict' ? 'block' : 'none';
             document.getElementById('trainingForm').style.display = mode === 'training' ? 'block' : 'none';
+            // Hide live preview when switching away from AI
+            if (mode !== 'ai') {
+                const lp = document.getElementById('livePreviewCard');
+                if (lp) lp.style.display = 'none';
+            }
         }
 
         // ==================== WIZARD NAVIGATION ====================
         function wizardNext(step) {
-            // Validate step via backend
             const data = gatherWizardData(step);
             fetch('/api/wizard_validate', {
                 method: 'POST',
@@ -1120,7 +1176,6 @@
                 }
             })
             .catch(() => {
-                // Offline fallback: just proceed
                 document.getElementById(`wizardStep${step}`).classList.remove('active');
                 document.getElementById(`step${step}Indicator`).classList.remove('active');
                 document.getElementById(`step${step}Indicator`).classList.add('completed');
@@ -1331,7 +1386,6 @@
                     showToast(`✅ ${operation.replace('_', ' ')} applied!`);
                 }
             } catch (e) {
-                // Offline fallback
                 if (operation === 'capitalize') {
                     ta.value = text.replace(/\b\w/g, c => c.toUpperCase());
                 } else if (operation === 'auto_punctuate') {
@@ -1380,7 +1434,6 @@
                     const el = document.getElementById('cityVibe');
                     el.textContent = `🌡️ ${v.temperature}°C • ${v.vibe} vibes • Suggested mood: ${v.suggested_mood}`;
                     el.style.display = 'block';
-                    // Auto-suggest mood if empty
                     if (v.suggested_mood) {
                         const moodSelect = document.getElementById('mood');
                         for (let i = 0; i < moodSelect.options.length; i++) {
@@ -1414,7 +1467,6 @@
             fetchTrendingGenres();
         }
 
-        // Debounced city input
         document.getElementById('city').addEventListener('input', () => {
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(fetchCityVibe, 800);
@@ -1422,8 +1474,6 @@
 
         // ==================== GENERATE DROP ====================
         async function generateDrop() {
-            const generateBtn = document.getElementById('generateBtn');
-            if (generateBtn) generateBtn.disabled = true;
             showLoading('Generating your premium drop...');
 
             const data = {
@@ -1449,7 +1499,6 @@
                 });
                 const result = await res.json();
                 hideLoading();
-                if (generateBtn) generateBtn.disabled = false;
 
                 if (result.success) {
                     lastGeneratedDrop = result;
@@ -1469,12 +1518,14 @@
                     }
                     document.getElementById('resultsArea').scrollIntoView({ behavior: 'smooth' });
                     showToast('🔥 Drop generated successfully!');
+                    // Clear draft after successful generation
+                    localStorage.removeItem('df_draft');
+                    if (liveEngine) liveEngine.clearServerDraft();
                 } else {
                     showToast('❌ Generation failed: ' + (result.error || 'unknown'));
                 }
             } catch (err) {
                 hideLoading();
-                if (generateBtn) generateBtn.disabled = false;
                 showToast('❌ Network error');
             }
         }
@@ -1606,23 +1657,321 @@
                 const data = await res.json();
                 const statusText = document.getElementById('statusText');
                 const webInd = document.getElementById('webIndicator');
+                const wifiIcon = document.getElementById('wifiIcon');
                 if (data.online && data.ffmpeg_available) {
                     statusText.textContent = 'Ready to generate';
                     webInd.textContent = '🌐 Live';
                     webInd.classList.remove('offline');
+                    wifiIcon.textContent = '📶';
                 } else if (data.ffmpeg_available) {
                     statusText.textContent = 'Offline mode - Basic audio';
                     webInd.textContent = '📴 Offline';
                     webInd.classList.add('offline');
+                    wifiIcon.textContent = '✈️';
                 } else {
                     statusText.textContent = 'Script only mode';
                     webInd.textContent = '⚠️ Limited';
                     webInd.classList.add('offline');
+                    wifiIcon.textContent = '⚠️';
                 }
             } catch (e) {
                 document.getElementById('statusText').textContent = 'Server offline';
                 document.getElementById('webIndicator').textContent = '📴 Offline';
                 document.getElementById('webIndicator').classList.add('offline');
+                document.getElementById('wifiIcon').textContent = '✈️';
+            }
+        }
+
+        // ==================== LIVE ENGINE ====================
+        class LiveEngine {
+            constructor() {
+                this.sessionId = this.getSessionId();
+                this.setupAutoSave();
+                this.setupLivePreview();
+                this.setupHeartbeat();
+                this.setupNetworkStatus();
+                this.setupVisibilityRefresh();
+                this.setupBeforeUnload();
+                this.setupPullToRefresh();
+                this.checkRecovery();
+            }
+
+            getSessionId() {
+                let id = localStorage.getItem('df_session_id');
+                if (!id) {
+                    id = 'sess_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                    localStorage.setItem('df_session_id', id);
+                }
+                return id;
+            }
+
+            setupAutoSave() {
+                // Save to localStorage every 2 seconds
+                setInterval(() => this.saveLocalDraft(), 2000);
+                // Sync to server every 10 seconds if online
+                setInterval(() => this.syncDraftToServer(), 10000);
+                // Track input changes immediately
+                const inputs = document.querySelectorAll('input, select, textarea');
+                inputs.forEach(el => el.addEventListener('input', () => this.saveLocalDraft()));
+            }
+
+            saveLocalDraft() {
+                const draft = {
+                    mode: currentMode,
+                    djName: document.getElementById('djName')?.value,
+                    city: document.getElementById('city')?.value,
+                    genre: document.getElementById('genre')?.value,
+                    dropType: document.getElementById('dropType')?.value,
+                    mood: document.getElementById('mood')?.value,
+                    energy: document.getElementById('energy')?.value,
+                    voice: document.getElementById('voice')?.value,
+                    customScript: document.getElementById('customScript')?.value,
+                    trainingExample: document.getElementById('trainingExample')?.value,
+                    userStutter: document.getElementById('userStutter')?.value,
+                    timestamp: Date.now()
+                };
+                localStorage.setItem('df_draft', JSON.stringify(draft));
+            }
+
+            async syncDraftToServer() {
+                if (!navigator.onLine) return;
+                const draft = localStorage.getItem('df_draft');
+                if (!draft) return;
+                try {
+                    await fetch('/api/draft', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Session-ID': this.sessionId
+                        },
+                        body: draft
+                    });
+                } catch(e) {}
+            }
+
+            async clearServerDraft() {
+                try {
+                    await fetch('/api/draft', {
+                        method: 'DELETE',
+                        headers: {'X-Session-ID': this.sessionId}
+                    });
+                } catch(e) {}
+            }
+
+            checkRecovery() {
+                const draft = localStorage.getItem('df_draft');
+                if (!draft) return;
+                const data = JSON.parse(draft);
+                // Only show if draft is less than 24 hours old
+                if (Date.now() - data.timestamp > 24 * 60 * 60 * 1000) {
+                    localStorage.removeItem('df_draft');
+                    return;
+                }
+                const banner = document.getElementById('recoveryBanner');
+                if (banner) banner.style.display = 'flex';
+            }
+
+            async restoreDraft() {
+                let draft = null;
+                if (navigator.onLine) {
+                    try {
+                        const res = await fetch('/api/draft', {headers: {'X-Session-ID': this.sessionId}});
+                        const data = await res.json();
+                        if (data.success && data.draft) draft = data.draft;
+                    } catch(e) {}
+                }
+                if (!draft) {
+                    const local = localStorage.getItem('df_draft');
+                    if (local) draft = JSON.parse(local);
+                }
+                if (draft && Date.now() - draft.timestamp < 24*60*60*1000) {
+                    this.applyDraft(draft);
+                    showToast('🔄 Draft restored');
+                }
+            }
+
+            applyDraft(draft) {
+                if (draft.djName) document.getElementById('djName').value = draft.djName;
+                if (draft.city) document.getElementById('city').value = draft.city;
+                if (draft.genre) document.getElementById('genre').value = draft.genre;
+                if (draft.dropType) document.getElementById('dropType').value = draft.dropType;
+                if (draft.mood) document.getElementById('mood').value = draft.mood;
+                if (draft.energy) {
+                    document.getElementById('energy').value = draft.energy;
+                    updateEnergyFill();
+                }
+                if (draft.voice) document.getElementById('voice').value = draft.voice;
+                if (draft.customScript) document.getElementById('customScript').value = draft.customScript;
+                if (draft.trainingExample) document.getElementById('trainingExample').value = draft.trainingExample;
+                if (draft.userStutter) document.getElementById('userStutter').value = draft.userStutter;
+                if (draft.mode) {
+                    const modeIndex = {'ai': 0, 'strict': 1, 'training': 2}[draft.mode] || 0;
+                    const seg = document.querySelectorAll('.segment')[modeIndex];
+                    if (seg) setMode(draft.mode, seg);
+                }
+                // Trigger live events after restore
+                onGenreChange();
+                fetchCityVibe();
+            }
+
+            setupLivePreview() {
+                const liveInputs = ['djName', 'city', 'genre', 'dropType', 'mood', 'energy', 'userStutter'];
+                const handler = () => {
+                    clearTimeout(livePreviewDebounce);
+                    livePreviewDebounce = setTimeout(() => this.fetchLivePreview(), 700);
+                };
+                liveInputs.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.addEventListener('input', handler);
+                });
+            }
+
+            async fetchLivePreview() {
+                if (currentMode !== 'ai') return;
+                const data = {
+                    dj_name: document.getElementById('djName').value || 'DJ Beshi',
+                    genre: document.getElementById('genre').value,
+                    drop_type: document.getElementById('dropType').value,
+                    mood: document.getElementById('mood').value,
+                    energy: parseInt(document.getElementById('energy').value),
+                    city: document.getElementById('city').value,
+                    use_stutter: document.getElementById('autoStutterToggle').classList.contains('on'),
+                    user_stutter: document.getElementById('userStutter').value
+                };
+                try {
+                    const res = await fetch('/api/live_preview', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(data)
+                    });
+                    const result = await res.json();
+                    if (result.success) {
+                        this.showLivePreview(result.best);
+                    }
+                } catch(e) {}
+            }
+
+            showLivePreview(text) {
+                let card = document.getElementById('livePreviewCard');
+                if (!card) return;
+                const txt = document.getElementById('livePreviewText');
+                txt.textContent = text;
+                card.style.display = 'block';
+            }
+
+            setupHeartbeat() {
+                this.heartbeat();
+                setInterval(() => this.heartbeat(), 30000);
+            }
+
+            async heartbeat() {
+                if (!navigator.onLine) return;
+                try {
+                    const res = await fetch('/api/heartbeat');
+                    const data = await res.json();
+                    if (data.success) {
+                        const statusText = document.getElementById('statusText');
+                        const webInd = document.getElementById('webIndicator');
+                        const wifiIcon = document.getElementById('wifiIcon');
+                        if (data.online && data.ffmpeg) {
+                            statusText.textContent = 'Ready to generate';
+                            webInd.textContent = '🌐 Live';
+                            webInd.classList.remove('offline');
+                            wifiIcon.textContent = '📶';
+                        } else if (data.ffmpeg) {
+                            statusText.textContent = 'Offline mode';
+                            webInd.textContent = '📴 Offline';
+                            webInd.classList.add('offline');
+                            wifiIcon.textContent = '✈️';
+                        }
+                        if (data.trending && data.trending.length > 0) {
+                            const chipRow = document.getElementById('trendingGenres');
+                            if (chipRow) {
+                                chipRow.innerHTML = data.trending.map(g => 
+                                    `<span class="suggestion-chip" onclick="document.getElementById('genre').value='${g.toLowerCase().replace(/\\s+/g, '_')}';showToast('🎵 ${g} selected')">${g}</span>`
+                                ).join('');
+                                chipRow.style.display = 'flex';
+                            }
+                        }
+                    }
+                } catch(e) {}
+            }
+
+            setupNetworkStatus() {
+                window.addEventListener('online', () => {
+                    showToast('🌐 Back online! Syncing...');
+                    this.syncDraftToServer();
+                    this.heartbeat();
+                    checkStatus();
+                });
+                window.addEventListener('offline', () => {
+                    showToast('📴 Offline mode. Data saved locally.');
+                    const webInd = document.getElementById('webIndicator');
+                    const wifiIcon = document.getElementById('wifiIcon');
+                    if (webInd) {
+                        webInd.textContent = '📴 Offline';
+                        webInd.classList.add('offline');
+                    }
+                    if (wifiIcon) wifiIcon.textContent = '✈️';
+                });
+            }
+
+            setupVisibilityRefresh() {
+                document.addEventListener('visibilitychange', () => {
+                    if (!document.hidden) {
+                        this.heartbeat();
+                        checkStatus();
+                        if (currentScreen === 'screenLibrary') renderLibrary();
+                    }
+                });
+            }
+
+            setupBeforeUnload() {
+                window.addEventListener('beforeunload', (e) => {
+                    const loading = document.getElementById('loadingOverlay');
+                    if (loading && loading.classList.contains('show')) {
+                        e.preventDefault();
+                        e.returnValue = 'Generation in progress. Are you sure?';
+                    }
+                    this.saveLocalDraft();
+                    this.syncDraftToServer();
+                });
+            }
+
+            setupPullToRefresh() {
+                let touchStartY = 0;
+                let isPulling = false;
+                const pullHint = document.getElementById('pullHint');
+                
+                document.addEventListener('touchstart', e => {
+                    if (window.scrollY <= 5) {
+                        touchStartY = e.touches[0].clientY;
+                        isPulling = true;
+                    }
+                }, {passive: true});
+                
+                document.addEventListener('touchmove', e => {
+                    if (!isPulling || window.scrollY > 5) return;
+                    const diff = e.touches[0].clientY - touchStartY;
+                    if (diff > 60 && diff < 140) {
+                        pullHint.classList.add('show');
+                    }
+                }, {passive: true});
+                
+                document.addEventListener('touchend', e => {
+                    if (!isPulling) return;
+                    const diff = e.changedTouches[0].clientY - touchStartY;
+                    pullHint.classList.remove('show');
+                    if (diff > 100 && window.scrollY <= 5) {
+                        showToast('🔄 Refreshing live data...');
+                        checkStatus();
+                        fetchTrendingGenres();
+                        fetchNameSuggestions();
+                        this.heartbeat();
+                        if (currentScreen === 'screenLibrary') renderLibrary();
+                    }
+                    isPulling = false;
+                }, {passive: true});
             }
         }
 
@@ -1636,10 +1985,11 @@
             if (activeStream) activeStream.getTracks().forEach(t => t.stop());
         });
 
-        // Init web data on load
+        // ==================== INIT ====================
         checkStatus();
         fetchTrendingGenres();
         fetchNameSuggestions();
+        liveEngine = new LiveEngine();
     </script>
 </body>
 </html>
