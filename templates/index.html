@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>DJ DROP FACTORY — Public Preview</title>
+  <style>
+    :root{
+      --bg:#07111f;
+      --panel:#0d1b2e;
+      --panel-2:#12233a;
+      --text:#ecf3ff;
+      --muted:#9fb0cc;
+      --line:#203654;
+      --green:#2dd4bf;
+      --green-2:#14b8a6;
+      --yellow:#fbbf24;
+      --danger:#ef4444;
+      --shadow:0 20px 50px rgba(0,0,0,.35);
+      --radius:20px;
+    }
+    *{box-sizing:border-box}
+    html,body{
+      margin:0;padding:0;
+      font-family:Inter,Arial,sans-serif;
+      background:
+        radial-gradient(circle at top right, rgba(45,212,191,.10), transparent 25%),
+        radial-gradient(circle at left center, rgba(251,191,36,.08), transparent 20%),
+        var(--bg);
+      color:var(--text);
+    }
+    a{color:inherit;text-decoration:none}
+    .container{max-width:1200px;margin:0 auto;padding:22px}
+    .topbar{
+      display:flex;align-items:center;justify-content:space-between;
+      gap:12px;margin-bottom:20px
+    }
+    .brand{
+      display:flex;align-items:center;gap:14px
+    }
+    .logo{
+      width:52px;height:52px;border-radius:16px;
+      display:grid;place-items:center;
+      background:linear-gradient(135deg,var(--green),var(--yellow));
+      color:#08111f;font-weight:900;font-size:22px;
+      box-shadow:var(--shadow)
+    }
+    .brand h1{margin:0;font-size:1.1rem;letter-spacing:.5px}
+    .brand p{margin:4px 0 0;color:var(--muted);font-size:.92rem}
+    .pill{
+      border:1px solid rgba(45,212,191,.25);
+      background:rgba(45,212,191,.10);
+      color:#d6fff8;
+      padding:10px 14px;border-radius:999px;font-size:.9rem
+    }
+
+    .hero{
+      display:grid;grid-template-columns:1.15fr .85fr;gap:22px;
+      align-items:stretch;
+      margin-top:8px;
+    }
+    @media (max-width: 980px){
+      .hero{grid-template-columns:1fr}
+    }
+
+    .card{
+      background:linear-gradient(180deg,var(--panel),var(--panel-2));
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+    }
+
+    .hero-left{padding:28px}
+    .eyebrow{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:8px 12px;border-radius:999px;
+      background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.25);
+      color:#ffe8a3;font-size:.88rem
+    }
+    .hero h2{
+      font-size:clamp(2rem,4vw,3.2rem);
+      line-height:1.02;
+      margin:16px 0 12px
+    }
+    .hero p.lead{
+      color:var(--muted);font-size:1.04rem;line-height:1.7;max-width:760px
+    }
+    .hero-actions{
+      display:flex;gap:12px;flex-wrap:wrap;margin-top:22px
+    }
+    .btn{
+      border:none;cursor:pointer;
+      border-radius:14px;padding:14px 18px;font-weight:700;
+      transition:.2s transform ease,.2s opacity ease,.2s background ease;
+      font-size:.98rem
+    }
+    .btn:hover{transform:translateY(-1px)}
+    .btn-primary{
+      background:linear-gradient(135deg,var(--green),var(--green-2));
+      color:#08111f
+    }
+    .btn-secondary{
+      background:transparent;border:1px solid var(--line);color:var(--text)
+    }
+    .hero-stats{
+      display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:24px
+    }
+    @media (max-width:700px){
+      .hero-stats{grid-template-columns:1fr}
+    }
+    .stat{
+      padding:16px;border:1px solid var(--line);border-radius:16px;
+      background:rgba(255,255,255,.02)
+    }
+    .stat .n{font-size:1.35rem;font-weight:800}
+    .stat .l{margin-top:6px;color:var(--muted);font-size:.92rem}
+
+    .hero-right{padding:22px;display:flex;flex-direction:column;gap:14px}
+    .mini-head{
+      display:flex;align-items:center;justify-content:space-between;gap:10px
+    }
+    .mini-head h3{margin:0;font-size:1.05rem}
+    .mini-head span{color:var(--muted);font-size:.9rem}
+    .sample{
+      padding:14px 16px;border-radius:16px;border:1px solid var(--line);
+      background:rgba(255,255,255,.02)
+    }
+    .sample .tag{
+      display:inline-block;margin-bottom:10px;padding:6px 10px;
+      border-radius:999px;font-size:.8rem;
+      background:rgba(45,212,191,.10);border:1px solid rgba(45,212,191,.25)
+    }
+    .sample p{margin:0;line-height:1.65}
+
+    .grid{
+      display:grid;grid-template-columns:1.1fr .9fr;gap:22px;margin-top:22px
+    }
+    @media (max-width:980px){
+      .grid{grid-template-columns:1fr}
+    }
+
+    .section{padding:24px}
+    .section h3{margin:0 0 10px;font-size:1.15rem}
+    .section .sub{color:var(--muted);margin:0 0 20px;line-height:1.6}
+
+    .form-grid{
+      display:grid;grid-template-columns:1fr 1fr;gap:14px
+    }
+    @media (max-width:700px){
+      .form-grid{grid-template-columns:1fr}
+    }
+
+    label{
+      display:block;font-size:.92rem;margin-bottom:8px;color:#dbe7ff
+    }
+    .field{
+      width:100%;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:#091425;
+      color:var(--text);
+      padding:14px 14px;
+      outline:none;
+      font-size:15px
+    }
+    textarea.field{min-height:110px;resize:vertical}
+    .stack{display:flex;flex-direction:column;gap:14px}
+    .row-actions{
+      display:flex;gap:12px;flex-wrap:wrap;margin-top:8px
+    }
+
+    .result-box{
+      min-height:180px;
+      border-radius:18px;
+      border:1px solid var(--line);
+      background:#091425;
+      padding:18px;
+      white-space:pre-wrap;
+      line-height:1.7;
+      font-size:15px
+    }
+    .result-muted{color:var(--muted)}
+
+    .notice{
+      margin-top:18px;padding:14px 16px;border-radius:16px;
+      border:1px solid rgba(251,191,36,.22);
+      background:rgba(251,191,36,.08);
+      color:#ffe8a3;line-height:1.6
+    }
+
+    .footer{
+      margin:28px 0 10px;
+      color:var(--muted);
+      text-align:center;
+      font-size:.92rem
+    }
+
+    .ok{color:#9ff7df}
+    .err{color:#ffb4b4}
+    .small{font-size:.9rem;color:var(--muted)}
+    .waitlist-success{
+      margin-top:12px;
+      padding:12px 14px;
+      border-radius:14px;
+      border:1px solid rgba(45,212,191,.25);
+      background:rgba(45,212,191,.10);
+      color:#d8fff7;
+      display:none
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo">DJ</div>
+        <div>
+          <h1>DJ DROP FACTORY</h1>
+          <p>Public preview build — keeping the brand live while the full studio is being upgraded.</p>
+        </div>
+      </div>
+      <div class="pill" id="statusPill">Checking service…</div>
+    </div>
+
+    <section class="hero">
+      <div class="card hero-left">
+        <div class="eyebrow">🚀 Studio upgrade in progress</div>
+        <h2>Keep the public page live while the full DJ Drop studio gets rebuilt properly.</h2>
+        <p class="lead">
+          This temporary public app lets visitors preview branded DJ drop scripts, see the service is active,
+          and leave contact details for the full audio studio release. No broken buttons, no fake dead page —
+          just a clean public-facing experience while the heavy backend is being fixed behind the scenes.
+        </p>
+
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#preview">Try script preview</a>
+          <a class="btn btn-secondary" href="#waitlist">Join waitlist</a>
+        </div>
+
+        <div class="hero-stats">
+          <div class="stat">
+            <div class="n">Live Public Page</div>
+            <div class="l">Visitors still see a working DJ Drop brand page instead of errors.</div>
+          </div>
+          <div class="stat">
+            <div class="n">Preview Generator</div>
+            <div class="l">Generate sample hype, promo, radio, and club drop scripts instantly.</div>
+          </div>
+          <div class="stat">
+            <div class="n">Upgrade Buffer</div>
+            <div class="l">Keeps people engaged while the real voice/audio engine is rebuilt safely.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card hero-right">
+        <div class="mini-head">
+          <h3>Sample DJ drop styles</h3>
+          <span>Temporary preview mode</span>
+        </div>
+
+        <div class="sample">
+          <div class="tag">Club Banger</div>
+          <p>Hands up! DJ Mac in full effect. Wall-to-wall energy! Make some noise!</p>
+        </div>
+
+        <div class="sample">
+          <div class="tag">Amapiano</div>
+          <p>Yanos to the world! DJ Mac in Nairobi is in full effect. Piano vibes only! We move!</p>
+        </div>
+
+        <div class="sample">
+          <div class="tag">Radio ID</div>
+          <p>You’re locked in with DJ Mac live on air. Premium radio sound only. Stay tuned.</p>
+        </div>
+
+        <div class="sample">
+          <div class="tag">Promo</div>
+          <p>DJ Mac invites you to a premium nightlife experience. Pull up live and experience the energy!</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid" id="preview">
+      <div class="card section">
+        <h3>DJ Drop Script Preview</h3>
+        <p class="sub">
+          This preview builder is public-safe and lightweight. It generates script ideas only for now —
+          the full voice generation and mastering system is being upgraded separately.
+        </p>
+
+        <div class="form-grid">
+          <div>
+            <label for="djName">DJ Name</label>
+            <input id="djName" class="field" placeholder="e.g. DJ Mac" />
+          </div>
+          <div>
+            <label for="city">City / Location</label>
+            <input id="city" class="field" placeholder="e.g. Nairobi" />
+          </div>
+
+          <div>
+            <label for="genre">Genre</label>
+            <select id="genre" class="field">
+              <option value="club_banger">Club Banger</option>
+              <option value="amapiano">Amapiano</option>
+              <option value="afrobeat">Afrobeat</option>
+              <option value="dancehall">Dancehall</option>
+              <option value="radio">Radio</option>
+              <option value="trap">Trap</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="dropType">Drop Type</label>
+            <select id="dropType" class="field">
+              <option value="intro">Intro</option>
+              <option value="hype">Hype</option>
+              <option value="promo">Promo</option>
+              <option value="radio">Radio ID</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="voice">Voice Style</label>
+            <select id="voice" class="field"></select>
+          </div>
+
+          <div>
+            <label for="energy">Energy</label>
+            <select id="energy" class="field">
+              <option value="5">5 - Balanced</option>
+              <option value="6">6 - Active</option>
+              <option value="7">7 - Strong</option>
+              <option value="8" selected>8 - Hype</option>
+              <option value="9">9 - Maximum</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row-actions">
+          <button class="btn btn-primary" id="previewBtn">Generate Preview Script</button>
+          <button class="btn btn-secondary" id="generateBtn">Generate Public Demo Result</button>
+        </div>
+
+        <div class="notice">
+          <strong>Note:</strong> This public build is intentionally lightweight so visitors get a stable experience.
+          The full audio studio, voice FX, uploads, and mastered drop export are being rebuilt behind the scenes.
+        </div>
+      </div>
+
+      <div class="card section">
+        <h3>Preview Output</h3>
+        <p class="sub">The result below updates instantly from the live backend.</p>
+        <div id="resultBox" class="result-box">
+          <span class="result-muted">Your generated preview will appear here.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid" id="waitlist">
+      <div class="card section">
+        <h3>Request the full studio version</h3>
+        <p class="sub">
+          If you want the real voice-generated drops, leave your details here.
+          You can use this as a public lead capture while the studio rebuild is in progress.
+        </p>
+
+        <div class="stack">
+          <div>
+            <label for="wName">Name</label>
+            <input id="wName" class="field" placeholder="Your name or DJ name" />
+          </div>
+          <div>
+            <label for="wPhone">Phone / WhatsApp</label>
+            <input id="wPhone" class="field" placeholder="+254..." />
+          </div>
+          <div>
+            <label for="wEmail">Email</label>
+            <input id="wEmail" class="field" placeholder="name@example.com" />
+          </div>
+          <div>
+            <label for="wNote">What do you need?</label>
+            <textarea id="wNote" class="field" placeholder="Example: I need radio IDs, club intros, event promos, voice FX, etc."></textarea>
+          </div>
+          <div class="row-actions">
+            <button class="btn btn-primary" id="waitlistBtn">Save my request</button>
+          </div>
+          <div class="waitlist-success" id="waitlistSuccess"></div>
+        </div>
+      </div>
+
+      <div class="card section">
+        <h3>What this public version is doing right now</h3>
+        <p class="sub">
+          This page is meant to hold the public position of the brand while the actual production system is fixed properly.
+        </p>
+
+        <div class="stack">
+          <div class="sample">
+            <div class="tag">Public stability</div>
+            <p>No broken “network error” experience for visitors. The page stays useful and branded.</p>
+          </div>
+          <div class="sample">
+            <div class="tag">Lead capture</div>
+            <p>People can leave WhatsApp, email, and request notes so you don’t lose traffic while rebuilding.</p>
+          </div>
+          <div class="sample">
+            <div class="tag">Backend placeholder</div>
+            <p>The current generator is intentionally light. Once the real audio engine is ready, you can replace only the backend logic and keep the frontend structure.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer">
+      DJ DROP FACTORY — temporary public preview build.
+    </div>
+  </div>
+
+  <script>
+    const statusPill = document.getElementById("statusPill");
+    const voiceSelect = document.getElementById("voice");
+    const resultBox = document.getElementById("resultBox");
+    const previewBtn = document.getElementById("previewBtn");
+    const generateBtn = document.getElementById("generateBtn");
+    const waitlistBtn = document.getElementById("waitlistBtn");
+    const waitlistSuccess = document.getElementById("waitlistSuccess");
+
+    async function fetchJSON(url, options = {}) {
+      const res = await fetch(url, options);
+      const text = await res.text();
+      let data = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (e) {
+        throw new Error(`Invalid server response (${res.status})`);
+      }
+      if (!res.ok) {
+        throw new Error(data.error || data.message || `Request failed (${res.status})`);
+      }
+      return data;
+    }
+
+    async function loadStatus() {
+      try {
+        const data = await fetchJSON("/api/status");
+        statusPill.textContent = "Live public preview";
+        statusPill.classList.add("ok");
+      } catch (err) {
+        statusPill.textContent = "Service check failed";
+        statusPill.classList.add("err");
+      }
+    }
+
+    async function loadVoices() {
+      try {
+        const data = await fetchJSON("/api/voices");
+        voiceSelect.innerHTML = "";
+        const voices = data.voices || {};
+        Object.entries(voices).forEach(([id, label]) => {
+          const opt = document.createElement("option");
+          opt.value = id;
+          opt.textContent = `${id} — ${label}`;
+          voiceSelect.appendChild(opt);
+        });
+      } catch (err) {
+        voiceSelect.innerHTML = `<option value="1">1 — Deep Studio Heavy Voice</option>`;
+      }
+    }
+
+    function getPayload() {
+      return {
+        dj_name: document.getElementById("djName").value.trim(),
+        city: document.getElementById("city").value.trim(),
+        genre: document.getElementById("genre").value,
+        drop_type: document.getElementById("dropType").value,
+        voice: document.getElementById("voice").value,
+        energy: Number(document.getElementById("energy").value || 8)
+      };
+    }
+
+    async function previewScript() {
+      resultBox.textContent = "Generating preview script...";
+      try {
+        const data = await fetchJSON("/api/preview_script", {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify(getPayload())
+        });
+
+        const scripts = data.scripts || [];
+        resultBox.textContent =
+          `BEST PREVIEW:\n${data.best || ""}\n\n` +
+          scripts.map((s, i) => `OPTION ${i + 1}:\n${s}`).join("\n\n");
+      } catch (err) {
+        resultBox.textContent = `Preview failed: ${err.message}`;
+      }
+    }
+
+    async function generateDemo() {
+      resultBox.textContent = "Generating public demo result...";
+      try {
+        const data = await fetchJSON("/api/generate", {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify(getPayload())
+        });
+
+        resultBox.textContent =
+          `PROJECT: ${data.project}\n` +
+          `VOICE: ${data.voice_label}\n\n` +
+          `${data.script}\n\n` +
+          `${data.note || ""}`;
+      } catch (err) {
+        resultBox.textContent = `Generate failed: ${err.message}`;
+      }
+    }
+
+    async function saveWaitlist() {
+      waitlistSuccess.style.display = "none";
+      waitlistSuccess.textContent = "";
+
+      const payload = {
+        name: document.getElementById("wName").value.trim(),
+        phone: document.getElementById("wPhone").value.trim(),
+        email: document.getElementById("wEmail").value.trim(),
+        note: document.getElementById("wNote").value.trim()
+      };
+
+      try {
+        const data = await fetchJSON("/api/waitlist", {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify(payload)
+        });
+
+        waitlistSuccess.style.display = "block";
+        waitlistSuccess.textContent = data.message || "Saved.";
+        document.getElementById("wName").value = "";
+        document.getElementById("wPhone").value = "";
+        document.getElementById("wEmail").value = "";
+        document.getElementById("wNote").value = "";
+      } catch (err) {
+        waitlistSuccess.style.display = "block";
+        waitlistSuccess.textContent = `Could not save: ${err.message}`;
+      }
+    }
+
+    previewBtn.addEventListener("click", previewScript);
+    generateBtn.addEventListener("click", generateDemo);
+    waitlistBtn.addEventListener("click", saveWaitlist);
+
+    loadStatus();
+    loadVoices();
+  </script>
+</body>
+</html>
