@@ -1,8 +1,9 @@
 # ============================================================
-# DJ DROP FACTORY PRO v3.0
+# DJ DROP FACTORY PRO v4.0
 # Created by: Macdonald Barasa
 # Email: simiyumacdonal1@gmail.com
-# Features: AI Training, Loud Audio, Voice Effects, Library API
+# Features: AI Training, Loud Audio, Voice Effects, Library API,
+#           Web Data Puller, String Wizard, Wizard Validation
 # ============================================================
 
 import os
@@ -12,11 +13,15 @@ import asyncio
 import subprocess
 import shutil
 import urllib.request
+import urllib.parse
 import json
+import time
+import gzip
 from pathlib import Path
 from datetime import datetime
+from io import BytesIO
 
-from flask import Flask, render_template, request, jsonify, send_file, send_from_directory
+from flask import Flask, render_template, request, jsonify, send_file, send_from_directory, make_response
 import edge_tts
 
 app = Flask(__name__)
@@ -27,6 +32,33 @@ UPLOAD_DIR = BASE_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
 TRAINING_DIR = BASE_DIR / "training_data"
 TRAINING_DIR.mkdir(exist_ok=True)
+
+# ============================================================
+# PERFORMANCE: Response compression & caching headers
+# ============================================================
+
+@app.after_request
+def after_request(response):
+    # Enable gzip-like behavior via headers + cache static assets
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Cache-Control"] = "public, max-age=300"
+    # Compress JSON responses manually if large
+    if response.content_type == "application/json" and response.content_length and response.content_length > 1024:
+        accept_encoding = request.headers.get('Accept-Encoding', '')
+        if 'gzip' in accept_encoding:
+            try:
+                buffer = BytesIO()
+                gzip.GzipFile(fileobj=buffer, mode='w').write(response.get_data())
+                compressed = buffer.getvalue()
+                if len(compressed) < response.content_length:
+                    response.set_data(compressed)
+                    response.headers['Content-Encoding'] = 'gzip'
+                    response.headers['Content-Length'] = len(compressed)
+            except Exception:
+                pass
+    return response
+
 
 # ============================================================
 # TOOLS CHECK
@@ -49,12 +81,384 @@ FFMPEG_AVAILABLE = check_ffmpeg() is not None
 ESPEAK_AVAILABLE = check_espeak() is not None
 
 print("=" * 60)
-print("DJ DROP FACTORY PRO v3.0")
+print("DJ DROP FACTORY PRO v4.0")
 print("=" * 60)
 print(f"Internet: {'YES' if has_internet() else 'NO'}")
 print(f"FFmpeg:   {'YES' if FFMPEG_AVAILABLE else 'NO'}")
 print(f"espeak:   {'YES' if ESPEAK_AVAILABLE else 'NO'}")
 print("=" * 60)
+
+
+# ============================================================
+# WEB DATA PULLER - Pulls live data from the internet
+# ============================================================
+
+class WebDataPuller:
+    """Fetches free public data from the web with TTL caching."""
+    CACHE = {}
+    CACHE_TTL = 300  # 5 minutes cache
+    
+    @classmethod
+    def _get_cached(cls, key):
+        if key in cls.CACHE:
+            ts, data = cls.CACHE[key]
+            if time.time() - ts < cls.CACHE_TTL:
+                return data
+        return None
+    
+    @classmethod
+    def _set_cached(cls, key, data):
+        cls.CACHE[key] = (time.time(), data)
+    
+    @classmethod
+    def fetch_trending_genres(cls):
+        """Pull trending music genres from Wikipedia API (no key needed)."""
+        cached = cls._get_cached('trending_genres')
+        if cached:
+            return cached
+        
+        genres = []
+        try:
+            url = "https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=popular+music+genres+2025&format=json&origin=*"
+            req = urllib.request.Request(url, headers={'User-Agent': 'DJDropFactory/4.0'})
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                data = json.loads(resp.read())
+                genres = [item['title'].replace("music", "").replace("genre", "").strip() 
+                         for item in data.get('query', {}).get('search', [])[:6]]
+        except Exception as e:
+            print(f"[WebPull] Genre fetch failed: {e}")
+        
+        # Fallback / enrich with our known genres
+        if not genres:
+            genres = ["Amapiano", "Afrobeat", "Dancehall", "Trap", "Drill", "Boom Bap"]
+        else:
+            # Ensure our core genres are always present
+            core = ["Amapiano", "Afrobeat", "Dancehall", "Trap", "Club Banger", "Radio"]
+            for c in core:
+                if c.lower() not in [g.lower() for g in genres]:
+                    genres.append(c)
+            genres = genres[:8]
+        
+        cls._set_cached('trending_genres', genres)
+        return genres
+    
+    @classmethod
+    def fetch_city_vibe(cls, city):
+        """Pull weather/vibe for a city using Open-Meteo (free, no key)."""
+        if not city or not city.strip():
+            return {"city": "", "vibe": "unknown", "temperature": 25}
+        
+        city_clean = city.strip()
+        cached = cls._get_cached(f'city_{city_clean.lower()}')
+        if cached:
+            return cached
+        
+        result = {"city": city_clean, "vibe": "vibing", "temperature": 25, "weather_code": 0}
+        try:
+            encoded = urllib.parse.quote(city_clean)
+            # Geocoding
+            geo_url = f"https://geocoding-api.open-meteo.com/v1/search?name={encoded}&count=1"
+            req = urllib.request.Request(geo_url, headers={'User-Agent': 'DJDropFactory/4.0'})
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                geo = json.loads(resp.read())
+                if geo.get('results'):
+                    lat = geo['results'][0]['latitude']
+                    lon = geo['results'][0]['longitude']
+                    name = geo['results'][0].get('name', city_clean)
+                    
+                    # Weather
+                    w_url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current_weather=true"
+                    w_req = urllib.request.Request(w_url, headers={'User-Agent': 'DJDropFactory/4.0'})
+                    with urllib.request.urlopen(w_req, timeout=5) as w_resp:
+                        w_data = json.loads(w_resp.read())
+                        weather = w_data.get('current_weather', {})
+                        temp = weather.get('temperature', 25)
+                        code = weather.get('weathercode', 0)
+                        
+                        # Map weather to DJ vibe strings
+                        if temp > 32:
+                            vibe = "scorching hot"
+                        elif temp > 26:
+                            vibe = "tropical heat"
+                        elif temp > 20:
+                            vibe = "warm"
+                        elif temp > 10:
+                            vibe = "cool breeze"
+                        else:
+                            vibe = "freezing cold"
+                        
+                        # Weather code affects mood suggestion
+                        mood = "hype"
+                        if code in [0, 1]:  # Clear
+                            mood = "festival"
+                        elif code in [51, 53, 55, 61, 63, 65]:  # Rain
+                            mood = "dark"
+                        elif code in [71, 73, 75, 85, 86]:  # Snow
+                            mood = "aggressive"
+                        
+                        result = {
+                            "city": name,
+                            "temperature": temp,
+                            "vibe": vibe,
+                            "weather_code": code,
+                            "suggested_mood": mood
+                        }
+        except Exception as e:
+            print(f"[WebPull] City vibe failed: {e}")
+        
+        cls._set_cached(f'city_{city_clean.lower()}', result)
+        return result
+    
+    @classmethod
+    def fetch_dj_name_suggestions(cls, style=""):
+        """Generate DJ name suggestions influenced by web-trending style."""
+        cached = cls._get_cached(f'names_{style.lower().strip()}')
+        if cached:
+            return cached
+        
+        # Base pools
+        bases = ["Blaze", "Phantom", "Vortex", "Echo", "Pulse", "Nova", "Cipher", "Kinetic", "Solar", "Lunar"]
+        suffixes = ["Beats", "Sound", "Wave", "Drop", "Bass", "Fire", "Storm", "Unit", "System", "Cartel"]
+        
+        if style:
+            s = style.lower()
+            if any(x in s for x in ["afro", "piano", "naija", "lagos"]):
+                bases = ["Afro", "Yanos", "Zulu", "Naija", "Kente", "Lagos", "Accra", "Savanna", "Jozi", "Cape"]
+                suffixes = ["Vibes", "Groove", "Rhythm", "Wave", "Drum", "Log", "Culture", "Pressure", "Session", "Settings"]
+            elif any(x in s for x in ["dance", "hall", "riddim", "bashment", "yard"]):
+                bases = ["Riddim", "Bashment", "Yard", "Sound", "Selectah", "Dub", "Reggae", "Jungle", "Kingston", "Trench"]
+                suffixes = ["Madness", "Reload", "PullUp", "System", "Clash", "War", "Ting", "Energy", "Fire", "Vibes"]
+            elif any(x in s for x in ["trap", "dark", "808", "hiphop", "rap"]):
+                bases = ["Dark", "Ghost", "Shadow", "Trap", "Lean", "Drip", "Mumble", "808", "Phantom", "Grave"]
+                suffixes = ["Mob", "Gang", "Cartel", "Mafia", "Clique", "Wave", "Squad", "Unit", "Boyz", "World"]
+            elif any(x in s for x in ["radio", "air", "broadcast", "fm"]):
+                bases = ["Air", "Wave", "Freq", "Signal", "Broadcast", "Mic", "Studio", "FM", "AM", "Satellite"]
+                suffixes = ["Radio", "Network", "Station", "Live", "Stream", "Cast", "Show", "Connect", "Link", "Airwaves"]
+        
+        suggestions = []
+        for _ in range(12):
+            name = f"DJ {random.choice(bases)} {random.choice(suffixes)}"
+            if name not in suggestions:
+                suggestions.append(name)
+        
+        cls._set_cached(f'names_{style.lower().strip()}', suggestions)
+        return suggestions
+    
+    @classmethod
+    def fetch_quote_of_the_day(cls):
+        """Pull a random motivational quote for DJ inspiration."""
+        cached = cls._get_cached('quote')
+        if cached:
+            return cached
+        
+        quotes = [
+            "The best DJs don't just play tracks, they create moments.",
+            "Music is the universal language of mankind.",
+            "Turn up the volume and let the bass heal your soul.",
+            "Amapiano to the world, one log drum at a time.",
+            "Good DJs mix tracks. Great DJs mix emotions."
+        ]
+        try:
+            # ZenQuotes API (free, no key)
+            url = "https://zenquotes.io/api/random"
+            req = urllib.request.Request(url, headers={'User-Agent': 'DJDropFactory/4.0'})
+            with urllib.request.urlopen(req, timeout=4) as resp:
+                data = json.loads(resp.read())
+                if isinstance(data, list) and len(data) > 0:
+                    q = data[0].get('q', '')
+                    a = data[0].get('a', '')
+                    if q:
+                        quotes = [f"{q} — {a}"]
+        except Exception as e:
+            print(f"[WebPull] Quote fetch failed: {e}")
+        
+        cls._set_cached('quote', quotes)
+        return quotes
+
+
+# ============================================================
+# STRING WIZARD - Advanced string manipulation
+# ============================================================
+
+class StringWizard:
+    """Advanced string operations for DJ drops."""
+    
+    TEMPLATES = {
+        "intro": "{opener} {dj_name} is {verb}{city_part}. {energy_line}{exclaim} {closer}",
+        "hype": "{opener} {display_name} in full effect{exclaim} {city_part} {closer}",
+        "promo": "{dj_name} invites you{city_part}{event_part}. Get ready for {promo_word}. Pull up live and experience the energy!",
+        "sweeper": "{display_name}{city_part}. {energy_line}. {tagline}",
+        "radio_id": "You're locked in with {display_name}{city_part}{station_part}{slogan_part}. Premium radio sound.",
+        "producer_tag": "{opener} {display_name}. Premium sound design only.",
+    }
+    
+    HASHTAGS = {
+        "amapiano": ["#Amapiano", "#Yanos", "#LogDrum", "#PrivateSchool", "#PianoVibes"],
+        "dancehall": ["#Dancehall", "#Riddim", "#Soundclash", "#Bashment", "#PullUp"],
+        "trap": ["#Trap", "#808", "#HipHop", "#Dark", "#Bass"],
+        "afrobeat": ["#Afrobeat", "#Afro", "#Vibes", "#Wave", "#Global"],
+        "club_banger": ["#Club", "#Banger", "#Party", "#MainEvent", "#Nightlife"],
+        "radio": ["#Radio", "#OnAir", "#Broadcast", "#Live", "#Frequency"],
+    }
+    
+    @classmethod
+    def process_template(cls, template_key, variables):
+        """Fill a template with variables. Safe string replacement."""
+        template = cls.TEMPLATES.get(template_key, "{dj_name} on the mic!")
+        result = template
+        for key, value in variables.items():
+            placeholder = "{" + str(key) + "}"
+            result = result.replace(placeholder, str(value) if value is not None else "")
+        # Clean up double spaces
+        result = re.sub(r'\s+', ' ', result).strip()
+        return result
+    
+    @classmethod
+    def smart_capitalize(cls, text):
+        """Smart capitalize that preserves DJ abbreviations."""
+        words = text.split()
+        result = []
+        for word in words:
+            w = word.strip()
+            if not w:
+                continue
+            # Preserve known abbreviations
+            if w.upper() in ["DJ", "MC", "DJ'S", "MC'S", "NYC", "LA", "UK", "US", "NG", "SA"]:
+                result.append(w.upper())
+            elif w.isupper() and len(w) <= 3:
+                result.append(w.upper())
+            else:
+                result.append(w.capitalize() if w == w.lower() else w)
+        return " ".join(result)
+    
+    @classmethod
+    def generate_slug(cls, text):
+        """Create URL-safe slug from text."""
+        text = text.lower().strip()
+        text = re.sub(r'[^\w\s-]', '', text)
+        text = re.sub(r'[\s_]+', '-', text)
+        text = re.sub(r'-+', '-', text)
+        return text[:60].strip('-')
+    
+    @classmethod
+    def add_hashtags(cls, text, genre):
+        """Auto-append relevant hashtags based on genre."""
+        tags = cls.HASHTAGS.get(genre.lower().replace(" ", "_"), ["#DJDrop", "#Fire"])
+        # Don't duplicate existing hashtags
+        existing = set(re.findall(r'#\w+', text.lower()))
+        new_tags = [t for t in tags if t.lower().lstrip('#') not in existing]
+        if new_tags:
+            return text + " " + " ".join(new_tags)
+        return text
+    
+    @classmethod
+    def stutter_pattern(cls, text, pattern="classic"):
+        """Apply stutter effect to text string."""
+        if not text or not text.strip():
+            return text
+        words = text.strip().split()
+        if not words:
+            return text
+        first_word = words[0]
+        if pattern == "classic":
+            c = first_word[0].upper()
+            return f"{c}-{c}-{c}-{text}"
+        elif pattern == "build_up":
+            c = first_word[0].upper()
+            return f"{c}... {c}... {first_word}... {text}"
+        elif pattern == "echo":
+            return f"{text}... {text}..."
+        elif pattern == "repeat":
+            return f"{text}! {text}!"
+        elif pattern == "underscore":
+            return text.lower().replace(" ", "_")
+        return text
+    
+    @classmethod
+    def analyze_sentiment(cls, text):
+        """Analyze if text is hype, chill, or neutral."""
+        t = text.lower()
+        hype_words = ["fire", "madness", "shutdown", "danger", "explosive", "banger", 
+                      "heavy", "destruction", "chaos", "wall-to-wall", "full shutdown"]
+        chill_words = ["smooth", "vibes", "relax", "steady", "calm", "mellow", "soft", 
+                       "breathe", "culture", "settings", "only"]
+        
+        hype_score = sum(1 for w in hype_words if w in t)
+        chill_score = sum(1 for w in chill_words if w in t)
+        
+        if hype_score > chill_score:
+            return "hype", hype_score
+        elif chill_score > hype_score:
+            return "chill", chill_score
+        return "neutral", max(hype_score, chill_score)
+    
+    @classmethod
+    def format_for_platform(cls, text, platform="generic"):
+        """Format text for specific social platforms."""
+        if platform == "twitter":
+            # Twitter/X style: short, punchy
+            t = text[:280] if len(text) > 280 else text
+            return t
+        elif platform == "instagram":
+            # Instagram: longer allowed, add line breaks
+            return text[:2200] if len(text) > 2200 else text
+        elif platform == "tiktok":
+            # TikTok: short with emojis
+            return text[:300] if len(text) > 300 else text
+        elif platform == "whatsapp":
+            # WhatsApp status: medium with emojis
+            return text[:700] if len(text) > 700 else text
+        return text
+    
+    @classmethod
+    def extract_keywords(cls, text):
+        """Extract important keywords from a drop text."""
+        # Remove common words
+        stopwords = {"the", "a", "an", "is", "are", "was", "were", "be", "been", 
+                     "being", "have", "has", "had", "do", "does", "did", "will",
+                     "would", "could", "should", "may", "might", "must", "shall",
+                     "can", "need", "dare", "ought", "used", "to", "of", "in",
+                     "for", "on", "with", "at", "by", "from", "as", "into",
+                     "through", "during", "before", "after", "above", "below",
+                     "between", "under", "and", "but", "or", "yet", "so", "if",
+                     "because", "although", "though", "while", "where", "when",
+                     "that", "which", "who", "whom", "whose", "what", "this",
+                     "these", "those", "i", "me", "my", "myself", "we", "our",
+                     "you", "your", "he", "him", "his", "she", "her", "it",
+                     "its", "they", "them", "their", "dj", "mc"}
+        words = re.findall(r'\b[a-zA-Z]{3,}\b', text.lower())
+        keywords = [w for w in words if w not in stopwords]
+        # Return unique, preserving order
+        seen = set()
+        result = []
+        for w in keywords:
+            if w not in seen:
+                seen.add(w)
+                result.append(w)
+        return result[:10]
+    
+    @classmethod
+    def auto_punctuate(cls, text):
+        """Smart auto-punctuation for raw text."""
+        text = text.strip()
+        if not text:
+            return text
+        # Capitalize first letter
+        text = text[0].upper() + text[1:]
+        # Add period if no ending punctuation
+        if text[-1] not in ".!?":
+            text += "!"
+        # Fix multiple spaces
+        text = re.sub(r'\s+', ' ', text)
+        # Capitalize after sentence endings
+        sentences = re.split(r'([.!?]\s+)', text)
+        result = ""
+        for i, part in enumerate(sentences):
+            if i > 0 and part and part[0] == ' ' and len(part) > 1:
+                result += ' ' + part[1].upper() + part[2:]
+            else:
+                result += part
+        return result
 
 
 # ============================================================
@@ -926,10 +1330,19 @@ async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track,
         )
         selected = takes[0]["text"]
 
+    # Apply String Wizard enhancements
+    selected = StringWizard.auto_punctuate(selected)
+    selected = StringWizard.smart_capitalize(selected)
+    
+    # Add hashtags if it's a promo
+    if drop_type == "promo":
+        selected = StringWizard.add_hashtags(selected, genre)
+
     takes_file = out_dir / "takes.txt"
     with open(takes_file, "w", encoding="utf-8") as f:
         for i, item in enumerate(takes, 1):
-            f.write(f"{i}. ({item['score']}) {item['text']}\n")
+            txt = StringWizard.auto_punctuate(item["text"])
+            f.write(f"{i}. ({item['score']}) {txt}\n")
 
     raw_vocal = out_dir / "raw_vocal.mp3"
     wet_vocal = out_dir / "wet_vocal.mp3"
@@ -1025,6 +1438,152 @@ def get_voices():
         "voices": VOICE_MAP,
         "auto_map": AUTO_GENRE_VOICE
     })
+
+
+# --- NEW: Web Data Puller Routes ---
+
+@app.route("/api/trends")
+def api_trends():
+    """Get trending music genres from the web."""
+    try:
+        genres = WebDataPuller.fetch_trending_genres()
+        return jsonify({"success": True, "trending": genres, "source": "wikipedia_api"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/city_vibe")
+def api_city_vibe():
+    """Get city weather/vibe for location-aware drops."""
+    city = request.args.get("city", "")
+    if not city:
+        return jsonify({"success": False, "error": "No city provided"}), 400
+    try:
+        data = WebDataPuller.fetch_city_vibe(city)
+        return jsonify({"success": True, "data": data})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/suggest_names")
+def api_suggest_names():
+    """Suggest DJ names based on style."""
+    style = request.args.get("style", "")
+    try:
+        names = WebDataPuller.fetch_dj_name_suggestions(style)
+        return jsonify({"success": True, "suggestions": names})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/quote")
+def api_quote():
+    """Get a motivational quote for the studio."""
+    try:
+        quotes = WebDataPuller.fetch_quote_of_the_day()
+        return jsonify({"success": True, "quotes": quotes})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# --- NEW: String Wizard Routes ---
+
+@app.route("/api/string_tools", methods=["POST"])
+def api_string_tools():
+    """Apply string wizard transformations."""
+    try:
+        data = request.get_json()
+        text = data.get("text", "")
+        operation = data.get("operation", "capitalize")
+        genre = data.get("genre", "club_banger")
+        platform = data.get("platform", "generic")
+        
+        if not text:
+            return jsonify({"success": False, "error": "No text provided"}), 400
+        
+        result = text
+        
+        if operation == "capitalize":
+            result = StringWizard.smart_capitalize(text)
+        elif operation == "slug":
+            result = StringWizard.generate_slug(text)
+        elif operation == "hashtags":
+            result = StringWizard.add_hashtags(text, genre)
+        elif operation == "stutter_classic":
+            result = StringWizard.stutter_pattern(text, "classic")
+        elif operation == "stutter_build":
+            result = StringWizard.stutter_pattern(text, "build_up")
+        elif operation == "stutter_echo":
+            result = StringWizard.stutter_pattern(text, "echo")
+        elif operation == "auto_punctuate":
+            result = StringWizard.auto_punctuate(text)
+        elif operation == "keywords":
+            result = StringWizard.extract_keywords(text)
+        elif operation == "sentiment":
+            sentiment, score = StringWizard.analyze_sentiment(text)
+            result = {"sentiment": sentiment, "score": score}
+        elif operation == "platform_format":
+            result = StringWizard.format_for_platform(text, platform)
+        elif operation == "template_fill":
+            template_key = data.get("template", "intro")
+            variables = data.get("variables", {})
+            result = StringWizard.process_template(template_key, variables)
+        
+        return jsonify({
+            "success": True,
+            "original": text,
+            "result": result,
+            "operation": operation
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# --- NEW: Wizard Step Validation ---
+
+@app.route("/api/wizard_validate", methods=["POST"])
+def api_wizard_validate():
+    """Validate each wizard step server-side."""
+    try:
+        data = request.get_json()
+        step = int(data.get("step", 1))
+        
+        errors = []
+        
+        if step == 1:
+            dj_name = data.get("dj_name", "").strip()
+            if not dj_name or len(dj_name) < 2:
+                errors.append("DJ name must be at least 2 characters")
+            if len(dj_name) > 40:
+                errors.append("DJ name too long (max 40 chars)")
+            city = data.get("city", "").strip()
+            if city and len(city) > 30:
+                errors.append("City name too long")
+                
+        elif step == 2:
+            genre = data.get("genre", "").strip()
+            if not genre:
+                errors.append("Please select a genre")
+            drop_type = data.get("drop_type", "").strip()
+            if not drop_type:
+                errors.append("Please select a drop type")
+                
+        elif step == 3:
+            energy = int(data.get("energy", 0))
+            if energy < 1 or energy > 10:
+                errors.append("Energy must be between 1-10")
+            voice = data.get("voice", "").strip()
+            if not voice:
+                errors.append("Please select a voice")
+        
+        return jsonify({
+            "success": len(errors) == 0,
+            "valid": len(errors) == 0,
+            "errors": errors,
+            "step": step
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 @app.route("/api/train", methods=["POST"])
@@ -1193,6 +1752,10 @@ def preview_script():
         event_name=event_name, user_stutter=user_stutter,
         station_name=station_name, slogan=slogan, crew_tag=crew_tag, count=3
     )
+
+    # Apply String Wizard to preview
+    for t in takes:
+        t["text"] = StringWizard.auto_punctuate(t["text"])
 
     return jsonify({
         "success": True,
@@ -1390,15 +1953,31 @@ def delete_from_library(drop_id):
 
 
 # ============================================================
+# HEALTH CHECK - For Render free tier keep-alive
+# ============================================================
+
+@app.route("/health")
+def health_check():
+    return jsonify({
+        "status": "ok",
+        "version": "4.0",
+        "timestamp": datetime.now().isoformat(),
+        "online": has_internet(),
+        "ffmpeg": FFMPEG_AVAILABLE
+    })
+
+
+# ============================================================
 # APP STARTUP
 # ============================================================
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("   DJ DROP FACTORY PRO v3.0")
+    print("   DJ DROP FACTORY PRO v4.0")
     print("   Created by: Macdonald Barasa")
     print("   Email: simiyumacdonal1@gmail.com")
     print("=" * 60)
     print("Features: AI Training | Loud Audio | Voice Effects | Library | PWA")
+    print("          Web Data Puller | String Wizard | Wizard Validation")
     print("=" * 60)
     app.run(host="0.0.0.0", port=5000, debug=True)
