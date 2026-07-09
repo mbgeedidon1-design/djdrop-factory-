@@ -621,14 +621,6 @@
         }
         @keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
 
-        /* Pull to refresh hint */
-        .pull-hint {
-            text-align: center; padding: 10px; color: var(--text-muted);
-            font-size: 13px; font-weight: 500; opacity: 0;
-            transition: opacity 0.3s ease; pointer-events: none;
-        }
-        .pull-hint.show { opacity: 1; }
-
         /* Responsive */
         @media (min-width: 431px) {
             body { background: #111; }
@@ -643,7 +635,7 @@
         }
         .credits a { color: var(--accent); text-decoration: none; }
 
-        /* ==================== NEW: DISCOVER SCREEN ==================== */
+        /* ==================== DISCOVER SCREEN ==================== */
         .discover-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -721,7 +713,7 @@
             margin-right: 4px;
         }
 
-        /* ==================== NEW: PAYMENT / PREMIUM ==================== */
+        /* ==================== PAYMENT / PREMIUM ==================== */
         .premium-badge {
             display: inline-flex;
             align-items: center;
@@ -914,9 +906,6 @@
     </div>
 
     <div class="app-container">
-        <!-- Pull to refresh hint -->
-        <div class="pull-hint" id="pullHint">⬇️ Pull down to refresh</div>
-
         <!-- Status Bar -->
         <div class="status-bar">
             <span class="status-time" id="clock">9:41</span>
@@ -1438,7 +1427,7 @@
                     Pay & Unlock
                 </button>
                 <div style="text-align: center; padding: 12px 20px; color: var(--text-muted); font-size: 12px;">
-                    Secure payment powered by Flutterwave. Your number is encrypted.
+                    Secure M-Pesa payment. Enter your PIN on your phone when prompted.
                 </div>
             </div>
         </div>
@@ -1488,6 +1477,8 @@
             if (screenId === 'screenLibrary') document.querySelectorAll('.tab-item')[1].classList.add('active');
             if (screenId === 'screenDiscover') document.querySelectorAll('.tab-item')[2].classList.add('active');
             currentScreen = screenId;
+            
+            // AUTO REFRESH data when switching tabs
             if (screenId === 'screenLibrary') renderLibrary();
             if (screenId === 'screenDiscover') loadDiscoverAll();
             if (screenId === 'screenSettings') loadUserCredits();
@@ -1532,6 +1523,7 @@
                 }
             })
             .catch(() => {
+                // Offline fallback: skip validation
                 document.getElementById(`wizardStep${step}`).classList.remove('active');
                 document.getElementById(`step${step}Indicator`).classList.remove('active');
                 document.getElementById(`step${step}Indicator`).classList.add('completed');
@@ -1741,6 +1733,7 @@
                     showToast(`✅ ${operation.replace('_', ' ')} applied!`);
                 }
             } catch (e) {
+                // Offline fallbacks
                 if (operation === 'capitalize') {
                     ta.value = text.replace(/\b\w/g, c => c.toUpperCase());
                 } else if (operation === 'auto_punctuate') {
@@ -1878,7 +1871,6 @@
                     showToast('🔥 Drop generated successfully!');
                     localStorage.removeItem('df_draft');
                     if (liveEngine) liveEngine.clearServerDraft();
-                    // Update credits display
                     if (result.credits_remaining !== undefined) {
                         userCredits = result.credits_remaining;
                         updateCreditDisplay();
@@ -2047,7 +2039,7 @@
             }
         }
 
-        // ==================== LIVE ENGINE ====================
+        // ==================== LIVE ENGINE  —  AUTO SAVE & AUTO REFRESH ====================
         class LiveEngine {
             constructor() {
                 this.sessionId = this.getSessionId();
@@ -2057,7 +2049,6 @@
                 this.setupNetworkStatus();
                 this.setupVisibilityRefresh();
                 this.setupBeforeUnload();
-                this.setupPullToRefresh();
                 this.checkRecovery();
             }
 
@@ -2071,10 +2062,16 @@
             }
 
             setupAutoSave() {
-                setInterval(() => this.saveLocalDraft(), 2000);
-                setInterval(() => this.syncDraftToServer(), 10000);
+                // Save to localStorage immediately on every keystroke
                 const inputs = document.querySelectorAll('input, select, textarea');
                 inputs.forEach(el => el.addEventListener('input', () => this.saveLocalDraft()));
+                
+                // Sync to server every 5 seconds if online
+                setInterval(() => this.syncDraftToServer(), 5000);
+                // Also save immediately when switching modes
+                document.querySelectorAll('.segment').forEach(btn => {
+                    btn.addEventListener('click', () => this.saveLocalDraft());
+                });
             }
 
             saveLocalDraft() {
@@ -2221,7 +2218,7 @@
 
             setupHeartbeat() {
                 this.heartbeat();
-                setInterval(() => this.heartbeat(), 30000);
+                setInterval(() => this.heartbeat(), 20000); // Auto refresh every 20s
             }
 
             async heartbeat() {
@@ -2281,7 +2278,9 @@
                     if (!document.hidden) {
                         this.heartbeat();
                         checkStatus();
+                        // Auto refresh current tab data
                         if (currentScreen === 'screenLibrary') renderLibrary();
+                        if (currentScreen === 'screenDiscover') loadDiscoverAll();
                         loadUserCredits();
                     }
                 });
@@ -2297,40 +2296,6 @@
                     this.saveLocalDraft();
                     this.syncDraftToServer();
                 });
-            }
-
-            setupPullToRefresh() {
-                let touchStartY = 0;
-                let isPulling = false;
-                const pullHint = document.getElementById('pullHint');
-                document.addEventListener('touchstart', e => {
-                    if (window.scrollY <= 5) {
-                        touchStartY = e.touches[0].clientY;
-                        isPulling = true;
-                    }
-                }, {passive: true});
-                document.addEventListener('touchmove', e => {
-                    if (!isPulling || window.scrollY > 5) return;
-                    const diff = e.touches[0].clientY - touchStartY;
-                    if (diff > 60 && diff < 140) {
-                        pullHint.classList.add('show');
-                    }
-                }, {passive: true});
-                document.addEventListener('touchend', e => {
-                    if (!isPulling) return;
-                    const diff = e.changedTouches[0].clientY - touchStartY;
-                    pullHint.classList.remove('show');
-                    if (diff > 100 && window.scrollY <= 5) {
-                        showToast('🔄 Refreshing live data...');
-                        checkStatus();
-                        fetchTrendingGenres();
-                        fetchNameSuggestions();
-                        this.heartbeat();
-                        if (currentScreen === 'screenLibrary') renderLibrary();
-                        loadUserCredits();
-                    }
-                    isPulling = false;
-                }, {passive: true});
             }
         }
 
@@ -2434,7 +2399,7 @@
             }, 400);
         }
 
-        // ==================== PAYMENT SYSTEM ====================
+        // ==================== PAYMENT SYSTEM  —  M-PESA PIN FLOW ====================
         async function loadUserCredits() {
             try {
                 const res = await fetch('/api/user/credits', {
@@ -2470,7 +2435,6 @@
 
         async function showPaymentModal() {
             document.getElementById('paymentModal').classList.add('show');
-            // Load packages
             try {
                 const res = await fetch('/api/payment/packages');
                 const data = await res.json();
@@ -2485,7 +2449,6 @@
                             <div class="package-desc">${pkg.description}</div>
                         </div>
                     `).join('');
-                    // Auto-select standard
                     selectedPackage = data.packages[1];
                 }
             } catch (e) { showToast('❌ Failed to load packages'); }
@@ -2508,7 +2471,7 @@
 
         async function initiatePayment() {
             const phone = document.getElementById('paymentPhone').value.trim();
-            if (!phone || phone.length < 10) {
+            if (!phone || phone.length < 9) {
                 showToast('⚠️ Enter a valid phone number');
                 return;
             }
@@ -2537,9 +2500,10 @@
                 const data = await res.json();
                 
                 if (data.success) {
-                    showToast('📱 Check your phone for payment prompt');
-                    // Poll for verification (mock mode auto-verifies)
-                    setTimeout(() => verifyPayment(data.tx_ref), 3000);
+                    // Show PIN prompt message
+                    showToast('📱 Check your phone — enter M-Pesa PIN');
+                    // Poll for verification after delay
+                    setTimeout(() => verifyPayment(data.tx_ref), 4000);
                 } else {
                     showToast('❌ ' + (data.error || 'Payment failed'));
                 }

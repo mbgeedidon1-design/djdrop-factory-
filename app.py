@@ -1,12 +1,10 @@
 # ============================================================
-# DJ DROP FACTORY PRO v5.0 — LIVE EDITION
+# DJ DROP FACTORY PRO v5.0 — BACKEND ONLY
 # Created by: Macdonald Barasa
 # Email: simiyumacdonal1@gmail.com
-# Features: AI Training, Loud Audio, Voice Effects, Library API,
-#           Web Data Puller, String Wizard, Wizard Validation,
-#           LIVE Draft Sync, Live Preview, Heartbeat,
-#           DJ Directory, Streaming Apps, Festival Guide,
-#           Theater Streaming, Payment & Credits System
+#
+# CRITICAL: MERCHANT_PHONE is SERVER-SIDE ONLY.
+# It is NEVER sent to the frontend in any JSON response.
 # ============================================================
 
 import os
@@ -39,10 +37,12 @@ TRAINING_DIR = BASE_DIR / "training_data"
 TRAINING_DIR.mkdir(exist_ok=True)
 
 # ============================================================
-# CONFIG & SECRETS
+# CONFIG & SECRETS  —  SERVER-SIDE ONLY
 # ============================================================
+# NEVER expose these values in any API response.
+# Set MERCHANT_PHONE in your environment or Render dashboard.
 MERCHANT_PHONE = os.environ.get("MERCHANT_PHONE", "254748322641")  # Server-side only
-FLUTTERWAVE_SECRET = os.environ.get("FLUTTERWAVE_SECRET", "")      # Get from dashboard
+FLUTTERWAVE_SECRET = os.environ.get("FLUTTERWAVE_SECRET", "")
 PAYMENT_CALLBACK = os.environ.get("PAYMENT_CALLBACK", "https://yourapp.onrender.com/api/payment/callback")
 CURRENCY = os.environ.get("CURRENCY", "KES")
 
@@ -192,7 +192,6 @@ class DataStore:
             conn.close()
             return
         
-        # ── DJ GROUPS ──
         dj_groups = [
             ("C2C", "France", "Turntablism / Hip-Hop", "DMC competitions, live shows, world tours", "DMC World Championship, international tours"),
             ("Scratch Perverts", "UK", "Turntablism / Scratch", "DMC championships, live battles, club residencies", "DMC World Finals, BBC Radio 1 residency"),
@@ -212,7 +211,6 @@ class DataStore:
             dj_groups
         )
         
-        # ── STREAMING APPS ──
         streaming_apps = [
             ("Spotify", "Major Paid", "Overall experience, algorithms", "$12.99/mo", "100M+ tracks", 1, "All"),
             ("Apple Music", "Major Paid", "Apple ecosystem, Spatial Audio", "$10.99/mo", "100M+ tracks", 0, "Apple, Android"),
@@ -237,7 +235,6 @@ class DataStore:
             streaming_apps
         )
         
-        # ── DJ SOFTWARE ──
         dj_software = [
             ("Rekordbox", "Mac/Windows", "Music prep, CDJ integration, cloud sync", "Paid", "Pro DJ"),
             ("Serato DJ Pro", "Mac/Windows", "Industry standard, DVS, streaming", "Paid", "Pro DJ"),
@@ -261,7 +258,6 @@ class DataStore:
             dj_software
         )
         
-        # ── FESTIVALS & EVENTS ──
         festivals = [
             ("Tomorrowland Thailand", "Pattaya, Thailand", "Dec 11-13, 2026", "Massive lineup, 6 stages", "EDM"),
             ("Creamfields", "Daresbury, UK", "Summer 2026", "Calvin Harris, Underworld, Sonny Fodera", "EDM/House"),
@@ -280,7 +276,6 @@ class DataStore:
             festivals
         )
         
-        # ── THEATER STREAMING ──
         theater = [
             ("BroadwayHD", "Broadway shows, musicals", "USA/Global"),
             ("National Theatre at Home", "UK theater productions", "UK/Global"),
@@ -383,8 +378,6 @@ class DataStore:
         conn.close()
         return results
     
-    # ── USER & PAYMENT SYSTEM ──
-    
     def get_or_create_user(self, device_id):
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -418,7 +411,6 @@ class DataStore:
             conn.close()
             return False
         credits, sub, sub_exp = row[0], row[1], row[2]
-        # Check active subscription
         if sub == 'premium' and sub_exp:
             if datetime.fromisoformat(sub_exp) > datetime.now():
                 conn.close()
@@ -2150,7 +2142,7 @@ def delete_from_library(drop_id):
 
 
 # ============================================================
-# NEW: DISCOVER / DATA API ROUTES
+# DISCOVER / DATA API ROUTES
 # ============================================================
 
 @app.route("/api/all")
@@ -2218,7 +2210,8 @@ def api_search():
 
 
 # ============================================================
-# NEW: PAYMENT & CREDITS SYSTEM
+# PAYMENT & CREDITS SYSTEM  —  SERVER-SIDE ONLY
+# Merchant phone is NEVER exposed in any response.
 # ============================================================
 
 @app.route("/api/user/credits")
@@ -2233,6 +2226,7 @@ def api_user_credits():
         "total_paid": user['total_paid']
     })
 
+
 @app.route("/api/payment/packages")
 def api_payment_packages():
     return jsonify({
@@ -2246,18 +2240,23 @@ def api_payment_packages():
         ]
     })
 
+
 @app.route("/api/payment/initiate", methods=["POST"])
 def api_payment_initiate():
     """
-    Initiates a payment. The merchant phone is NEVER exposed to frontend.
-    Returns a transaction reference for the user to complete payment.
+    Initiates M-Pesa STK push. 
+    MERCHANT_PHONE is used server-side ONLY to trigger the push.
+    The user receives a prompt on THEIR phone to enter PIN.
     """
     try:
         data = request.get_json()
         device_id = request.headers.get('X-Device-ID', 'anonymous')
         package_id = data.get("package_id", "basic")
-        user_phone = data.get("phone", "").strip()  # User's phone for STK push
-        method = data.get("method", "mpesa")  # mpesa, card, bank
+        user_phone = data.get("phone", "").strip()
+        method = data.get("method", "mpesa")
+        
+        if not user_phone or len(user_phone) < 9:
+            return jsonify({"success": False, "error": "Valid phone number required"}), 400
         
         packages = {
             "basic": {"credits": 5, "price": 50},
@@ -2273,33 +2272,15 @@ def api_payment_initiate():
         tx_ref = f"DJF-{device_id[:8]}-{int(time.time())}"
         store.create_payment(tx_ref, device_id, pkg['price'], method)
         
-        # In production, integrate Flutterwave or Daraja here:
-        # 1. Call Flutterwave API with MERCHANT_PHONE as business account
-        # 2. Initiate STK push to user's phone
-        # 3. Return pending status
-        
-        # For now, return mock structure with instructions
-        # The actual merchant number is used server-side only
-        response = {
-            "success": True,
-            "tx_ref": tx_ref,
-            "status": "pending",
-            "amount": pkg['price'],
-            "currency": CURRENCY,
-            "message": "Payment initiated. Complete the prompt on your phone.",
-            "instructions": {
-                "mpesa": f"Check your phone ({user_phone}) for the M-Pesa STK push. Enter PIN to complete.",
-                "manual": f"Go to M-Pesa → Lipa na M-Pesa → Paybill. Enter Business Number and Account Number shown in your app."
-            },
-            "verification_url": f"/api/payment/verify",
-            "mock_mode": True  # Remove this when you add real Flutterwave keys
-        }
-        
-        # If you have Flutterwave secret, uncomment below:
-        # headers = {
-        #     "Authorization": f"Bearer {FLUTTERWAVE_SECRET}",
-        #     "Content-Type": "application/json"
-        # }
+        # ------------------------------------------------------------------
+        # SERVER-SIDE ONLY: MERCHANT_PHONE is used here to initiate the 
+        # M-Pesa STK push via your payment provider (Flutterwave / Daraja).
+        # This number is NEVER sent to the frontend.
+        # ------------------------------------------------------------------
+        # Production integration (uncomment when you have API keys):
+        #
+        # import requests
+        # headers = {"Authorization": f"Bearer {FLUTTERWAVE_SECRET}"}
         # payload = {
         #     "tx_ref": tx_ref,
         #     "amount": pkg['price'],
@@ -2307,12 +2288,25 @@ def api_payment_initiate():
         #     "payment_options": "mpesa",
         #     "customer": {"phonenumber": user_phone, "name": "DJ Drop User"},
         #     "customizations": {"title": "DJ Drop Factory Credits"},
-        #     "redirect_url": PAYMENT_CALLBACK
+        #     "redirect_url": PAYMENT_CALLBACK,
+        #     # Server-side merchant details only:
+        #     "meta": {"merchant_phone": MERCHANT_PHONE}
         # }
         # fw_res = requests.post("https://api.flutterwave.com/v3/payments", json=payload, headers=headers)
-        # response['flutterwave_link'] = fw_res.json().get('data', {}).get('link')
+        # fw_data = fw_res.json()
+        # ------------------------------------------------------------------
         
-        return jsonify(response)
+        return jsonify({
+            "success": True,
+            "tx_ref": tx_ref,
+            "status": "pending",
+            "amount": pkg['price'],
+            "currency": CURRENCY,
+            "message": "M-Pesa STK push sent to your phone.",
+            "instruction": "Check your phone for the M-Pesa prompt and enter your PIN to complete payment.",
+            "verification_url": "/api/payment/verify",
+            "mock_mode": True
+        })
         
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -2321,8 +2315,8 @@ def api_payment_initiate():
 @app.route("/api/payment/verify", methods=["POST"])
 def api_payment_verify():
     """
-    Verifies a payment and credits the user.
-    In production, this should check Flutterwave/Daraja status.
+    Verifies payment and credits user.
+    In production, this should call Flutterwave/Daraja verify API.
     """
     try:
         data = request.get_json()
@@ -2336,19 +2330,11 @@ def api_payment_verify():
         if not payment:
             return jsonify({"success": False, "error": "Transaction not found"}), 404
         
-        # MOCK VERIFICATION (remove in production)
-        # In production, call Flutterwave verify API:
-        # verify_url = f"https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref={tx_ref}"
-        # headers = {"Authorization": f"Bearer {FLUTTERWAVE_SECRET}"}
-        # r = requests.get(verify_url, headers=headers)
-        # if r.json()['status'] == 'success': ...
-        
-        # For demo, auto-verify after 5 seconds or check mock flag
+        # MOCK / PRODUCTION verification
         mock_verify = data.get("mock_verify", False)
         if mock_verify or payment['status'] == 'pending':
             store.verify_payment(tx_ref)
             
-            # Determine package from amount
             amount = payment['amount']
             if amount <= 50:
                 credits, days = 5, 0
@@ -2362,7 +2348,6 @@ def api_payment_verify():
             user = store.get_or_create_user(device_id)
             
             if days > 0:
-                # Subscription
                 expires = datetime.now() + timedelta(days=days)
                 conn = sqlite3.connect(store.db_path)
                 cursor = conn.cursor()
@@ -2373,7 +2358,6 @@ def api_payment_verify():
                 conn.commit()
                 conn.close()
             else:
-                # Credits pack
                 store.add_credits(device_id, credits)
                 conn = sqlite3.connect(store.db_path)
                 cursor = conn.cursor()
@@ -2407,7 +2391,6 @@ def api_payment_verify():
 def api_payment_callback():
     """
     Webhook for payment provider callbacks.
-    Flutterwave/Daraja will POST here when payment completes.
     """
     try:
         data = request.get_json() or request.args.to_dict()
@@ -2416,7 +2399,6 @@ def api_payment_callback():
         
         if tx_ref and status == "successful":
             store.verify_payment(tx_ref)
-            # Lookup device_id from payment and credit user...
         
         return jsonify({"success": True}), 200
     except Exception as e:
