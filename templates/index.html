@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="author" content="Macdonald Barasa">
-    <title>DJ Drop Factory Pro v4.5 — Live</title>
+    <title>DJ Drop Factory Pro v5.0 — Live</title>
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/static/icon-192.png">
     <style>
@@ -488,7 +488,7 @@
         }
         .tab-item {
             display: flex; flex-direction: column; align-items: center; gap: 4px;
-            padding: 4px 16px; cursor: pointer; color: var(--text-muted);
+            padding: 4px 12px; cursor: pointer; color: var(--text-muted);
             transition: all 0.2s ease; border: none; background: none;
             font-family: inherit; position: relative;
         }
@@ -642,6 +642,257 @@
             color: var(--text-muted); font-size: 12px; font-weight: 500;
         }
         .credits a { color: var(--accent); text-decoration: none; }
+
+        /* ==================== NEW: DISCOVER SCREEN ==================== */
+        .discover-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            padding: 0 20px 20px;
+        }
+        .discover-card {
+            background: var(--bg-card);
+            border-radius: 18px;
+            padding: 18px 14px;
+            border: 1px solid var(--border);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .discover-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(255,107,53,0.15);
+        }
+        .discover-card-icon {
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+        .discover-card-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+        .discover-card-desc {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        /* Data list items */
+        .data-list {
+            padding: 0 20px 20px;
+        }
+        .data-item {
+            background: var(--bg-card);
+            border-radius: 14px;
+            padding: 14px 16px;
+            margin-bottom: 10px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .data-item:hover {
+            border-color: var(--accent);
+            transform: translateX(4px);
+        }
+        .data-item-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+        .data-item-meta {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+        .data-item-tag {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 10px;
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-top: 6px;
+            margin-right: 4px;
+        }
+
+        /* ==================== NEW: PAYMENT / PREMIUM ==================== */
+        .premium-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(135deg, var(--accent), var(--purple));
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+        .credit-pill {
+            position: fixed;
+            top: 50px;
+            right: 20px;
+            z-index: 99;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--accent);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .package-card {
+            background: var(--bg-card);
+            border-radius: 18px;
+            padding: 20px;
+            margin: 0 20px 12px;
+            border: 2px solid var(--border);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .package-card:hover {
+            border-color: var(--accent);
+        }
+        .package-card.selected {
+            border-color: var(--accent);
+            background: linear-gradient(135deg, var(--accent-soft), rgba(155,89,182,0.05));
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+        .package-card.popular::before {
+            content: 'POPULAR';
+            position: absolute;
+            top: 10px;
+            right: -28px;
+            background: var(--accent);
+            color: #fff;
+            font-size: 9px;
+            font-weight: 800;
+            padding: 4px 30px;
+            transform: rotate(45deg);
+        }
+        .package-name {
+            font-size: 18px;
+            font-weight: 800;
+            margin-bottom: 4px;
+        }
+        .package-price {
+            font-size: 28px;
+            font-weight: 900;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+        .package-price span {
+            font-size: 14px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+        .package-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        .pay-btn {
+            width: calc(100% - 40px);
+            margin: 0 20px 20px;
+            padding: 18px;
+            border-radius: 16px;
+            border: none;
+            background: linear-gradient(135deg, var(--success), #2ecc71);
+            color: #fff;
+            font-size: 17px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 8px 30px rgba(0, 208, 132, 0.3);
+        }
+        .pay-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(5,5,8,0.85);
+            backdrop-filter: blur(10px);
+            z-index: 400;
+            display: none;
+            align-items: flex-end;
+            justify-content: center;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal-sheet {
+            background: var(--bg-elevated);
+            border-radius: 28px 28px 0 0;
+            width: 100%;
+            max-width: 430px;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 24px 0 40px;
+            border-top: 1px solid var(--border);
+            animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px 20px;
+        }
+        .modal-title {
+            font-size: 22px;
+            font-weight: 800;
+        }
+        .modal-close {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .search-bar {
+            margin: 0 20px 16px;
+            position: relative;
+        }
+        .search-bar input {
+            width: 100%;
+            padding: 14px 16px 14px 44px;
+            border-radius: 14px;
+            border: 1.5px solid var(--border);
+            background: var(--bg-input);
+            color: var(--text);
+            font-size: 16px;
+            font-family: inherit;
+            outline: none;
+        }
+        .search-bar input:focus {
+            border-color: var(--accent);
+        }
+        .search-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 16px;
+            color: var(--text-muted);
+        }
     </style>
 </head>
 <body>
@@ -654,6 +905,12 @@
             <button style="background:rgba(255,255,255,0.2);border:none;border-radius:8px;padding:6px 14px;color:#fff;font-weight:600;cursor:pointer;" onclick="liveEngine.restoreDraft();document.getElementById('recoveryBanner').style.display='none';">Restore</button>
             <button style="background:rgba(255,255,255,0.2);border:none;border-radius:8px;padding:6px 14px;color:#fff;font-weight:600;cursor:pointer;" onclick="localStorage.removeItem('df_draft');document.getElementById('recoveryBanner').style.display='none';">Discard</button>
         </div>
+    </div>
+
+    <!-- Credit Pill -->
+    <div class="credit-pill" id="creditPill" onclick="showPaymentModal()" style="display:none;">
+        <span>⚡</span>
+        <span id="creditText">0 drops</span>
     </div>
 
     <div class="app-container">
@@ -685,8 +942,8 @@
 
             <!-- Hero Card -->
             <div class="hero-card">
-                <div class="hero-title">🔥 DJ Drop Factory v4.5</div>
-                <div class="hero-text">AI + Web Data + String Wizard + Live Sync</div>
+                <div class="hero-title">🔥 DJ Drop Factory v5.0</div>
+                <div class="hero-text">AI + Web Data + String Wizard + Live Sync + Payments</div>
                 <div class="hero-badge">
                     <span class="hero-dot"></span>
                     <span id="statusText">Checking status…</span>
@@ -730,9 +987,7 @@
                         <div class="form-group">
                             <label class="form-label" for="djName">DJ Name</label>
                             <input type="text" class="form-input" id="djName" value="DJ Beshi" placeholder="Enter your DJ name">
-                            <div class="suggestion-row" id="nameSuggestions" style="display:none;">
-                                <!-- Populated by web data -->
-                            </div>
+                            <div class="suggestion-row" id="nameSuggestions" style="display:none;"></div>
                         </div>
                         <div class="form-group">
                             <label class="form-label" for="city">City / Location</label>
@@ -863,7 +1118,6 @@
                     <div class="form-group">
                         <textarea class="form-textarea" id="customScript" placeholder="Type exactly what you want the DJ to say..."></textarea>
                     </div>
-                    <!-- String Tools -->
                     <div class="section-header">🧙 String Tools</div>
                     <div class="string-tools-grid">
                         <button class="string-tool-btn" onclick="applyStringTool('capitalize')">Aa Capitalize</button>
@@ -986,6 +1240,59 @@
             <div id="libraryList"></div>
         </div>
 
+        <!-- ==================== DISCOVER SCREEN ==================== -->
+        <div class="screen" id="screenDiscover">
+            <div class="nav-header">
+                <div>
+                    <div class="nav-title">Discover</div>
+                    <div class="nav-subtitle">DJ world at your fingertips</div>
+                </div>
+                <button class="nav-btn" onclick="showPaymentModal()" aria-label="Credits" style="font-size:14px;">⚡</button>
+            </div>
+
+            <div class="discover-grid">
+                <div class="discover-card" onclick="showDiscoverList('dj-groups')">
+                    <div class="discover-card-icon">🎧</div>
+                    <div class="discover-card-title">DJ Groups</div>
+                    <div class="discover-card-desc">Top collectives & crews</div>
+                </div>
+                <div class="discover-card" onclick="showDiscoverList('streaming-apps')">
+                    <div class="discover-card-icon">🎵</div>
+                    <div class="discover-card-title">Streaming</div>
+                    <div class="discover-card-desc">Music apps & platforms</div>
+                </div>
+                <div class="discover-card" onclick="showDiscoverList('dj-software')">
+                    <div class="discover-card-icon">🎛️</div>
+                    <div class="discover-card-title">DJ Software</div>
+                    <div class="discover-card-desc">Production & mixing tools</div>
+                </div>
+                <div class="discover-card" onclick="showDiscoverList('festivals')">
+                    <div class="discover-card-icon">🎪</div>
+                    <div class="discover-card-title">Festivals</div>
+                    <div class="discover-card-desc">Events & lineups 2026</div>
+                </div>
+                <div class="discover-card" onclick="showDiscoverList('theater-streaming')">
+                    <div class="discover-card-icon">🎭</div>
+                    <div class="discover-card-title">Theater</div>
+                    <div class="discover-card-desc">Live performance streams</div>
+                </div>
+                <div class="discover-card" onclick="showDiscoverList('all')">
+                    <div class="discover-card-icon">🌐</div>
+                    <div class="discover-card-title">All Data</div>
+                    <div class="discover-card-desc">Everything at once</div>
+                </div>
+            </div>
+
+            <!-- Search -->
+            <div class="search-bar">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="discoverSearch" placeholder="Search DJs, apps, festivals..." oninput="debounceSearch(this.value)">
+            </div>
+
+            <!-- Results List -->
+            <div class="data-list" id="discoverList"></div>
+        </div>
+
         <!-- ==================== SETTINGS SCREEN ==================== -->
         <div class="screen" id="screenSettings">
             <div class="nav-header">
@@ -1002,6 +1309,18 @@
                         <div style="font-size: 17px; font-weight: 700;">Macdonald Barasa</div>
                         <div style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">simiyumacdonal1@gmail.com</div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Credits & Subscription -->
+            <div class="section-card" onclick="showPaymentModal()" style="cursor:pointer;">
+                <div class="section-header">⚡ Credits & Plan</div>
+                <div class="toggle-row">
+                    <div class="toggle-info">
+                        <div class="toggle-title" id="settingsPlanTitle">Free Plan</div>
+                        <div class="toggle-desc" id="settingsCreditsDesc">0 drops remaining</div>
+                    </div>
+                    <span style="color: var(--accent); font-size: 14px; font-weight: 700;">Upgrade ›</span>
                 </div>
             </div>
 
@@ -1050,7 +1369,7 @@
 
             <div class="section-card">
                 <div class="section-header">ℹ️ About</div>
-                <div class="toggle-row"><div class="toggle-info"><div class="toggle-title">Version</div></div><span style="color: var(--accent); font-weight: 700; font-size: 15px;">4.5 Live</span></div>
+                <div class="toggle-row"><div class="toggle-info"><div class="toggle-title">Version</div></div><span style="color: var(--accent); font-weight: 700; font-size: 15px;">5.0 Live</span></div>
                 <div class="toggle-row" style="cursor: pointer;" onclick="showToast('Thanks for rating! ⭐⭐⭐⭐⭐')">
                     <div class="toggle-info"><div class="toggle-title">Rate DJ Drop Factory</div></div>
                     <span style="color: var(--text-muted); font-size: 20px;">›</span>
@@ -1058,9 +1377,9 @@
             </div>
 
             <div class="credits">
-                <strong>Premium AI DJ Drop Factory v4.5 — Live Edition</strong><br>
+                <strong>Premium AI DJ Drop Factory v5.0 — Live Edition</strong><br>
                 Created by Macdonald Barasa<br>
-                AI Training | Loud Audio | Voice Effects | Library | Web Data | String Wizard | Live Sync
+                AI Training | Loud Audio | Voice Effects | Library | Web Data | String Wizard | Live Sync | Payments
             </div>
         </div>
 
@@ -1082,6 +1401,9 @@
             <button class="tab-item" onclick="showScreen('screenLibrary')">
                 <span class="tab-icon">🎵</span><span class="tab-label">Library</span>
             </button>
+            <button class="tab-item" onclick="showScreen('screenDiscover')">
+                <span class="tab-icon">🌐</span><span class="tab-label">Discover</span>
+            </button>
         </div>
 
         <!-- Loading Overlay -->
@@ -1093,6 +1415,33 @@
 
         <!-- Toast -->
         <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+        <!-- ==================== PAYMENT MODAL ==================== -->
+        <div class="modal-overlay" id="paymentModal" onclick="if(event.target===this)closePaymentModal()">
+            <div class="modal-sheet">
+                <div class="modal-header">
+                    <div class="modal-title">⚡ Get Credits</div>
+                    <button class="modal-close" onclick="closePaymentModal()">✕</button>
+                </div>
+                <div style="padding: 0 20px 20px; text-align: center;">
+                    <div class="premium-badge">🔥 Premium Drops</div>
+                    <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 20px;">
+                        Purchase credits to generate unlimited premium DJ drops with neural voices and loud FX.
+                    </p>
+                </div>
+                <div id="packagesContainer"></div>
+                <div style="padding: 0 20px;">
+                    <label class="form-label" style="margin-top: 8px;">Phone Number (M-Pesa)</label>
+                    <input type="tel" class="form-input" id="paymentPhone" placeholder="e.g. 254712345678">
+                </div>
+                <button class="pay-btn" id="payBtn" onclick="initiatePayment()" style="margin-top: 16px;">
+                    Pay & Unlock
+                </button>
+                <div style="text-align: center; padding: 12px 20px; color: var(--text-muted); font-size: 12px;">
+                    Secure payment powered by Flutterwave. Your number is encrypted.
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -1115,6 +1464,11 @@
         let debounceTimer = null;
         let livePreviewDebounce = null;
         let liveEngine = null;
+        let userCredits = 0;
+        let userSubscription = 'free';
+        let selectedPackage = null;
+        let deviceId = localStorage.getItem('df_device_id') || 'dev_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('df_device_id', deviceId);
 
         // ==================== CLOCK ====================
         function updateClock() {
@@ -1132,8 +1486,11 @@
             document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
             if (screenId === 'screenHome') document.querySelectorAll('.tab-item')[0].classList.add('active');
             if (screenId === 'screenLibrary') document.querySelectorAll('.tab-item')[1].classList.add('active');
+            if (screenId === 'screenDiscover') document.querySelectorAll('.tab-item')[2].classList.add('active');
             currentScreen = screenId;
             if (screenId === 'screenLibrary') renderLibrary();
+            if (screenId === 'screenDiscover') loadDiscoverAll();
+            if (screenId === 'screenSettings') loadUserCredits();
         }
 
         function goBack() { showScreen('screenHome'); }
@@ -1146,7 +1503,6 @@
             document.getElementById('aiForm').style.display = mode === 'ai' ? 'block' : 'none';
             document.getElementById('strictForm').style.display = mode === 'strict' ? 'block' : 'none';
             document.getElementById('trainingForm').style.display = mode === 'training' ? 'block' : 'none';
-            // Hide live preview when switching away from AI
             if (mode !== 'ai') {
                 const lp = document.getElementById('livePreviewCard');
                 if (lp) lp.style.display = 'none';
@@ -1373,7 +1729,6 @@
             const ta = document.getElementById('customScript');
             const text = ta.value;
             if (!text) { showToast('⚠️ Enter text first'); return; }
-            
             try {
                 const res = await fetch('/api/string_tools', {
                     method: 'POST',
@@ -1494,7 +1849,10 @@
             try {
                 const res = await fetch('/api/generate', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Device-ID': deviceId
+                    },
                     body: JSON.stringify(data)
                 });
                 const result = await res.json();
@@ -1518,9 +1876,16 @@
                     }
                     document.getElementById('resultsArea').scrollIntoView({ behavior: 'smooth' });
                     showToast('🔥 Drop generated successfully!');
-                    // Clear draft after successful generation
                     localStorage.removeItem('df_draft');
                     if (liveEngine) liveEngine.clearServerDraft();
+                    // Update credits display
+                    if (result.credits_remaining !== undefined) {
+                        userCredits = result.credits_remaining;
+                        updateCreditDisplay();
+                    }
+                } else if (result.error === 'insufficient_credits') {
+                    showToast('❌ ' + (result.message || 'No credits left'));
+                    showPaymentModal();
                 } else {
                     showToast('❌ Generation failed: ' + (result.error || 'unknown'));
                 }
@@ -1706,11 +2071,8 @@
             }
 
             setupAutoSave() {
-                // Save to localStorage every 2 seconds
                 setInterval(() => this.saveLocalDraft(), 2000);
-                // Sync to server every 10 seconds if online
                 setInterval(() => this.syncDraftToServer(), 10000);
-                // Track input changes immediately
                 const inputs = document.querySelectorAll('input, select, textarea');
                 inputs.forEach(el => el.addEventListener('input', () => this.saveLocalDraft()));
             }
@@ -1762,7 +2124,6 @@
                 const draft = localStorage.getItem('df_draft');
                 if (!draft) return;
                 const data = JSON.parse(draft);
-                // Only show if draft is less than 24 hours old
                 if (Date.now() - data.timestamp > 24 * 60 * 60 * 1000) {
                     localStorage.removeItem('df_draft');
                     return;
@@ -1809,7 +2170,6 @@
                     const seg = document.querySelectorAll('.segment')[modeIndex];
                     if (seg) setMode(draft.mode, seg);
                 }
-                // Trigger live events after restore
                 onGenreChange();
                 fetchCityVibe();
             }
@@ -1922,6 +2282,7 @@
                         this.heartbeat();
                         checkStatus();
                         if (currentScreen === 'screenLibrary') renderLibrary();
+                        loadUserCredits();
                     }
                 });
             }
@@ -1942,14 +2303,12 @@
                 let touchStartY = 0;
                 let isPulling = false;
                 const pullHint = document.getElementById('pullHint');
-                
                 document.addEventListener('touchstart', e => {
                     if (window.scrollY <= 5) {
                         touchStartY = e.touches[0].clientY;
                         isPulling = true;
                     }
                 }, {passive: true});
-                
                 document.addEventListener('touchmove', e => {
                     if (!isPulling || window.scrollY > 5) return;
                     const diff = e.touches[0].clientY - touchStartY;
@@ -1957,7 +2316,6 @@
                         pullHint.classList.add('show');
                     }
                 }, {passive: true});
-                
                 document.addEventListener('touchend', e => {
                     if (!isPulling) return;
                     const diff = e.changedTouches[0].clientY - touchStartY;
@@ -1969,9 +2327,250 @@
                         fetchNameSuggestions();
                         this.heartbeat();
                         if (currentScreen === 'screenLibrary') renderLibrary();
+                        loadUserCredits();
                     }
                     isPulling = false;
                 }, {passive: true});
+            }
+        }
+
+        // ==================== DISCOVER SCREEN LOGIC ====================
+        async function loadDiscoverAll() {
+            await showDiscoverList('all');
+        }
+
+        async function showDiscoverList(type) {
+            const list = document.getElementById('discoverList');
+            list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">Loading...</div>';
+            try {
+                let url = `/api/${type}`;
+                if (type === 'all') url = '/api/all';
+                const res = await fetch(url);
+                const data = await res.json();
+                if (!data.success) throw new Error(data.error);
+                
+                let items = [];
+                if (type === 'all') {
+                    Object.values(data.data).forEach(arr => items.push(...arr));
+                } else if (type === 'dj-groups') {
+                    items = data.dj_groups;
+                } else if (type === 'streaming-apps') {
+                    items = data.streaming_apps;
+                } else if (type === 'dj-software') {
+                    items = data.dj_software;
+                } else if (type === 'festivals') {
+                    items = data.festivals;
+                } else if (type === 'theater-streaming') {
+                    items = data.theater_streaming;
+                }
+                
+                renderDiscoverItems(items, type);
+            } catch (e) {
+                list.innerHTML = `<div style="text-align:center;padding:40px;color:var(--error);">Failed to load: ${e.message}</div>`;
+            }
+        }
+
+        function renderDiscoverItems(items, type) {
+            const list = document.getElementById('discoverList');
+            if (items.length === 0) {
+                list.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">No results</div></div>';
+                return;
+            }
+            list.innerHTML = items.map(item => {
+                let title = item.name || item.title || 'Unknown';
+                let meta = [];
+                let tags = [];
+                
+                if (type === 'dj-groups' || item.style) {
+                    if (item.origin) meta.push(item.origin);
+                    if (item.style) meta.push(item.style);
+                    if (item.activities) meta.push(item.activities.substring(0, 60) + '...');
+                } else if (type === 'streaming-apps' || item.catalog_size) {
+                    if (item.category) tags.push(item.category);
+                    if (item.price) meta.push(item.price);
+                    if (item.platform) meta.push(item.platform);
+                    if (item.free_tier) tags.push('Free Tier');
+                } else if (type === 'dj-software' || item.platform) {
+                    if (item.category) tags.push(item.category);
+                    if (item.platform) meta.push(item.platform);
+                    if (item.price) meta.push(item.price);
+                } else if (type === 'festivals' || item.dates) {
+                    if (item.location) meta.push(item.location);
+                    if (item.dates) meta.push(item.dates);
+                    if (item.genre) tags.push(item.genre);
+                } else if (type === 'theater-streaming' || item.content_type) {
+                    if (item.content_type) meta.push(item.content_type);
+                    if (item.region) meta.push(item.region);
+                }
+                
+                return `
+                    <div class="data-item">
+                        <div class="data-item-title">${escapeHtml(title)}</div>
+                        <div class="data-item-meta">${escapeHtml(meta.join(' • '))}</div>
+                        ${tags.map(t => `<span class="data-item-tag">${escapeHtml(t)}</span>`).join('')}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        let searchDebounce;
+        function debounceSearch(term) {
+            clearTimeout(searchDebounce);
+            searchDebounce = setTimeout(() => {
+                if (!term.trim()) {
+                    loadDiscoverAll();
+                    return;
+                }
+                fetch(`/api/search?q=${encodeURIComponent(term)}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            let all = [];
+                            Object.values(data.results).forEach(arr => all.push(...arr));
+                            renderDiscoverItems(all, 'search');
+                        }
+                    })
+                    .catch(() => showToast('❌ Search failed'));
+            }, 400);
+        }
+
+        // ==================== PAYMENT SYSTEM ====================
+        async function loadUserCredits() {
+            try {
+                const res = await fetch('/api/user/credits', {
+                    headers: {'X-Device-ID': deviceId}
+                });
+                const data = await res.json();
+                if (data.success) {
+                    userCredits = data.credits;
+                    userSubscription = data.subscription;
+                    updateCreditDisplay();
+                }
+            } catch (e) { console.log('Credits load failed'); }
+        }
+
+        function updateCreditDisplay() {
+            const pill = document.getElementById('creditPill');
+            const text = document.getElementById('creditText');
+            const settingsTitle = document.getElementById('settingsPlanTitle');
+            const settingsDesc = document.getElementById('settingsCreditsDesc');
+            
+            pill.style.display = 'flex';
+            
+            if (userSubscription === 'premium') {
+                text.textContent = '∞ Premium';
+                settingsTitle.textContent = 'Premium Plan';
+                settingsDesc.textContent = 'Unlimited drops active';
+            } else {
+                text.textContent = `${userCredits} drops`;
+                settingsTitle.textContent = userCredits > 0 ? 'Free Plan' : 'Free Plan (No Credits)';
+                settingsDesc.textContent = `${userCredits} drops remaining — Tap to buy more`;
+            }
+        }
+
+        async function showPaymentModal() {
+            document.getElementById('paymentModal').classList.add('show');
+            // Load packages
+            try {
+                const res = await fetch('/api/payment/packages');
+                const data = await res.json();
+                if (data.success) {
+                    const container = document.getElementById('packagesContainer');
+                    container.innerHTML = data.packages.map((pkg, idx) => `
+                        <div class="package-card ${pkg.id === 'standard' ? 'popular' : ''} ${idx === 1 ? 'selected' : ''}" 
+                             onclick="selectPackage('${pkg.id}', this)" 
+                             data-id="${pkg.id}" data-credits="${pkg.credits}" data-price="${pkg.price}" data-days="${pkg.duration_days || 0}">
+                            <div class="package-name">${pkg.name}</div>
+                            <div class="package-price">${data.currency} ${pkg.price}<span> / ${pkg.subscription ? (pkg.duration_days > 30 ? 'year' : 'month') : 'one-time'}</span></div>
+                            <div class="package-desc">${pkg.description}</div>
+                        </div>
+                    `).join('');
+                    // Auto-select standard
+                    selectedPackage = data.packages[1];
+                }
+            } catch (e) { showToast('❌ Failed to load packages'); }
+        }
+
+        function closePaymentModal() {
+            document.getElementById('paymentModal').classList.remove('show');
+        }
+
+        function selectPackage(id, el) {
+            document.querySelectorAll('.package-card').forEach(c => c.classList.remove('selected'));
+            el.classList.add('selected');
+            selectedPackage = {
+                id: id,
+                credits: parseInt(el.dataset.credits),
+                price: parseInt(el.dataset.price),
+                days: parseInt(el.dataset.days) || 0
+            };
+        }
+
+        async function initiatePayment() {
+            const phone = document.getElementById('paymentPhone').value.trim();
+            if (!phone || phone.length < 10) {
+                showToast('⚠️ Enter a valid phone number');
+                return;
+            }
+            if (!selectedPackage) {
+                showToast('⚠️ Select a package first');
+                return;
+            }
+            
+            const btn = document.getElementById('payBtn');
+            btn.disabled = true;
+            btn.textContent = 'Processing...';
+            
+            try {
+                const res = await fetch('/api/payment/initiate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Device-ID': deviceId
+                    },
+                    body: JSON.stringify({
+                        package_id: selectedPackage.id,
+                        phone: phone,
+                        method: 'mpesa'
+                    })
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    showToast('📱 Check your phone for payment prompt');
+                    // Poll for verification (mock mode auto-verifies)
+                    setTimeout(() => verifyPayment(data.tx_ref), 3000);
+                } else {
+                    showToast('❌ ' + (data.error || 'Payment failed'));
+                }
+            } catch (e) {
+                showToast('❌ Network error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Pay & Unlock';
+            }
+        }
+
+        async function verifyPayment(tx_ref) {
+            try {
+                const res = await fetch('/api/payment/verify', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Device-ID': deviceId
+                    },
+                    body: JSON.stringify({tx_ref: tx_ref, mock_verify: true})
+                });
+                const data = await res.json();
+                if (data.success && data.status === 'success') {
+                    showToast(`✅ ${data.credits_added > 9000 ? 'Premium activated' : data.credits_added + ' credits added'}!`);
+                    closePaymentModal();
+                    loadUserCredits();
+                } else {
+                    showToast('⏳ Payment pending... Check again soon');
+                }
+            } catch (e) {
+                showToast('❌ Verification failed');
             }
         }
 
@@ -1980,7 +2579,6 @@
             navigator.serviceWorker.register('/service-worker.js').catch(() => {});
         }
 
-        // Clean up mic
         window.addEventListener('beforeunload', () => {
             if (activeStream) activeStream.getTracks().forEach(t => t.stop());
         });
@@ -1990,6 +2588,7 @@
         fetchTrendingGenres();
         fetchNameSuggestions();
         liveEngine = new LiveEngine();
+        loadUserCredits();
     </script>
 </body>
 </html>
