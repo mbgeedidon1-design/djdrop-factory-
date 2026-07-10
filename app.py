@@ -15,6 +15,7 @@ import sqlite3
 import hashlib
 import asyncio
 import requests
+import base64
 from pathlib import Path
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, render_template, send_file, send_from_directory
@@ -39,12 +40,12 @@ FFMPEG_AVAILABLE = shutil.which("ffmpeg") is not None
 ESPEAK_AVAILABLE = shutil.which("espeak") is not None
 
 # M-Pesa Configuration - MERCHANT PHONE HIDDEN SERVER-SIDE ONLY
-DARAJA_ENV = os.environ.get("DARAJA_ENV", "sandbox")  # 'sandbox' or 'production'
+DARAJA_ENV = os.environ.get("DARAJA_ENV", "sandbox")
 DARAJA_CONSUMER_KEY = os.environ.get("DARAJA_CONSUMER_KEY", "")
 DARAJA_CONSUMER_SECRET = os.environ.get("DARAJA_CONSUMER_SECRET", "")
 DARAJA_PASSKEY = os.environ.get("DARAJA_PASSKEY", "")
 DARAJA_SHORTCODE = os.environ.get("DARAJA_SHORTCODE", "174379")
-MERCHANT_PHONE = "254748322641"  # HIDDEN - Server-side only!
+MERCHANT_PHONE = "254748322641"
 CURRENCY = "KES"
 
 # ============================================================
@@ -336,7 +337,6 @@ store = DataStore()
 class MpesaDaraja:
     @classmethod
     def _get_token(cls):
-        """Get OAuth token from M-Pesa Daraja."""
         if not DARAJA_CONSUMER_KEY or not DARAJA_CONSUMER_SECRET:
             return None
 
@@ -359,15 +359,10 @@ class MpesaDaraja:
 
     @classmethod
     def stk_push(cls, phone, amount, account_ref="DJDrop", description="DJ Drop Credits"):
-        """
-        Initiate STK Push to customer's phone.
-        Merchant phone is HIDDEN server-side only.
-        """
         token = cls._get_token()
         if not token:
             return {"success": False, "error": "Failed to authenticate with M-Pesa"}
 
-        # Clean phone number - ensure it's 2547XXXXXXXX format
         phone = re.sub(r"[^0-9]", "", str(phone))
         if phone.startswith("0"):
             phone = "254" + phone[1:]
@@ -377,7 +372,6 @@ class MpesaDaraja:
         if len(phone) != 12:
             return {"success": False, "error": f"Invalid phone number: {phone}"}
 
-        # Generate timestamp
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         password = base64.b64encode(
             f"{DARAJA_SHORTCODE}{DARAJA_PASSKEY}{timestamp}".encode()
@@ -426,7 +420,6 @@ class MpesaDaraja:
 
     @classmethod
     def query_transaction(cls, checkout_request_id):
-        """Query status of STK Push transaction."""
         token = cls._get_token()
         if not token:
             return {"success": False, "error": "Failed to authenticate"}
@@ -481,13 +474,6 @@ def has_internet():
 
 def check_espeak():
     return shutil.which("espeak")
-
-def base64_encode(data):
-    try:
-        import base64
-        return base64.b64encode(data.encode()).decode()
-    except:
-        return ""
 
 # ============================================================
 # AI TRAINING ENGINE
@@ -1795,8 +1781,6 @@ def api_payment_verify():
                     else:
                         credits, days = 9999, 365
 
-                    user = store.get_or_create_user(device_id)
-
                     if days > 0:
                         expires = datetime.now() + timedelta(days=days)
                         conn = sqlite3.connect(store.db_path)
@@ -1967,4 +1951,7 @@ if __name__ == "__main__":
     print("M-Pesa Mode: " + ("PRODUCTION" if DARAJA_ENV == "production" else "SANDBOX"))
     print("Merchant Phone: HIDDEN (server-side only)")
     print("=" * 60)
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    
+    # Use the PORT environment variable for Render.com
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)
