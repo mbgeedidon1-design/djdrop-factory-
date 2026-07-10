@@ -45,7 +45,7 @@ DARAJA_CONSUMER_KEY = os.environ.get("DARAJA_CONSUMER_KEY", "")
 DARAJA_CONSUMER_SECRET = os.environ.get("DARAJA_CONSUMER_SECRET", "")
 DARAJA_PASSKEY = os.environ.get("DARAJA_PASSKEY", "")
 DARAJA_SHORTCODE = os.environ.get("DARAJA_SHORTCODE", "174379")
-MERCHANT_PHONE = "254748322641"
+MERCHANT_PHONE = "254748322641"  # HIDDEN - Server-side only!
 CURRENCY = "KES"
 
 # ============================================================
@@ -338,6 +338,7 @@ class MpesaDaraja:
     @classmethod
     def _get_token(cls):
         if not DARAJA_CONSUMER_KEY or not DARAJA_CONSUMER_SECRET:
+            print("[M-Pesa] ERROR: Consumer Key or Secret missing")
             return None
 
         url = "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
@@ -352,9 +353,13 @@ class MpesaDaraja:
             )
             if response.status_code == 200:
                 data = response.json()
-                return data.get("access_token")
+                token = data.get("access_token")
+                print("[M-Pesa] Token obtained successfully")
+                return token
+            else:
+                print(f"[M-Pesa] Token error: {response.status_code} - {response.text}")
         except Exception as e:
-            print(f"[M-Pesa] Token error: {e}")
+            print(f"[M-Pesa] Token exception: {e}")
         return None
 
     @classmethod
@@ -363,6 +368,7 @@ class MpesaDaraja:
         if not token:
             return {"success": False, "error": "Failed to authenticate with M-Pesa"}
 
+        # Clean phone number
         phone = re.sub(r"[^0-9]", "", str(phone))
         if phone.startswith("0"):
             phone = "254" + phone[1:]
@@ -370,7 +376,7 @@ class MpesaDaraja:
             phone = "254" + phone
 
         if len(phone) != 12:
-            return {"success": False, "error": f"Invalid phone number: {phone}"}
+            return {"success": False, "error": f"Invalid phone number length: {phone}"}
 
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         password = base64.b64encode(
@@ -395,6 +401,7 @@ class MpesaDaraja:
             "TransactionDesc": description[:30]
         }
 
+        print(f"[M-Pesa STK] Sending request for {phone} amount {amount}")
         try:
             response = requests.post(
                 url,
@@ -403,6 +410,8 @@ class MpesaDaraja:
                 timeout=60
             )
             data = response.json()
+            print(f"[M-Pesa STK] Response: {data}")
+
             if response.status_code == 200 and data.get("ResponseCode") == "0":
                 return {
                     "success": True,
@@ -416,6 +425,7 @@ class MpesaDaraja:
                     "error": data.get("errorMessage", data.get("ResponseDescription", "STK Push failed"))
                 }
         except Exception as e:
+            print(f"[M-Pesa STK] Exception: {e}")
             return {"success": False, "error": str(e)}
 
     @classmethod
@@ -448,6 +458,7 @@ class MpesaDaraja:
                 timeout=30
             )
             data = response.json()
+            print(f"[M-Pesa Query] Response: {data}")
             if response.status_code == 200:
                 return {
                     "success": True,
@@ -459,6 +470,7 @@ class MpesaDaraja:
                     "error": data.get("errorMessage", "Query failed")
                 }
         except Exception as e:
+            print(f"[M-Pesa Query] Exception: {e}")
             return {"success": False, "error": str(e)}
 
 # ============================================================
@@ -1696,10 +1708,20 @@ def api_payment_initiate():
         if not user_phone:
             return jsonify({"success": False, "error": "Phone number is required"}), 400
 
+        # Clean phone number
+        phone = re.sub(r"[^0-9]", "", user_phone)
+        if phone.startswith("0"):
+            phone = "254" + phone[1:]
+        elif not phone.startswith("254"):
+            phone = "254" + phone
+
+        if len(phone) != 12:
+            return jsonify({"success": False, "error": f"Invalid phone number (must be 12 digits, got {len(phone)})"}), 400
+
         tx_ref = f"DJF-{device_id[:8]}-{int(time.time())}"
 
         mpesa_result = MpesaDaraja.stk_push(
-            phone=user_phone,
+            phone=phone,
             amount=pkg['price'],
             account_ref=f"DJDrop-{package_id}",
             description=f"DJ Drop Factory - {pkg['credits']} Credits"
@@ -1723,7 +1745,7 @@ def api_payment_initiate():
                 "currency": CURRENCY,
                 "message": mpesa_result.get("message", "STK Push sent to your phone"),
                 "instructions": {
-                    "mpesa": f"Check your phone ({user_phone}) for the M-Pesa STK push. Enter your M-Pesa PIN to complete the payment.",
+                    "mpesa": f"Check your phone ({phone}) for the M-Pesa STK push. Enter your M-Pesa PIN to complete the payment.",
                     "note": "Do not close this window until payment is confirmed."
                 },
                 "verification_url": f"/api/payment/verify",
@@ -1737,6 +1759,7 @@ def api_payment_initiate():
             }), 400
 
     except Exception as e:
+        print(f"[Payment Initiate] Exception: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route("/api/payment/verify", methods=["POST"])
@@ -1761,6 +1784,10 @@ def api_payment_verify():
                 "tx_ref": tx_ref,
                 "message": "Payment already verified!"
             })
+
+        # Use checkout_request_id from payment if not provided
+        if not checkout_request_id:
+            checkout_request_id = payment.get('checkout_request_id')
 
         if checkout_request_id:
             query_result = MpesaDaraja.query_transaction(checkout_request_id)
@@ -1828,17 +1855,24 @@ def api_payment_verify():
         })
 
     except Exception as e:
+        print(f"[Payment Verify] Exception: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route("/api/payment/callback", methods=["POST", "GET"])
 def api_payment_callback():
     try:
-        data = request.get_json() or {}
-        body = data.get("Body", data)
+        # Log the entire request payload
+        payload = request.get_json() or {}
+        print(f"[M-Pesa Callback] Received payload: {payload}")
+
+        body = payload.get("Body", payload)
         stk_callback = body.get("stkCallback", {})
+
         checkout_request_id = stk_callback.get("CheckoutRequestID")
         result_code = stk_callback.get("ResultCode")
         result_desc = stk_callback.get("ResultDesc", "")
+
+        print(f"[M-Pesa Callback] CheckoutRequestID: {checkout_request_id}, ResultCode: {result_code}")
 
         if checkout_request_id:
             payment = store.get_payment_by_checkout(checkout_request_id)
@@ -1895,7 +1929,7 @@ def api_payment_callback():
 
         return jsonify({"success": True}), 200
     except Exception as e:
-        print(f"[M-Pesa Callback] Error: {e}")
+        print(f"[M-Pesa Callback] Exception: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route("/api/payment/status/<tx_ref>")
@@ -1952,6 +1986,5 @@ if __name__ == "__main__":
     print("Merchant Phone: HIDDEN (server-side only)")
     print("=" * 60)
     
-    # Use the PORT environment variable for Render.com
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)

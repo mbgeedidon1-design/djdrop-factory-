@@ -8,10 +8,10 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="author" content="Macdonald Barasa">
     <title>DJ Drop Factory Pro v5.0 — Live</title>
-    <!-- Note: manifest.json and service-worker.js are optional – remove if not present -->
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/static/icon-192.png">
     <style>
+        /* All CSS from earlier – unchanged */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
         :root {
@@ -1296,13 +1296,14 @@
                 <div id="packagesContainer"></div>
                 <div style="padding: 0 20px;">
                     <label class="form-label" style="margin-top: 8px;">Phone Number (M-Pesa)</label>
-                    <input type="tel" class="form-input" id="paymentPhone" placeholder="e.g. 254712345678">
+                    <!-- Updated input with pattern and placeholder -->
+                    <input type="tel" class="form-input" id="paymentPhone" placeholder="e.g. 254708374149 (test number)" pattern="254[0-9]{9}">
                 </div>
                 <button class="pay-btn" id="payBtn" onclick="initiatePayment()" style="margin-top: 16px;">
                     Pay & Unlock
                 </button>
                 <div style="text-align: center; padding: 12px 20px; color: var(--text-muted); font-size: 12px;">
-                    Secure payment powered by Flutterwave. Your number is encrypted.
+                    Secure payment powered by M-Pesa. Your number is encrypted.
                 </div>
             </div>
         </div>
@@ -2374,10 +2375,12 @@
             };
         }
 
+        // ==================== UPDATED PAYMENT INITIATE ====================
         async function initiatePayment() {
             const phone = document.getElementById('paymentPhone').value.trim();
-            if (!phone || phone.length < 10) {
-                showToast('⚠️ Enter a valid phone number');
+            // Validate phone number: must be 12 digits starting with 254
+            if (!/^254[0-9]{9}$/.test(phone)) {
+                showToast('⚠️ Enter a valid 12-digit number starting with 254 (e.g., 254708374149)');
                 return;
             }
             if (!selectedPackage) {
@@ -2405,9 +2408,35 @@
                 const data = await res.json();
                 
                 if (data.success) {
-                    showToast('📱 Check your phone for payment prompt');
-                    // Poll for verification (mock mode auto-verifies)
-                    setTimeout(() => verifyPayment(data.tx_ref), 3000);
+                    showToast('📱 Check your phone for the M-Pesa prompt');
+                    // Poll for verification every 5 seconds for up to 60 seconds
+                    let attempts = 0;
+                    const maxAttempts = 12;
+                    const interval = setInterval(async () => {
+                        attempts++;
+                        try {
+                            const verifyRes = await fetch('/api/payment/verify', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-Device-ID': deviceId
+                                },
+                                body: JSON.stringify({ tx_ref: data.tx_ref })
+                            });
+                            const verifyData = await verifyRes.json();
+                            if (verifyData.success && verifyData.status === 'success') {
+                                clearInterval(interval);
+                                showToast(`✅ ${verifyData.credits_added > 9000 ? 'Premium activated' : verifyData.credits_added + ' credits added'}!`);
+                                closePaymentModal();
+                                loadUserCredits();
+                            } else if (attempts >= maxAttempts) {
+                                clearInterval(interval);
+                                showToast('⏳ Payment still pending. Please check your M-Pesa message.');
+                            }
+                        } catch (err) {
+                            // Ignore individual verify errors, continue polling
+                        }
+                    }, 5000);
                 } else {
                     showToast('❌ ' + (data.error || 'Payment failed'));
                 }
@@ -2416,29 +2445,6 @@
             } finally {
                 btn.disabled = false;
                 btn.textContent = 'Pay & Unlock';
-            }
-        }
-
-        async function verifyPayment(tx_ref) {
-            try {
-                const res = await fetch('/api/payment/verify', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Device-ID': deviceId
-                    },
-                    body: JSON.stringify({tx_ref: tx_ref, mock_verify: true})
-                });
-                const data = await res.json();
-                if (data.success && data.status === 'success') {
-                    showToast(`✅ ${data.credits_added > 9000 ? 'Premium activated' : data.credits_added + ' credits added'}!`);
-                    closePaymentModal();
-                    loadUserCredits();
-                } else {
-                    showToast('⏳ Payment pending... Check again soon');
-                }
-            } catch (e) {
-                showToast('❌ Verification failed');
             }
         }
 

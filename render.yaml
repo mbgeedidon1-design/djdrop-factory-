@@ -15,6 +15,8 @@ services:
         value: 7QPUZLBKANxkoI0D63vBXIY8NgwtVOg3hBZfoad6hfKGcIUK
       - key: DARAJA_CONSUMER_SECRET
         value: JiCV8ho34x5KCvDcI228dGvfOshdiHqWCmYUoSLuiHVQNHUfDJGOkUIXIcP3NGGw
+      - key: DARAJA_PASSKEY
+        value: bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919
       - key: BASE_URL
-        value: https://your-app-name.onrender.com   # <--- CHANGE THIS to your actual Render URL
+        value: https://your-app-name.onrender.com   # <-- CHANGE ME
     healthCheckPath: /health
