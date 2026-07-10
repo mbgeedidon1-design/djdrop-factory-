@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# DJ DROP FACTORY PRO v5.0 — Complete Backend
+# DJ DROP FACTORY PRO v5.0 — Complete Backend (BUGFIXED)
 # Created by Macdonald Barasa
 # Email: simiyumacdonal1@gmail.com
 
@@ -198,17 +198,24 @@ class DataStore:
             }
         return None
 
+    # BUGFIX: Only mark verified=1 when status is actually "success"
     def update_payment_status(self, tx_ref, status, mpesa_receipt=None):
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        if mpesa_receipt:
-            cursor.execute(
-                "UPDATE payments SET status = ?, verified = 1, mpesa_receipt = ? WHERE tx_ref = ?",
-                (status, mpesa_receipt, tx_ref)
-            )
+        if status == "success":
+            if mpesa_receipt:
+                cursor.execute(
+                    "UPDATE payments SET status = ?, verified = 1, mpesa_receipt = ? WHERE tx_ref = ?",
+                    (status, mpesa_receipt, tx_ref)
+                )
+            else:
+                cursor.execute(
+                    "UPDATE payments SET status = ?, verified = 1 WHERE tx_ref = ?",
+                    (status, tx_ref)
+                )
         else:
             cursor.execute(
-                "UPDATE payments SET status = ?, verified = 1 WHERE tx_ref = ?",
+                "UPDATE payments SET status = ? WHERE tx_ref = ?",
                 (status, tx_ref)
             )
         conn.commit()
@@ -1762,6 +1769,7 @@ def api_payment_initiate():
         print(f"[Payment Initiate] Exception: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
+# BUGFIXED: Proper ResultCode handling, smarter pending/failed logic
 @app.route("/api/payment/verify", methods=["POST"])
 def api_payment_verify():
     try:
@@ -1785,7 +1793,6 @@ def api_payment_verify():
                 "message": "Payment already verified!"
             })
 
-        # Use checkout_request_id from payment if not provided
         if not checkout_request_id:
             checkout_request_id = payment.get('checkout_request_id')
 
@@ -1794,6 +1801,10 @@ def api_payment_verify():
             if query_result.get("success"):
                 result_data = query_result.get("data", {})
                 result_code = result_data.get("ResultCode")
+
+                # BUGFIX: Handle string vs int ResultCode
+                if isinstance(result_code, str):
+                    result_code = int(result_code) if result_code.isdigit() else result_code
 
                 if result_code == 0:
                     store.update_payment_status(tx_ref, "success")
@@ -1837,15 +1848,28 @@ def api_payment_verify():
                         "subscription_days": days,
                         "message": "Payment verified! Credits added to your account."
                     })
-                else:
-                    status = "pending" if result_code is None else "failed"
-                    store.update_payment_status(tx_ref, status)
+
+                elif result_code in [None, ""]:
                     return jsonify({
                         "success": True,
-                        "status": status,
+                        "status": "pending",
                         "tx_ref": tx_ref,
-                        "message": result_data.get("ResultDesc", "Payment status checked.")
+                        "message": "Payment still pending. Please enter your M-Pesa PIN."
                     })
+                else:
+                    store.update_payment_status(tx_ref, "failed")
+                    return jsonify({
+                        "success": True,
+                        "status": "failed",
+                        "tx_ref": tx_ref,
+                        "message": result_data.get("ResultDesc", "Payment failed or was cancelled.")
+                    })
+            else:
+                return jsonify({
+                    "success": False,
+                    "error": query_result.get("error", "Query failed"),
+                    "tx_ref": tx_ref
+                }), 400
 
         return jsonify({
             "success": True,
@@ -1858,76 +1882,88 @@ def api_payment_verify():
         print(f"[Payment Verify] Exception: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
-@app.route("/api/payment/callback", methods=["POST", "GET"])
+# BUGFIXED: POST only, proper ResultCode type handling, verified only on success
+@app.route("/api/payment/callback", methods=["POST"])
 def api_payment_callback():
     try:
-        # Log the entire request payload
         payload = request.get_json() or {}
-        print(f"[M-Pesa Callback] Received payload: {payload}")
+        print(f"[M-Pesa Callback] Received payload: {json.dumps(payload)}")
 
-        body = payload.get("Body", payload)
+        body = payload.get("Body", {})
         stk_callback = body.get("stkCallback", {})
 
         checkout_request_id = stk_callback.get("CheckoutRequestID")
         result_code = stk_callback.get("ResultCode")
         result_desc = stk_callback.get("ResultDesc", "")
 
+        # BUGFIX: Handle string vs int ResultCode
+        if isinstance(result_code, str):
+            result_code = int(result_code) if result_code.isdigit() else result_code
+
         print(f"[M-Pesa Callback] CheckoutRequestID: {checkout_request_id}, ResultCode: {result_code}")
 
-        if checkout_request_id:
-            payment = store.get_payment_by_checkout(checkout_request_id)
-            if payment:
-                tx_ref = payment['tx_ref']
-                device_id = payment['device_id']
+        if not checkout_request_id:
+            print("[M-Pesa Callback] ERROR: No CheckoutRequestID in callback")
+            return jsonify({"success": False, "error": "Missing CheckoutRequestID"}), 400
 
-                if result_code == 0:
-                    callback_metadata = stk_callback.get("CallbackMetadata", {})
-                    items = callback_metadata.get("Item", [])
-                    mpesa_receipt = None
-                    for item in items:
-                        if item.get("Name") == "MpesaReceiptNumber":
-                            mpesa_receipt = item.get("Value")
-                            break
+        payment = store.get_payment_by_checkout(checkout_request_id)
+        if not payment:
+            print(f"[M-Pesa Callback] ERROR: Payment not found for {checkout_request_id}")
+            return jsonify({"success": False, "error": "Payment not found"}), 404
 
-                    store.update_payment_status(tx_ref, "success", mpesa_receipt)
+        tx_ref = payment['tx_ref']
+        device_id = payment['device_id']
 
-                    amount = payment['amount']
-                    if amount <= 50:
-                        credits, days = 5, 0
-                    elif amount <= 120:
-                        credits, days = 15, 0
-                    elif amount <= 300:
-                        credits, days = 9999, 30
-                    else:
-                        credits, days = 9999, 365
+        if result_code == 0:
+            callback_metadata = stk_callback.get("CallbackMetadata", {})
+            items = callback_metadata.get("Item", [])
+            mpesa_receipt = None
+            for item in items:
+                if item.get("Name") == "MpesaReceiptNumber":
+                    mpesa_receipt = item.get("Value")
+                    break
 
-                    if days > 0:
-                        expires = datetime.now() + timedelta(days=days)
-                        conn = sqlite3.connect(store.db_path)
-                        cursor = conn.cursor()
-                        cursor.execute(
-                            "UPDATE users SET subscription = 'premium', subscription_expires = ?, credits = ?, total_paid = total_paid + ? WHERE device_id = ?",
-                            (expires.isoformat(), credits, amount, device_id)
-                        )
-                        conn.commit()
-                        conn.close()
-                    else:
-                        store.add_credits(device_id, credits)
-                        conn = sqlite3.connect(store.db_path)
-                        cursor = conn.cursor()
-                        cursor.execute(
-                            "UPDATE users SET total_paid = total_paid + ? WHERE device_id = ?",
-                            (amount, device_id)
-                        )
-                        conn.commit()
-                        conn.close()
+            store.update_payment_status(tx_ref, "success", mpesa_receipt)
 
-                    print(f"[M-Pesa Callback] Payment success: {tx_ref}, Receipt: {mpesa_receipt}")
-                else:
-                    store.update_payment_status(tx_ref, "failed")
-                    print(f"[M-Pesa Callback] Payment failed: {tx_ref}, Reason: {result_desc}")
+            amount = payment['amount']
+            if amount <= 50:
+                credits, days = 5, 0
+            elif amount <= 120:
+                credits, days = 15, 0
+            elif amount <= 300:
+                credits, days = 9999, 30
+            else:
+                credits, days = 9999, 365
 
-        return jsonify({"success": True}), 200
+            if days > 0:
+                expires = datetime.now() + timedelta(days=days)
+                conn = sqlite3.connect(store.db_path)
+                cursor = conn.cursor()
+                cursor.execute(
+                    "UPDATE users SET subscription = 'premium', subscription_expires = ?, credits = ?, total_paid = total_paid + ? WHERE device_id = ?",
+                    (expires.isoformat(), credits, amount, device_id)
+                )
+                conn.commit()
+                conn.close()
+            else:
+                store.add_credits(device_id, credits)
+                conn = sqlite3.connect(store.db_path)
+                cursor = conn.cursor()
+                cursor.execute(
+                    "UPDATE users SET total_paid = total_paid + ? WHERE device_id = ?",
+                    (amount, device_id)
+                )
+                conn.commit()
+                conn.close()
+
+            print(f"[M-Pesa Callback] SUCCESS: {tx_ref}, Receipt: {mpesa_receipt}")
+            return jsonify({"success": True, "message": "Payment processed"}), 200
+
+        else:
+            store.update_payment_status(tx_ref, "failed")
+            print(f"[M-Pesa Callback] FAILED: {tx_ref}, Code: {result_code}, Reason: {result_desc}")
+            return jsonify({"success": True, "message": "Failure recorded"}), 200
+
     except Exception as e:
         print(f"[M-Pesa Callback] Exception: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
@@ -1972,7 +2008,7 @@ def health_check():
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("   DJ DROP FACTORY PRO v5.0 — LIVE EDITION")
+    print("   DJ DROP FACTORY PRO v5.0 — LIVE EDITION (BUGFIXED)")
     print("   Created by Macdonald Barasa")
     print("   Email: simiyumacdonal1@gmail.com")
     print("=" * 60)
