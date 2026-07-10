@@ -11,4 +11,10 @@ services:
         generateValue: true
       - key: DARAJA_ENV
         value: sandbox
+      - key: DARAJA_CONSUMER_KEY
+        value: 7QPUZLBKANxkoI0D63vBXIY8NgwtVOg3hBZfoad6hfKGcIUK
+      - key: DARAJA_CONSUMER_SECRET
+        value: JiCV8ho34x5KCvDcI228dGvfOshdiHqWCmYUoSLuiHVQNHUfDJGOkUIXIcP3NGGw
+      - key: BASE_URL
+        value: https://your-app-name.onrender.com   # <--- CHANGE THIS to your actual Render URL
     healthCheckPath: /health
