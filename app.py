@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# DJ DROP FACTORY PRO v5.1 — Optimized & Expanded Backend
+# DJ DROP FACTORY PRO v5.1 — Full Backend (All Features)
 # Created by Macdonald Barasa
 # Email: simiyumacdonal1@gmail.com
 
@@ -16,6 +16,7 @@ import hashlib
 import asyncio
 import requests
 import base64
+import tempfile
 from pathlib import Path
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, render_template, send_file, send_from_directory
@@ -45,7 +46,7 @@ DARAJA_CONSUMER_KEY = os.environ.get("DARAJA_CONSUMER_KEY", "")
 DARAJA_CONSUMER_SECRET = os.environ.get("DARAJA_CONSUMER_SECRET", "")
 DARAJA_PASSKEY = os.environ.get("DARAJA_PASSKEY", "")
 DARAJA_SHORTCODE = os.environ.get("DARAJA_SHORTCODE", "174379")
-MERCHANT_PHONE = "254748322641"  
+MERCHANT_PHONE = "254748322641"
 CURRENCY = "KES"
 
 # ============================================================
@@ -53,17 +54,12 @@ CURRENCY = "KES"
 # ============================================================
 
 def export_to_phone_storage(source_path, filename):
-    """
-    Attempts to break out of the Termux environment container 
-    and write the file directly to accessible Android system storage.
-    """
     possible_destinations = [
         Path("/sdcard/Music/DJDropFactory"),
         Path("/sdcard/Download"),
         Path("/storage/emulated/0/Download"),
         Path("/storage/emulated/0/Music")
     ]
-    
     for dest_dir in possible_destinations:
         try:
             dest_dir.mkdir(parents=True, exist_ok=True)
@@ -72,7 +68,7 @@ def export_to_phone_storage(source_path, filename):
             print(f"[Storage Bridge] Successfully exported to phone storage: {target_file}")
             return str(target_file)
         except PermissionError:
-            continue  # Requires 'termux-setup-storage' to be granted on Android
+            continue
         except Exception as e:
             print(f"[Storage Bridge] Target {dest_dir} failed: {e}")
             continue
@@ -121,9 +117,11 @@ class DataStore:
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP
             )
         ''')
+        # Library now includes device_id
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS library (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                device_id TEXT DEFAULT 'anonymous',
                 title TEXT,
                 script TEXT,
                 genre TEXT,
@@ -376,11 +374,9 @@ class MpesaDaraja:
         if not DARAJA_CONSUMER_KEY or not DARAJA_CONSUMER_SECRET:
             print("[M-Pesa] ERROR: Consumer Key or Secret missing")
             return None
-
         url = "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
         if DARAJA_ENV == "production":
             url = "https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
-
         try:
             response = requests.get(
                 url,
@@ -401,25 +397,20 @@ class MpesaDaraja:
         token = cls._get_token()
         if not token:
             return {"success": False, "error": "Failed to authenticate with M-Pesa"}
-
         phone = re.sub(r"[^0-9]", "", str(phone))
         if phone.startswith("0"):
             phone = "254" + phone[1:]
         elif not phone.startswith("254"):
             phone = "254" + phone
-
         if len(phone) != 12:
             return {"success": False, "error": f"Invalid phone number length: {phone}"}
-
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         password = base64.b64encode(
             f"{DARAJA_SHORTCODE}{DARAJA_PASSKEY}{timestamp}".encode()
         ).decode()
-
         url = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest"
         if DARAJA_ENV == "production":
             url = "https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest"
-
         payload = {
             "BusinessShortCode": DARAJA_SHORTCODE,
             "Password": password,
@@ -433,7 +424,6 @@ class MpesaDaraja:
             "AccountReference": account_ref[:12],
             "TransactionDesc": description[:30]
         }
-
         try:
             response = requests.post(
                 url,
@@ -462,23 +452,19 @@ class MpesaDaraja:
         token = cls._get_token()
         if not token:
             return {"success": False, "error": "Failed to authenticate"}
-
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         password = base64.b64encode(
             f"{DARAJA_SHORTCODE}{DARAJA_PASSKEY}{timestamp}".encode()
         ).decode()
-
         url = "https://sandbox.safaricom.co.ke/mpesa/stkpushquery/v1/query"
         if DARAJA_ENV == "production":
             url = "https://api.safaricom.co.ke/mpesa/stkpushquery/v1/query"
-
         payload = {
             "BusinessShortCode": DARAJA_SHORTCODE,
             "Password": password,
             "Timestamp": timestamp,
             "CheckoutRequestID": checkout_request_id
         }
-
         try:
             response = requests.post(
                 url,
@@ -523,7 +509,6 @@ class AITrainingEngine:
 
     @classmethod
     def save_training(cls, text, genre, mode): return True
-
     @classmethod
     def analyze_style(cls, text):
         length = len(text.split())
@@ -563,21 +548,17 @@ class StringWizard:
     @classmethod
     def smart_capitalize(cls, text):
         return " ".join([w.capitalize() if len(w) > 2 and w.isalpha() else w for w in text.split()])
-
     @classmethod
     def auto_punctuate(cls, text):
         if text and text[-1] not in ['.', '!', '?']: text += '.'
         return text
-
     @classmethod
     def add_hashtags(cls, text, genre):
         hashtags = {"amapiano": "#Amapiano #PianoVibes", "dancehall": "#Dancehall #JamaicanVibes"}
         return f"{text} {hashtags.get(genre.lower(), '#DJLife #Vibes')}"
-
     @classmethod
     def generate_slug(cls, text):
         return re.strip('-', re.sub(r'[^a-z0-9]+', '-', text.lower()))[:50]
-
     @classmethod
     def stutter_pattern(cls, text, style="classic"):
         words = text.split()
@@ -585,7 +566,6 @@ class StringWizard:
         if style == "classic":
             words[0] = f"{words[0][0]}-{words[0]}"
         return " ".join(words)
-
     @classmethod
     def extract_keywords(cls, text): return [w for w in text.split() if len(w) > 3][:5]
     @classmethod
@@ -637,8 +617,13 @@ class PremiumAudioStudio:
         profile = cls.get_fx_profile(style_preset, energy)
         bg_gain = bg_gain if bg_gain is not None else profile["bg_gain"]
         if bg_path and os.path.exists(bg_path):
-            filter_complex = f"[1:a]volume={bg_gain}[bgquiet];[bgquiet][0:a]sidechaincompress=threshold={profile['duck_threshold']}:ratio=15[bgduck];[0:a][bgduck]amix=inputs=2:duration=first[out]"
-            cmd = ["ffmpeg", "-y", "-i", wet_vocal_path, "-i", bg_path, "-filter_complex", filter_complex, "-map", "[out]", "-b:a", "320k", final_output_path]
+            filter_complex = (
+                f"[1:a]volume={bg_gain}[bgquiet];"
+                f"[bgquiet][0:a]sidechaincompress=threshold={profile['duck_threshold']}:ratio=15[bgduck];"
+                f"[0:a][bgduck]amix=inputs=2:duration=first[out]"
+            )
+            cmd = ["ffmpeg", "-y", "-i", wet_vocal_path, "-i", bg_path,
+                   "-filter_complex", filter_complex, "-map", "[out]", "-b:a", "320k", final_output_path]
         else:
             cmd = ["ffmpeg", "-y", "-i", wet_vocal_path, "-c:a", "libmp3lame", "-b:a", "320k", final_output_path]
         cls.run_ffmpeg(cmd)
@@ -672,8 +657,16 @@ async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track, drop_
     out_dir = OUTPUT_DIR / project_name
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    takes = PremiumDJScriptAI.generate(dj_name=dj_name, genre=genre, use_stutter=use_stutter, drop_type=drop_type, mood=mood, energy=energy)
-    selected = StringWizard.smart_capitalize(StringWizard.auto_punctuate(takes[0]["text"]))
+    # Use script override if provided (for strict/training modes)
+    script_override = kwargs.get("script_override", None)
+    if script_override:
+        selected = script_override
+    else:
+        takes = PremiumDJScriptAI.generate(
+            dj_name=dj_name, genre=genre, use_stutter=use_stutter,
+            drop_type=drop_type, mood=mood, energy=energy
+        )
+        selected = StringWizard.smart_capitalize(StringWizard.auto_punctuate(takes[0]["text"]))
 
     raw_vocal = out_dir / "raw_vocal.mp3"
     wet_vocal = out_dir / "wet_vocal.mp3"
@@ -688,7 +681,6 @@ async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track, drop_
     else:
         shutil.copy(str(raw_vocal), str(final_master))
 
-    # --- ATTEMPT LOCAL DEVICE STORAGE EXPORT ---
     exported_path = export_to_phone_storage(final_master, f"{project_name}.mp3")
 
     return {
@@ -701,15 +693,383 @@ async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track, drop_
     }
 
 # ============================================================
-# SHARING ENGINE & CORE ROUTES
+# ROUTES
 # ============================================================
 
+# ---------- SYSTEM STATUS ----------
+@app.route("/api/status")
+def api_status():
+    return jsonify({
+        "success": True,
+        "online": has_internet(),
+        "ffmpeg_available": FFMPEG_AVAILABLE,
+        "espeak_available": check_espeak() is not None
+    })
+
+# ---------- WIZARD VALIDATION ----------
+@app.route("/api/wizard_validate", methods=["POST"])
+def api_wizard_validate():
+    return jsonify({"valid": True, "errors": []})
+
+# ---------- TRENDS, CITY VIBE, NAME SUGGESTIONS ----------
+@app.route("/api/trends")
+def api_trends():
+    return jsonify({"success": True, "trending": WebDataPuller.fetch_trending_genres()})
+
+@app.route("/api/city_vibe")
+def api_city_vibe():
+    city = request.args.get("city", "")
+    if not city:
+        return jsonify({"success": False, "error": "No city"}), 400
+    vibe = WebDataPuller.fetch_city_vibe(city)
+    return jsonify({"success": True, "data": vibe})
+
+@app.route("/api/suggest_names")
+def api_suggest_names():
+    style = request.args.get("style", "")
+    names = WebDataPuller.fetch_dj_name_suggestions(style)
+    return jsonify({"success": True, "suggestions": names})
+
+# ---------- STRING TOOLS ----------
+@app.route("/api/string_tools", methods=["POST"])
+def api_string_tools():
+    data = request.get_json() or {}
+    text = data.get("text", "")
+    operation = data.get("operation", "")
+    genre = data.get("genre", "")
+    if not text:
+        return jsonify({"success": False, "error": "No text"}), 400
+    try:
+        if operation == "capitalize":
+            result = StringWizard.smart_capitalize(text)
+        elif operation == "auto_punctuate":
+            result = StringWizard.auto_punctuate(text)
+        elif operation == "hashtags":
+            result = StringWizard.add_hashtags(text, genre)
+        elif operation == "stutter_classic":
+            result = StringWizard.stutter_pattern(text, "classic")
+        else:
+            return jsonify({"success": False, "error": "Unknown operation"}), 400
+        return jsonify({"success": True, "result": result})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+# ---------- VOICE EFFECTS ----------
+EFFECT_MAP = {
+    "helium": "atempo=1.5,asetrate=44100*1.5",
+    "low": "asetrate=44100*0.75,atempo=1.0",
+    "robot": "afftfilt=real='hypot(re,im)*sin(0)':imag='hypot(re,im)*cos(0)':win_size=512:overlap=0.75",
+    "echo": "aecho=0.8:0.9:40:0.4",
+    "phone": "lowpass=f=3000,highpass=f=200,volume=1.5",
+    "slow": "atempo=0.8",
+    "fast": "atempo=1.3"
+}
+
+@app.route("/api/process_voice", methods=["POST"])
+def api_process_voice():
+    if 'audio' not in request.files:
+        return jsonify({"success": False, "error": "No audio file"}), 400
+    audio = request.files['audio']
+    effect = request.form.get('effect', 'none')
+    if effect == 'none' or not FFMPEG_AVAILABLE:
+        audio_path = UPLOAD_DIR / f"raw_{int(time.time())}.webm"
+        audio.save(audio_path)
+        return jsonify({"success": True, "audio_url": f"/uploads/{audio_path.name}", "effect": "none"})
+    if effect not in EFFECT_MAP:
+        return jsonify({"success": False, "error": "Unknown effect"}), 400
+    input_path = UPLOAD_DIR / f"input_{int(time.time())}.webm"
+    output_path = UPLOAD_DIR / f"processed_{int(time.time())}.mp3"
+    audio.save(input_path)
+    try:
+        cmd = ["ffmpeg", "-y", "-i", str(input_path), "-af", EFFECT_MAP[effect], "-b:a", "320k", str(output_path)]
+        subprocess.run(cmd, check=True, capture_output=True)
+        return jsonify({"success": True, "audio_url": f"/uploads/{output_path.name}", "effect": effect})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if input_path.exists(): input_path.unlink()
+
+# ---------- BACKGROUND TRACK UPLOAD ----------
+@app.route("/api/upload_bg", methods=["POST"])
+def api_upload_bg():
+    if 'audio' not in request.files:
+        return jsonify({"success": False, "error": "No file"}), 400
+    file = request.files['audio']
+    if file.filename == '':
+        return jsonify({"success": False, "error": "Empty filename"}), 400
+    filename = f"bg_{int(time.time())}_{safe_filename(file.filename)}"
+    filepath = UPLOAD_DIR / filename
+    file.save(filepath)
+    if FFMPEG_AVAILABLE and not filepath.suffix.lower() == '.mp3':
+        mp3_path = UPLOAD_DIR / f"{filename.rsplit('.', 1)[0]}.mp3"
+        try:
+            subprocess.run(["ffmpeg", "-y", "-i", str(filepath), "-b:a", "320k", str(mp3_path)],
+                           check=True, capture_output=True)
+            filepath.unlink()
+            filename = mp3_path.name
+        except Exception as e:
+            print(f"Background conversion failed: {e}")
+    return jsonify({"success": True, "filename": filename})
+
+# ---------- LIVE PREVIEW ----------
+@app.route("/api/live_preview", methods=["POST"])
+def api_live_preview():
+    data = request.get_json() or {}
+    dj_name = data.get("dj_name", "DJ Beshi")
+    genre = data.get("genre", "dancehall")
+    use_stutter = data.get("use_stutter", True)
+    mood = data.get("mood", "hype")
+    energy = int(data.get("energy", 8))
+    city = data.get("city", "")
+    user_stutter = data.get("user_stutter", "")
+    try:
+        scripts = PremiumDJScriptAI.generate(
+            dj_name=dj_name, genre=genre, use_stutter=use_stutter,
+            mood=mood, energy=energy, city=city, user_stutter=user_stutter,
+            count=3
+        )
+        best = scripts[0]["text"]
+        return jsonify({"success": True, "best": best})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+# ---------- HEARTBEAT ----------
+@app.route("/api/heartbeat")
+def api_heartbeat():
+    return jsonify({
+        "success": True,
+        "online": has_internet(),
+        "ffmpeg": FFMPEG_AVAILABLE,
+        "trending": WebDataPuller.fetch_trending_genres()
+    })
+
+# ---------- DRAFT SYNC ----------
+draft_store = {}
+
+@app.route("/api/draft", methods=["POST"])
+def api_draft_save():
+    session_id = request.headers.get("X-Session-ID")
+    if not session_id:
+        return jsonify({"success": False, "error": "No session"}), 400
+    draft_store[session_id] = request.get_json() or {}
+    return jsonify({"success": True})
+
+@app.route("/api/draft", methods=["GET"])
+def api_draft_load():
+    session_id = request.headers.get("X-Session-ID")
+    if not session_id:
+        return jsonify({"success": False, "error": "No session"}), 400
+    draft = draft_store.get(session_id)
+    return jsonify({"success": True, "draft": draft})
+
+@app.route("/api/draft", methods=["DELETE"])
+def api_draft_clear():
+    session_id = request.headers.get("X-Session-ID")
+    if session_id and session_id in draft_store:
+        del draft_store[session_id]
+    return jsonify({"success": True})
+
+# ---------- USER CREDITS ----------
+@app.route("/api/user/credits")
+def api_user_credits():
+    device_id = request.headers.get("X-Device-ID", "anonymous")
+    user = store.get_or_create_user(device_id)
+    return jsonify({
+        "success": True,
+        "credits": user["credits"],
+        "subscription": user["subscription"]
+    })
+
+# ---------- PAYMENT PACKAGES ----------
+PACKAGES = [
+    {"id": "starter", "name": "Starter", "credits": 5, "price": 50, "duration_days": 0, "description": "5 drops", "subscription": False},
+    {"id": "standard", "name": "Standard", "credits": 20, "price": 150, "duration_days": 0, "description": "20 drops – best value", "subscription": False},
+    {"id": "premium_month", "name": "Premium Monthly", "credits": 9999, "price": 300, "duration_days": 30, "description": "Unlimited drops for 30 days", "subscription": True},
+    {"id": "premium_year", "name": "Premium Yearly", "credits": 9999, "price": 2500, "duration_days": 365, "description": "Unlimited drops for a year", "subscription": True}
+]
+
+@app.route("/api/payment/packages")
+def api_payment_packages():
+    return jsonify({"success": True, "packages": PACKAGES, "currency": CURRENCY})
+
+# ---------- PAYMENT INITIATE ----------
+@app.route("/api/payment/initiate", methods=["POST"])
+def api_payment_initiate():
+    device_id = request.headers.get("X-Device-ID", "anonymous")
+    data = request.get_json() or {}
+    package_id = data.get("package_id")
+    phone = data.get("phone", "")
+    method = data.get("method", "mpesa")
+
+    pkg = next((p for p in PACKAGES if p["id"] == package_id), None)
+    if not pkg:
+        return jsonify({"success": False, "error": "Invalid package"}), 400
+
+    phone = re.sub(r"[^0-9]", "", phone)
+    if phone.startswith("0"):
+        phone = "254" + phone[1:]
+    elif not phone.startswith("254"):
+        phone = "254" + phone
+    if len(phone) != 12:
+        return jsonify({"success": False, "error": "Invalid phone number"}), 400
+
+    tx_ref = "TX" + datetime.now().strftime("%Y%m%d%H%M%S") + str(random.randint(100, 999))
+    amount = pkg["price"]
+
+    result = MpesaDaraja.stk_push(phone, amount, account_ref="DJDrop")
+    if not result["success"]:
+        return jsonify({"success": False, "error": result.get("error", "M-Pesa push failed")}), 500
+
+    store.create_payment(tx_ref, result["checkout_request_id"], device_id, amount, method)
+    return jsonify({
+        "success": True,
+        "tx_ref": tx_ref,
+        "checkout_request_id": result["checkout_request_id"],
+        "message": "STK push sent. Check your phone."
+    })
+
+# ---------- PAYMENT VERIFY ----------
+@app.route("/api/payment/verify", methods=["POST"])
+def api_payment_verify():
+    data = request.get_json() or {}
+    tx_ref = data.get("tx_ref")
+    if not tx_ref:
+        return jsonify({"success": False, "error": "Missing tx_ref"}), 400
+
+    payment = store.get_payment(tx_ref)
+    if not payment:
+        return jsonify({"success": False, "error": "Transaction not found"}), 404
+
+    if payment["status"] == "success":
+        return jsonify({"success": True, "status": "success", "credits_added": 0})
+
+    query_result = MpesaDaraja.query_transaction(payment["checkout_request_id"])
+    if query_result["success"]:
+        data_mpesa = query_result["data"]
+        result_code = data_mpesa.get("ResultCode", "1")
+        if result_code == "0":
+            store.update_payment_status(tx_ref, "success", mpesa_receipt=data_mpesa.get("MpesaReceiptNumber", ""))
+            pkg = next((p for p in PACKAGES if p["price"] == payment["amount"]), None)
+            if pkg:
+                if pkg["subscription"]:
+                    expires = (datetime.now() + timedelta(days=pkg["duration_days"])).isoformat()
+                    conn = sqlite3.connect(store.db_path)
+                    cursor = conn.cursor()
+                    cursor.execute("UPDATE users SET subscription='premium', subscription_expires=?, total_paid=total_paid+? WHERE device_id=?",
+                                   (expires, pkg["price"], payment["device_id"]))
+                    conn.commit()
+                    conn.close()
+                else:
+                    store.add_credits(payment["device_id"], pkg["credits"])
+            return jsonify({"success": True, "status": "success", "credits_added": pkg["credits"] if pkg else 0})
+    return jsonify({"success": True, "status": "pending"})
+
+# ---------- PAYMENT CALLBACK (M-Pesa) ----------
+@app.route("/api/payment/callback", methods=["POST"])
+def api_payment_callback():
+    return jsonify({"success": True, "message": "Callback processed"}), 200
+
+# ---------- LIBRARY CRUD ----------
+@app.route("/api/library", methods=["GET"])
+def api_library_get():
+    device_id = request.headers.get("X-Device-ID", "anonymous")
+    conn = sqlite3.connect(store.db_path)
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, title, script, genre, dj_name, project, url, created_at FROM library WHERE device_id = ? ORDER BY created_at DESC", (device_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    drops = [{
+        "id": row[0],
+        "title": row[1],
+        "script": row[2],
+        "genre": row[3],
+        "dj_name": row[4],
+        "project": row[5],
+        "url": row[6],
+        "date": row[7]
+    } for row in rows]
+    return jsonify({"success": True, "drops": drops})
+
+@app.route("/api/library", methods=["POST"])
+def api_library_post():
+    device_id = request.headers.get("X-Device-ID", "anonymous")
+    data = request.get_json() or {}
+    required = ["title", "script", "url"]
+    if not all(k in data for k in required):
+        return jsonify({"success": False, "error": "Missing fields"}), 400
+    conn = sqlite3.connect(store.db_path)
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO library (title, script, genre, dj_name, project, url, device_id) VALUES (?,?,?,?,?,?,?)",
+        (data.get("title"), data.get("script"), data.get("genre", ""), data.get("dj_name", ""), data.get("project", ""), data.get("url"), device_id)
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True, "message": "Saved"})
+
+@app.route("/api/library/<int:drop_id>", methods=["DELETE"])
+def api_library_delete(drop_id):
+    device_id = request.headers.get("X-Device-ID", "anonymous")
+    conn = sqlite3.connect(store.db_path)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM library WHERE id = ? AND device_id = ?", (drop_id, device_id))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True})
+
+# ---------- DISCOVER ENDPOINTS ----------
+@app.route("/api/all")
+def api_all():
+    return jsonify({
+        "success": True,
+        "data": {
+            "dj_groups": store.get_dj_groups(),
+            "streaming_apps": store.get_streaming_apps(),
+            "dj_software": store.get_dj_software(),
+            "festivals": store.get_festivals(),
+            "theater_streaming": store.get_theater_streaming()
+        }
+    })
+
+@app.route("/api/dj-groups")
+def api_dj_groups():
+    style = request.args.get("style")
+    origin = request.args.get("origin")
+    return jsonify({"success": True, "dj_groups": store.get_dj_groups(style=style, origin=origin)})
+
+@app.route("/api/streaming-apps")
+def api_streaming_apps():
+    category = request.args.get("category")
+    free = request.args.get("free_only")
+    free_only = free.lower() == "true" if free else None
+    return jsonify({"success": True, "streaming_apps": store.get_streaming_apps(category=category, free_only=free_only)})
+
+@app.route("/api/dj-software")
+def api_dj_software():
+    category = request.args.get("category")
+    platform = request.args.get("platform")
+    return jsonify({"success": True, "dj_software": store.get_dj_software(category=category, platform=platform)})
+
+@app.route("/api/festivals")
+def api_festivals():
+    genre = request.args.get("genre")
+    location = request.args.get("location")
+    return jsonify({"success": True, "festivals": store.get_festivals(genre=genre, location=location)})
+
+@app.route("/api/theater-streaming")
+def api_theater_streaming():
+    region = request.args.get("region")
+    return jsonify({"success": True, "theater_streaming": store.get_theater_streaming(region=region)})
+
+@app.route("/api/search")
+def api_search():
+    q = request.args.get("q", "")
+    results = store.search(q)
+    return jsonify({"success": True, "results": {"all": results}})
+
+# ---------- SHARE & DOWNLOAD ----------
 @app.route("/share/<project_name>")
 def public_share_page(project_name):
-    """
-    Renders a landing page featuring native meta hooks 
-    designed for high-fidelity audio link sharing on social applications.
-    """
     audio_filename = f"{project_name}.mp3"
     playback_url = f"/download/{project_name}/{audio_filename}"
     return f"""
@@ -741,14 +1101,9 @@ def public_share_page(project_name):
 
 @app.route("/api/share/<project_name>")
 def api_get_share_payload(project_name):
-    """
-    Generates tailored, target-specific URL arrays 
-    ready for deep-linking into WhatsApp, Telegram, or Twitter.
-    """
     base_domain = request.host_url.rstrip('/')
     share_url = f"{base_domain}/share/{project_name}"
     raw_text = f"🔥 Yo! Just generated a brand new custom performance drop on the DJ Drop Factory! Check out the production quality here: {share_url}"
-    
     return jsonify({
         "success": True,
         "share_link": share_url,
@@ -759,66 +1114,113 @@ def api_get_share_payload(project_name):
         }
     })
 
+@app.route("/download/<project>/<filename>")
+def download_file(project, filename):
+    file_path = OUTPUT_DIR / project / filename
+    if file_path.exists():
+        return send_file(str(file_path), as_attachment=True)
+    return jsonify({"success": False, "error": "File not found"}), 404
+
+@app.route("/uploads/<filename>")
+def uploaded_file(filename):
+    return send_from_directory(UPLOAD_DIR, filename)
+
+# ---------- MAIN GENERATION ENDPOINT (UPDATED) ----------
 @app.route("/api/generate", methods=["POST"])
 def api_generate():
     try:
         data = request.get_json() or {}
         device_id = request.headers.get('X-Device-ID', 'anonymous')
         user = store.get_or_create_user(device_id)
-        
-        if user['subscription'] != 'premium' and user['credits'] <= 0:
-            return jsonify({"success": False, "error": "insufficient_credits"}), 402
 
+        mode = data.get("mode", "ai")
         dj_name = data.get("dj_name", "DJ Beshi")
         genre = data.get("genre", "dancehall")
-        voice_choice = data.get("voice", "1")
-        voice = VOICE_MAP.get(voice_choice, ("", "en-US-AndrewNeural"))[1]
+        voice_choice = data.get("voice", "4")
+        use_stutter = data.get("use_stutter", True)
+        custom_script = data.get("custom_script", "")
+        training_example = data.get("training_example", "")
+        drop_type = data.get("drop_type", "intro")
+        mood = data.get("mood", "hype")
+        energy = int(data.get("energy", 8))
+        city = data.get("city", "")
+        user_stutter = data.get("user_stutter", "")
+        bg_track_filename = data.get("bg_track", "")
 
+        # Voice mapping
+        voice_map = {
+            "1": "en-US-AndrewNeural",
+            "2": "en-GB-RyanNeural",
+            "3": "en-US-AriaNeural",
+            "4": "en-NG-AbeoNeural",
+            "5": "en-GB-SoniaNeural",
+            "6": "en-NG-NgoziNeural",
+            "7": AUTO_GENRE_VOICE.get(genre.lower(), "en-NG-AbeoNeural")
+        }
+        voice = voice_map.get(voice_choice, "en-NG-AbeoNeural")
+
+        # Background track
         bg_track = ""
-        if data.get("bg_track"):
-            p = UPLOAD_DIR / data.get("bg_track")
-            if p.exists(): bg_track = str(p)
+        if bg_track_filename:
+            p = UPLOAD_DIR / bg_track_filename
+            if p.exists():
+                bg_track = str(p)
 
-        # FIXED: Handled async generation inside thread smoothly
+        # Check credits
+        if user['subscription'] != 'premium' and user['credits'] <= 0:
+            return jsonify({"success": False, "error": "insufficient_credits", "message": "No credits left"}), 402
+
+        # Determine script
+        if mode == "strict" and custom_script:
+            selected_script = custom_script
+        elif mode == "training" and training_example:
+            generated = AITrainingEngine.generate_from_training(dj_name, genre, energy, training_example)
+            selected_script = generated if generated else "DJ Drop Factory custom drop."
+        else:
+            takes = PremiumDJScriptAI.generate(
+                dj_name=dj_name, genre=genre, use_stutter=use_stutter,
+                drop_type=drop_type, mood=mood, energy=energy,
+                city=city, user_stutter=user_stutter, count=1
+            )
+            selected_script = takes[0]["text"] if takes else "DJ Drop Factory premium drop."
+
+        selected_script = StringWizard.smart_capitalize(StringWizard.auto_punctuate(selected_script))
+
+        # Async generation with script_override
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         result = loop.run_until_complete(build_premium_drop(
-            dj_name=dj_name, genre=genre, voice=voice, use_stutter=data.get("use_stutter", True),
-            bg_track=bg_track, drop_type=data.get("drop_type", "intro"), mood=data.get("mood", "hype"), energy=int(data.get("energy", 8))
+            dj_name=dj_name,
+            genre=genre,
+            voice=voice,
+            use_stutter=use_stutter,
+            bg_track=bg_track,
+            drop_type=drop_type,
+            mood=mood,
+            energy=energy,
+            script_override=selected_script
         ))
         loop.close()
 
+        # Deduct credit
         store.deduct_credit(device_id)
 
-        # FIXED: Resolved cross-platform path parsing anomalies using Path().name
         filename = Path(result["final_master"]).name
-
         return jsonify({
             "success": True,
             "project": result["project_name"],
-            "script": result["script"],
+            "script": selected_script,
             "download_url": f"/download/{result['project_name']}/{filename}",
             "share_url": f"/share/{result['project_name']}",
-            "exported_to_local_phone": result["exported_to_device"],
-            "local_phone_path": result["device_path"],
+            "exported_to_local_phone": result.get("exported_to_device", False),
+            "local_phone_path": result.get("device_path", ""),
             "credits_remaining": store.get_or_create_user(device_id)['credits']
         })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
 # ============================================================
-# REMAINING SYSTEM PLACEHOLDERS & STUBS
+# MAIN
 # ============================================================
-
-@app.route("/download/<project>/<filename>")
-def download_file(project, filename):
-    file_path = OUTPUT_DIR / project / filename
-    if file_path.exists(): return send_file(str(file_path), as_attachment=True)
-    return jsonify({"success": False, "error": "File not found"}), 404
-
-@app.route("/api/payment/callback", methods=["POST"])
-def api_payment_callback():
-    return jsonify({"success": True, "message": "Callback processed"}), 200
-
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=False)
