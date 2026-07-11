@@ -7,13 +7,12 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="author" content="Macdonald Barasa">
-    <title>DJ Drop Factory Pro v5.2 — Live + Admin</title>
+    <title>DJ Drop Factory Pro v5.0 — Live</title>
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/static/icon-192.png">
     <style>
-        /* ==================== EXACT SAME CSS AS ORIGINAL ==================== */
-        /* (Copy every single CSS rule from your original HTML here, no changes) */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
         :root {
             --bg: #050508;
             --bg-elevated: #0f0f16;
@@ -35,6 +34,7 @@
             --purple: #9b59b6;
             --blue: #3498db;
         }
+
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         html { scroll-behavior: smooth; }
         body {
@@ -47,11 +47,12 @@
             -webkit-font-smoothing: antialiased;
             overflow-x: hidden;
         }
+
         .bg-glow {
             position: fixed;
             top: -50%; left: -50%;
             width: 200%; height: 200%;
-            background:
+            background: 
                 radial-gradient(ellipse at 20% 20%, rgba(255, 107, 53, 0.08) 0%, transparent 50%),
                 radial-gradient(ellipse at 80% 80%, rgba(155, 89, 182, 0.06) 0%, transparent 50%),
                 radial-gradient(ellipse at 50% 50%, rgba(0, 208, 132, 0.04) 0%, transparent 50%);
@@ -64,10 +65,14 @@
             33% { transform: translate(30px, -30px) rotate(2deg); }
             66% { transform: translate(-20px, 20px) rotate(-1deg); }
         }
+
         @media (prefers-reduced-motion: reduce) {
             .bg-glow, .hero-card::before, .recorder-ring.recording, .hero-dot, .live-dot { animation: none !important; }
         }
+
         .app-container { max-width: 430px; margin: 0 auto; position: relative; min-height: 100vh; z-index: 1; }
+
+        /* Status Bar */
         .status-bar {
             height: 44px;
             display: flex;
@@ -90,12 +95,14 @@
         .signal-bar:nth-child(3) { height: 8px; }
         .signal-bar:nth-child(4) { height: 10px; }
         .wifi-icon { font-size: 14px; }
-        .battery {
+        .battery { 
             width: 22px; height: 11px; border: 1.5px solid var(--text); border-radius: 3px;
             position: relative; display: flex; align-items: center; padding: 1px;
         }
         .battery::after { content: ''; position: absolute; right: -3px; width: 2px; height: 5px; background: var(--text); border-radius: 0 1px 1px 0; }
         .battery-fill { height: 100%; width: 75%; background: linear-gradient(90deg, var(--success), #2ecc71); border-radius: 1px; }
+
+        /* Screens */
         .screen {
             display: none;
             padding: 0 20px 100px;
@@ -103,6 +110,8 @@
         }
         .screen.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Nav Header */
         .nav-header {
             padding: 16px 0 20px;
             display: flex;
@@ -126,6 +135,8 @@
         }
         .nav-btn:hover { background: var(--accent-soft); border-color: var(--accent); transform: scale(1.05); }
         .nav-btn:active { transform: scale(0.95); }
+
+        /* Hero Card */
         .hero-card {
             background: linear-gradient(135deg, var(--accent) 0%, #e85d04 50%, var(--purple) 100%);
             border-radius: 24px; padding: 28px; margin-bottom: 24px;
@@ -138,7 +149,10 @@
             background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 60%);
             animation: heroShine 8s ease-in-out infinite;
         }
-        @keyframes heroShine { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-20%, 20%); } }
+        @keyframes heroShine {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(-20%, 20%); }
+        }
         .hero-title { font-size: 24px; font-weight: 800; color: #fff; position: relative; z-index: 1; text-shadow: 0 2px 10px rgba(0,0,0,0.2); }
         .hero-text { font-size: 14px; color: rgba(255,255,255,0.85); margin-top: 8px; position: relative; z-index: 1; font-weight: 500; }
         .hero-badge {
@@ -152,6 +166,8 @@
             0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0, 208, 132, 0.7); }
             50% { opacity: 0.8; box-shadow: 0 0 0 8px rgba(0, 208, 132, 0); }
         }
+
+        /* Section Cards */
         .section-card {
             background: var(--bg-card); border-radius: 20px;
             border: 1px solid var(--border); margin-bottom: 16px;
@@ -163,14 +179,20 @@
             text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent);
             display: flex; align-items: center; gap: 8px;
         }
+
+        /* Wizard Progress */
         .wizard-progress {
             display: flex; align-items: center; justify-content: space-between;
             padding: 0 20px 20px;
         }
-        .wizard-step { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; position: relative; }
+        .wizard-step {
+            display: flex; flex-direction: column; align-items: center; gap: 6px;
+            flex: 1; position: relative;
+        }
         .wizard-step::after {
             content: ''; position: absolute; top: 14px; left: 50%;
-            width: 100%; height: 2px; background: var(--border); z-index: 0;
+            width: 100%; height: 2px; background: var(--border);
+            z-index: 0;
         }
         .wizard-step:last-child::after { display: none; }
         .wizard-step.completed::after { background: var(--accent); }
@@ -186,11 +208,17 @@
             border-color: var(--accent); color: #fff;
             box-shadow: 0 0 12px var(--accent-glow);
         }
-        .wizard-step.completed .step-circle { background: var(--accent); border-color: var(--accent); color: #fff; }
+        .wizard-step.completed .step-circle {
+            background: var(--accent); border-color: var(--accent); color: #fff;
+        }
         .step-label { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
         .wizard-step.active .step-label { color: var(--accent); }
+
+        /* Wizard Steps Container */
         .wizard-step-content { display: none; }
         .wizard-step-content.active { display: block; animation: fadeIn 0.3s ease; }
+
+        /* Segmented Control */
         .segmented-control {
             display: flex; background: var(--bg-input); border-radius: 14px;
             padding: 3px; margin: 0 20px 20px; border: 1px solid var(--border);
@@ -206,6 +234,8 @@
             background: linear-gradient(135deg, var(--accent), #e85d04);
             color: #fff; box-shadow: 0 4px 15px var(--accent-glow);
         }
+
+        /* Form Elements */
         .form-group { padding: 0 20px 16px; }
         .form-label {
             display: block; font-size: 13px; font-weight: 600;
@@ -221,8 +251,7 @@
         .form-input:focus, .form-select:focus {
             border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft);
         }
-        .form-select {
-            cursor: pointer; appearance: none; -webkit-appearance: none;
+        .form-select { cursor: pointer; appearance: none; -webkit-appearance: none;
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23a0a0b0' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
             background-repeat: no-repeat; background-position: right 16px center;
             padding-right: 40px;
@@ -235,7 +264,12 @@
             transition: all 0.2s ease;
         }
         .form-textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
-        .suggestion-row { display: flex; gap: 8px; flex-wrap: wrap; padding: 0 20px 16px; }
+
+        /* Suggestion Chips */
+        .suggestion-row {
+            display: flex; gap: 8px; flex-wrap: wrap;
+            padding: 0 20px 16px;
+        }
         .suggestion-chip {
             padding: 8px 14px; border-radius: 20px;
             background: var(--bg-input); border: 1px solid var(--border);
@@ -244,6 +278,8 @@
         }
         .suggestion-chip:hover { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
         .suggestion-chip:active { transform: scale(0.95); }
+
+        /* Slider */
         .slider-wrap { padding: 8px 20px 20px; }
         .slider-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
         .slider-label { font-size: 13px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; }
@@ -263,6 +299,9 @@
             background: linear-gradient(135deg, var(--accent), #e85d04);
             cursor: pointer; box-shadow: 0 2px 12px var(--accent-glow); border: 3px solid var(--bg);
         }
+        input[type="range"]::-moz-range-progress { background: var(--accent); height: 6px; border-radius: 3px; }
+
+        /* Toggle */
         .toggle-row {
             display: flex; align-items: center; justify-content: space-between;
             padding: 14px 20px; border-bottom: 1px solid var(--border);
@@ -284,6 +323,8 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.3);
         }
         .toggle-switch.on .toggle-knob { transform: translateX(20px); }
+
+        /* Voice Recorder */
         .recorder-section { text-align: center; padding: 20px; }
         .recorder-ring {
             width: 100px; height: 100px; border-radius: 50%;
@@ -308,8 +349,12 @@
         .recorder-ring:active .recorder-icon { transform: scale(0.9); }
         .recorder-label { font-size: 14px; color: var(--text-secondary); margin-top: 12px; font-weight: 500; }
         .recorder-time { font-size: 28px; font-weight: 800; color: var(--error); margin-top: 4px; font-variant-numeric: tabular-nums; }
+
+        /* Visualizer */
         .visualizer { display: flex; align-items: flex-end; justify-content: center; gap: 3px; height: 50px; margin: 16px 0; }
         .viz-bar { width: 4px; background: linear-gradient(to top, var(--accent), var(--purple)); border-radius: 2px; transition: height 0.08s ease; }
+
+        /* Effect Grid */
         .effect-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 0 20px 20px; }
         .effect-chip {
             aspect-ratio: 1; border-radius: 18px; background: var(--bg-input);
@@ -328,6 +373,8 @@
         .effect-chip-icon { font-size: 26px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); }
         .effect-chip-label { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
         .effect-chip.active .effect-chip-label { color: var(--accent); }
+
+        /* Buttons */
         .btn-primary {
             width: calc(100% - 40px); margin: 0 20px 16px; padding: 18px;
             border-radius: 16px; border: none;
@@ -345,6 +392,7 @@
         .btn-primary:hover::before { left: 100%; }
         .btn-primary:active { transform: scale(0.97); box-shadow: 0 4px 15px var(--accent-glow); }
         .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
         .btn-secondary {
             width: calc(100% - 40px); margin: 0 20px 16px; padding: 16px;
             border-radius: 16px; border: 1.5px solid var(--border);
@@ -355,11 +403,18 @@
         .btn-secondary:hover { border-color: var(--accent); background: var(--accent-soft); }
         .btn-secondary:active { transform: scale(0.97); }
         .btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
-        .btn-wizard-nav { display: flex; gap: 12px; padding: 0 20px 20px; }
+
+        .btn-wizard-nav {
+            display: flex; gap: 12px; padding: 0 20px 20px;
+        }
         .btn-wizard-nav .btn-primary, .btn-wizard-nav .btn-secondary { margin: 0; flex: 1; }
+
+        /* Audio Player */
         .audio-wrap { padding: 0 20px 16px; }
         audio { width: 100%; height: 44px; border-radius: 12px; }
         audio::-webkit-media-controls-panel { background: var(--bg-input); }
+
+        /* Library Items */
         .library-item {
             display: flex; align-items: center; gap: 14px; padding: 14px;
             background: var(--bg-card); border-radius: 16px; margin-bottom: 10px;
@@ -384,10 +439,14 @@
             transition: transform 0.2s ease;
         }
         .library-play:hover { transform: scale(1.1); }
+
+        /* Empty State */
         .empty-state { text-align: center; padding: 80px 20px; color: var(--text-muted); }
         .empty-icon { font-size: 72px; margin-bottom: 20px; opacity: 0.3; filter: grayscale(1); }
         .empty-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; color: var(--text-secondary); }
         .empty-subtitle { font-size: 15px; line-height: 1.5; }
+
+        /* Player Bar */
         .player-bar {
             position: fixed; bottom: 90px; left: 50%;
             transform: translateX(-50%) translateY(100px);
@@ -402,7 +461,8 @@
         .player-art {
             width: 44px; height: 44px; border-radius: 12px;
             background: linear-gradient(135deg, var(--accent), var(--purple));
-            display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; flex-shrink: 0;
         }
         .player-info { flex: 1; min-width: 0; }
         .player-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -414,6 +474,8 @@
             font-size: 16px; cursor: pointer; flex-shrink: 0;
             box-shadow: 0 4px 12px var(--accent-glow); color: #fff;
         }
+
+        /* Tab Bar */
         .tab-bar {
             position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
             width: 100%; max-width: 430px; height: 80px;
@@ -439,6 +501,8 @@
         .tab-icon { font-size: 24px; line-height: 1; transition: transform 0.2s ease; }
         .tab-item:active .tab-icon { transform: scale(0.85); }
         .tab-label { font-size: 10px; font-weight: 600; letter-spacing: 0.05em; }
+
+        /* Loading */
         .loading-overlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(5, 5, 8, 0.9); backdrop-filter: blur(20px);
@@ -447,7 +511,11 @@
         }
         .loading-overlay.show { display: flex; }
         .spinner-wrap { position: relative; width: 60px; height: 60px; }
-        .spinner { width: 60px; height: 60px; border: 3px solid var(--bg-input); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+        .spinner {
+            width: 60px; height: 60px; border: 3px solid var(--bg-input);
+            border-top-color: var(--accent); border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
         .spinner-inner {
             position: absolute; top: 10px; left: 10px;
             width: 40px; height: 40px; border: 3px solid transparent;
@@ -457,6 +525,8 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         .loading-text { font-size: 18px; font-weight: 700; }
         .loading-sub { font-size: 14px; color: var(--text-muted); }
+
+        /* Toast */
         .toast {
             position: fixed; top: 60px; left: 50%;
             transform: translateX(-50%) translateY(-120px);
@@ -470,6 +540,8 @@
             border: 1px solid var(--border); backdrop-filter: blur(10px);
         }
         .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+        /* Result Card */
         .result-card {
             background: linear-gradient(135deg, var(--bg-card), var(--bg-elevated));
             border-radius: 20px; padding: 20px; margin: 0 20px 16px;
@@ -486,6 +558,8 @@
             padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700;
             background: var(--accent-soft); color: var(--accent); margin-bottom: 12px;
         }
+
+        /* Delete button */
         .delete-btn {
             width: 32px; height: 32px; border-radius: 50%;
             background: rgba(255, 71, 87, 0.1); border: none;
@@ -493,8 +567,11 @@
             cursor: pointer; font-size: 16px; flex-shrink: 0; transition: all 0.2s ease;
         }
         .delete-btn:hover { background: rgba(255, 71, 87, 0.2); transform: scale(1.1); }
+
+        /* String Tools Panel */
         .string-tools-grid {
-            display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 0 20px 16px;
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
+            padding: 0 20px 16px;
         }
         .string-tool-btn {
             padding: 12px; border-radius: 12px; background: var(--bg-input);
@@ -504,6 +581,8 @@
         }
         .string-tool-btn:hover { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
         .string-tool-btn:active { transform: scale(0.97); }
+
+        /* Web data indicator */
         .web-indicator {
             display: inline-flex; align-items: center; gap: 6px;
             padding: 4px 10px; border-radius: 12px;
@@ -511,6 +590,8 @@
             font-size: 11px; font-weight: 700; margin-left: 8px;
         }
         .web-indicator.offline { background: rgba(255, 71, 87, 0.1); color: var(--error); }
+
+        /* Review card */
         .review-item {
             display: flex; justify-content: space-between; padding: 12px 0;
             border-bottom: 1px solid var(--border);
@@ -518,11 +599,19 @@
         .review-item:last-child { border-bottom: none; }
         .review-label { font-size: 13px; color: var(--text-muted); font-weight: 500; }
         .review-value { font-size: 14px; color: var(--text); font-weight: 600; text-align: right; }
-        #livePreviewCard { display: none; margin: 0 20px 16px; animation: fadeIn 0.4s ease; }
+
+        /* Live Preview Card */
+        #livePreviewCard {
+            display: none;
+            margin: 0 20px 16px;
+            animation: fadeIn 0.4s ease;
+        }
         .live-dot {
             width: 8px; height: 8px; background: var(--accent); border-radius: 50%;
             animation: pulse 2s infinite; display: inline-block;
         }
+
+        /* Recovery Banner */
         #recoveryBanner {
             position: fixed; top: 44px; left: 0; right: 0; z-index: 250;
             background: linear-gradient(90deg, var(--accent), #e85d04);
@@ -531,152 +620,285 @@
             animation: slideDown 0.3s ease;
         }
         @keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+
+        /* Pull to refresh hint */
         .pull-hint {
             text-align: center; padding: 10px; color: var(--text-muted);
             font-size: 13px; font-weight: 500; opacity: 0;
             transition: opacity 0.3s ease; pointer-events: none;
         }
         .pull-hint.show { opacity: 1; }
+
+        /* Responsive */
         @media (min-width: 431px) {
             body { background: #111; }
             .app-container { box-shadow: 0 0 60px rgba(0,0,0,0.5); }
         }
+
         ::-webkit-scrollbar { display: none; }
+
         .credits {
             text-align: center; padding: 20px;
             color: var(--text-muted); font-size: 12px; font-weight: 500;
         }
         .credits a { color: var(--accent); text-decoration: none; }
+
+        /* ==================== NEW: DISCOVER SCREEN ==================== */
         .discover-grid {
-            display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 0 20px 20px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            padding: 0 20px 20px;
         }
         .discover-card {
-            background: var(--bg-card); border-radius: 18px; padding: 18px 14px;
-            border: 1px solid var(--border); text-align: center; cursor: pointer;
+            background: var(--bg-card);
+            border-radius: 18px;
+            padding: 18px 14px;
+            border: 1px solid var(--border);
+            text-align: center;
+            cursor: pointer;
             transition: all 0.2s ease;
         }
-        .discover-card:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 8px 24px rgba(255,107,53,0.15); }
-        .discover-card-icon { font-size: 36px; margin-bottom: 10px; }
-        .discover-card-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
-        .discover-card-desc { font-size: 11px; color: var(--text-muted); font-weight: 500; }
-        .data-list { padding: 0 20px 20px; }
+        .discover-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(255,107,53,0.15);
+        }
+        .discover-card-icon {
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+        .discover-card-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+        .discover-card-desc {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        /* Data list items */
+        .data-list {
+            padding: 0 20px 20px;
+        }
         .data-item {
-            background: var(--bg-card); border-radius: 14px; padding: 14px 16px;
-            margin-bottom: 10px; border: 1px solid var(--border); cursor: pointer;
+            background: var(--bg-card);
+            border-radius: 14px;
+            padding: 14px 16px;
+            margin-bottom: 10px;
+            border: 1px solid var(--border);
+            cursor: pointer;
             transition: all 0.2s ease;
         }
-        .data-item:hover { border-color: var(--accent); transform: translateX(4px); }
-        .data-item-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
-        .data-item-meta { font-size: 12px; color: var(--text-muted); font-weight: 500; }
-        .data-item-tag {
-            display: inline-block; padding: 3px 10px; border-radius: 10px;
-            background: var(--accent-soft); color: var(--accent);
-            font-size: 10px; font-weight: 700; text-transform: uppercase;
-            margin-top: 6px; margin-right: 4px;
+        .data-item:hover {
+            border-color: var(--accent);
+            transform: translateX(4px);
         }
+        .data-item-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+        .data-item-meta {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+        .data-item-tag {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 10px;
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-top: 6px;
+            margin-right: 4px;
+        }
+
+        /* ==================== NEW: PAYMENT / PREMIUM ==================== */
         .premium-badge {
-            display: inline-flex; align-items: center; gap: 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
             background: linear-gradient(135deg, var(--accent), var(--purple));
-            color: #fff; padding: 6px 14px; border-radius: 20px;
-            font-size: 12px; font-weight: 700; margin-bottom: 16px;
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 16px;
         }
         .credit-pill {
-            position: fixed; top: 50px; right: 20px; z-index: 99;
-            background: var(--bg-card); border: 1px solid var(--border);
-            padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700;
-            color: var(--accent); backdrop-filter: blur(10px);
-            display: flex; align-items: center; gap: 6px; display: none;
+            position: fixed;
+            top: 50px;
+            right: 20px;
+            z-index: 99;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--accent);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
         .package-card {
-            background: var(--bg-card); border-radius: 18px; padding: 20px;
-            margin: 0 20px 12px; border: 2px solid var(--border);
-            cursor: pointer; transition: all 0.2s ease; position: relative; overflow: hidden;
+            background: var(--bg-card);
+            border-radius: 18px;
+            padding: 20px;
+            margin: 0 20px 12px;
+            border: 2px solid var(--border);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
         }
-        .package-card:hover { border-color: var(--accent); }
+        .package-card:hover {
+            border-color: var(--accent);
+        }
         .package-card.selected {
             border-color: var(--accent);
             background: linear-gradient(135deg, var(--accent-soft), rgba(155,89,182,0.05));
             box-shadow: 0 4px 20px var(--accent-glow);
         }
         .package-card.popular::before {
-            content: 'POPULAR'; position: absolute; top: 10px; right: -28px;
-            background: var(--accent); color: #fff; font-size: 9px; font-weight: 800;
-            padding: 4px 30px; transform: rotate(45deg);
+            content: 'POPULAR';
+            position: absolute;
+            top: 10px;
+            right: -28px;
+            background: var(--accent);
+            color: #fff;
+            font-size: 9px;
+            font-weight: 800;
+            padding: 4px 30px;
+            transform: rotate(45deg);
         }
-        .package-name { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
-        .package-price { font-size: 28px; font-weight: 900; color: var(--accent); margin-bottom: 4px; }
-        .package-price span { font-size: 14px; color: var(--text-muted); font-weight: 500; }
-        .package-desc { font-size: 13px; color: var(--text-secondary); }
+        .package-name {
+            font-size: 18px;
+            font-weight: 800;
+            margin-bottom: 4px;
+        }
+        .package-price {
+            font-size: 28px;
+            font-weight: 900;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+        .package-price span {
+            font-size: 14px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+        .package-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
         .pay-btn {
-            width: calc(100% - 40px); margin: 0 20px 20px; padding: 18px;
-            border-radius: 16px; border: none;
+            width: calc(100% - 40px);
+            margin: 0 20px 20px;
+            padding: 18px;
+            border-radius: 16px;
+            border: none;
             background: linear-gradient(135deg, var(--success), #2ecc71);
-            color: #fff; font-size: 17px; font-weight: 700; cursor: pointer;
+            color: #fff;
+            font-size: 17px;
+            font-weight: 700;
+            cursor: pointer;
             box-shadow: 0 8px 30px rgba(0, 208, 132, 0.3);
         }
-        .pay-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .pay-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
         .modal-overlay {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(5,5,8,0.85); backdrop-filter: blur(10px);
-            z-index: 400; display: none; align-items: flex-end; justify-content: center;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(5,5,8,0.85);
+            backdrop-filter: blur(10px);
+            z-index: 400;
+            display: none;
+            align-items: flex-end;
+            justify-content: center;
         }
         .modal-overlay.show { display: flex; }
         .modal-sheet {
             background: var(--bg-elevated);
-            border-radius: 28px 28px 0 0; width: 100%; max-width: 430px;
-            max-height: 85vh; overflow-y: auto; padding: 24px 0 40px;
-            border-top: 1px solid var(--border); animation: slideUp 0.3s ease;
-        }
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-        .modal-header {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 0 20px 20px;
-        }
-        .modal-title { font-size: 22px; font-weight: 800; }
-        .modal-close {
-            width: 36px; height: 36px; border-radius: 50%;
-            background: var(--bg-card); border: 1px solid var(--border);
-            color: var(--text); font-size: 18px;
-            display: flex; align-items: center; justify-content: center; cursor: pointer;
-        }
-        .search-bar { margin: 0 20px 16px; position: relative; }
-        .search-bar input {
-            width: 100%; padding: 14px 16px 14px 44px; border-radius: 14px;
-            border: 1.5px solid var(--border); background: var(--bg-input);
-            color: var(--text); font-size: 16px; font-family: inherit; outline: none;
-        }
-        .search-bar input:focus { border-color: var(--accent); }
-        .search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); font-size: 16px; color: var(--text-muted); }
-        .modal-share {
-            background: var(--bg-elevated);
             border-radius: 28px 28px 0 0;
-            width: 100%; max-width: 430px;
-            max-height: 85vh; overflow-y: auto;
+            width: 100%;
+            max-width: 430px;
+            max-height: 85vh;
+            overflow-y: auto;
             padding: 24px 0 40px;
             border-top: 1px solid var(--border);
             animation: slideUp 0.3s ease;
-            display: none;
-            flex-direction: column;
-            gap: 16px;
         }
-        .modal-share.show { display: flex; }
-        .share-option {
-            display: flex; align-items: center; gap: 14px;
-            padding: 14px 20px; border-radius: 14px;
-            background: var(--bg-card); margin: 0 20px;
-            text-decoration: none; color: var(--text);
-            transition: all 0.2s ease;
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
         }
-        .share-option:hover { background: var(--accent-soft); }
-        .share-option-icon { font-size: 24px; width: 32px; text-align: center; }
-        .share-option-text { font-weight: 600; }
-        .share-option-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-        .data-item { word-break: break-word; }
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px 20px;
+        }
+        .modal-title {
+            font-size: 22px;
+            font-weight: 800;
+        }
+        .modal-close {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .search-bar {
+            margin: 0 20px 16px;
+            position: relative;
+        }
+        .search-bar input {
+            width: 100%;
+            padding: 14px 16px 14px 44px;
+            border-radius: 14px;
+            border: 1.5px solid var(--border);
+            background: var(--bg-input);
+            color: var(--text);
+            font-size: 16px;
+            font-family: inherit;
+            outline: none;
+        }
+        .search-bar input:focus {
+            border-color: var(--accent);
+        }
+        .search-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 16px;
+            color: var(--text-muted);
+        }
     </style>
 </head>
 <body>
     <div class="bg-glow"></div>
 
+    <!-- Recovery Banner -->
     <div id="recoveryBanner">
         <span style="font-weight:600;font-size:14px;color:#fff;">🔄 Unsaved draft found</span>
         <div style="display:flex;gap:10px;">
@@ -685,14 +907,17 @@
         </div>
     </div>
 
+    <!-- Credit Pill -->
     <div class="credit-pill" id="creditPill" onclick="showPaymentModal()" style="display:none;">
         <span>⚡</span>
         <span id="creditText">0 drops</span>
     </div>
 
     <div class="app-container">
+        <!-- Pull to refresh hint -->
         <div class="pull-hint" id="pullHint">⬇️ Pull down to refresh</div>
 
+        <!-- Status Bar -->
         <div class="status-bar">
             <span class="status-time" id="clock">9:41</span>
             <div class="status-icons">
@@ -712,15 +937,13 @@
                     <div class="nav-title">Create</div>
                     <div class="nav-subtitle">Wizard-powered DJ drops</div>
                 </div>
-                <div style="display:flex; gap:8px;">
-                    <button class="nav-btn" onclick="showAdminLogin()" aria-label="Admin" style="font-size:16px;">🔒</button>
-                    <button class="nav-btn" onclick="showScreen('screenSettings')" aria-label="Settings">⚙️</button>
-                </div>
+                <button class="nav-btn" onclick="showScreen('screenSettings')" aria-label="Settings">⚙️</button>
             </div>
 
+            <!-- Hero Card -->
             <div class="hero-card">
-                <div class="hero-title">🔥 DJ Drop Factory v5.2</div>
-                <div class="hero-text">AI + Web Data + String Wizard + Live Sync + Admin Panel</div>
+                <div class="hero-title">🔥 DJ Drop Factory v5.0</div>
+                <div class="hero-text">AI + Web Data + String Wizard + Live Sync + Payments</div>
                 <div class="hero-badge">
                     <span class="hero-dot"></span>
                     <span id="statusText">Checking status…</span>
@@ -728,15 +951,269 @@
                 </div>
             </div>
 
+            <!-- Mode Selector -->
             <div class="segmented-control" role="tablist">
                 <button class="segment active" onclick="setMode('ai', this)">AI Drop</button>
                 <button class="segment" onclick="setMode('strict', this)">My Script</button>
                 <button class="segment" onclick="setMode('training', this)">Train AI</button>
             </div>
 
-            <!-- All the wizard, strict, training, recorder, effects, results areas unchanged -->
-            <!-- (Keep the original HTML for the entire Home screen, including all form elements) -->
-            <!-- I'll not copy the whole thing again for brevity, but in the final file you must have it exactly as you had -->
+            <!-- WIZARD UI (AI Mode) -->
+            <div id="aiForm">
+                <!-- Wizard Progress -->
+                <div class="wizard-progress">
+                    <div class="wizard-step active" id="step1Indicator">
+                        <div class="step-circle">1</div>
+                        <span class="step-label">Identity</span>
+                    </div>
+                    <div class="wizard-step" id="step2Indicator">
+                        <div class="step-circle">2</div>
+                        <span class="step-label">Style</span>
+                    </div>
+                    <div class="wizard-step" id="step3Indicator">
+                        <div class="step-circle">3</div>
+                        <span class="step-label">Voice</span>
+                    </div>
+                    <div class="wizard-step" id="step4Indicator">
+                        <div class="step-circle">4</div>
+                        <span class="step-label">Review</span>
+                    </div>
+                </div>
+
+                <!-- Step 1: DJ Identity -->
+                <div class="wizard-step-content active" id="wizardStep1">
+                    <div class="section-card">
+                        <div class="section-header">🎤 DJ Identity</div>
+                        <div class="form-group">
+                            <label class="form-label" for="djName">DJ Name</label>
+                            <input type="text" class="form-input" id="djName" value="DJ Beshi" placeholder="Enter your DJ name">
+                            <div class="suggestion-row" id="nameSuggestions" style="display:none;"></div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="city">City / Location</label>
+                            <input type="text" class="form-input" id="city" placeholder="e.g. Lagos, London, NYC">
+                            <div id="cityVibe" style="padding: 0 20px 12px; font-size: 13px; color: var(--accent2); display: none;"></div>
+                        </div>
+                        <div class="btn-wizard-nav">
+                            <div></div>
+                            <button class="btn-primary" onclick="wizardNext(1)">Next →</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Drop Style -->
+                <div class="wizard-step-content" id="wizardStep2">
+                    <div class="section-card">
+                        <div class="section-header">🎛️ Drop Style <span class="web-indicator" id="trendingIndicator">Trending</span></div>
+                        <div class="form-group">
+                            <label class="form-label" for="genre">Genre</label>
+                            <select class="form-select" id="genre" onchange="onGenreChange()">
+                                <option value="amapiano">🎹 Amapiano</option>
+                                <option value="dancehall">🔥 Dancehall</option>
+                                <option value="radio">📻 Radio</option>
+                                <option value="club_banger" selected>💥 Club Banger</option>
+                                <option value="afrobeat">🌍 Afrobeat</option>
+                                <option value="trap">🎤 Trap</option>
+                            </select>
+                        </div>
+                        <div class="suggestion-row" id="trendingGenres" style="display:none;"></div>
+                        <div class="form-group">
+                            <label class="form-label" for="dropType">Drop Type</label>
+                            <select class="form-select" id="dropType">
+                                <option value="intro" selected>🎬 Intro</option>
+                                <option value="sweeper">🌊 Sweeper</option>
+                                <option value="hype">🔥 Hype</option>
+                                <option value="promo">📢 Promo</option>
+                                <option value="producer_tag">🏷️ Producer Tag</option>
+                                <option value="radio_id">📡 Radio ID</option>
+                                <option value="crowd_call">👥 Crowd Call</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="mood">Mood</label>
+                            <select class="form-select" id="mood">
+                                <option value="hype">⚡ Hype</option>
+                                <option value="luxury">💎 Luxury</option>
+                                <option value="aggressive" selected>😤 Aggressive</option>
+                                <option value="dark">🌑 Dark</option>
+                                <option value="smooth">🍫 Smooth</option>
+                                <option value="festival">🎆 Festival</option>
+                            </select>
+                        </div>
+                        <div class="slider-wrap">
+                            <div class="slider-header">
+                                <span class="slider-label">Energy Level</span>
+                                <span class="slider-value" id="energyValue">8</span>
+                            </div>
+                            <input type="range" id="energy" min="1" max="10" value="8" style="--progress: 80%">
+                        </div>
+                        <div class="btn-wizard-nav">
+                            <button class="btn-secondary" onclick="wizardPrev(2)">← Back</button>
+                            <button class="btn-primary" onclick="wizardNext(2)">Next →</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Voice & FX -->
+                <div class="wizard-step-content" id="wizardStep3">
+                    <div class="section-card">
+                        <div class="section-header">🗣️ Voice & FX</div>
+                        <div class="form-group">
+                            <label class="form-label" for="voice">Voice</label>
+                            <select class="form-select" id="voice">
+                                <option value="1">🧔 Deep Studio Heavy (Male US)</option>
+                                <option value="2">🧔 Crisp Energetic Host (Male UK)</option>
+                                <option value="3">👩 Smooth High-End (Female US)</option>
+                                <option value="4" selected>🧔 Natural Afro-Vibe (Male NG)</option>
+                                <option value="5">👩 Bright Radio Host (Female UK)</option>
+                                <option value="6">👩 Warm Afro Voice (Female NG)</option>
+                                <option value="7">✨ Auto by Genre</option>
+                            </select>
+                        </div>
+                        <div class="toggle-row">
+                            <div class="toggle-info">
+                                <div class="toggle-title">Auto-Stutter</div>
+                                <div class="toggle-desc">Add stutter effects</div>
+                            </div>
+                            <div class="toggle-switch on" onclick="toggleSwitch(this)" id="autoStutterToggle" role="switch" aria-checked="true">
+                                <div class="toggle-knob"></div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="userStutter">Custom Stutter (optional)</label>
+                            <input type="text" class="form-input" id="userStutter" placeholder="e.g. D-D-DJ Beshi">
+                        </div>
+                        <div class="btn-wizard-nav">
+                            <button class="btn-secondary" onclick="wizardPrev(3)">← Back</button>
+                            <button class="btn-primary" onclick="wizardNext(3)">Next →</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 4: Review & Generate -->
+                <div class="wizard-step-content" id="wizardStep4">
+                    <div class="section-card">
+                        <div class="section-header">✅ Review Your Drop</div>
+                        <div style="padding: 0 20px;">
+                            <div class="review-item"><span class="review-label">DJ Name</span><span class="review-value" id="reviewName">DJ Beshi</span></div>
+                            <div class="review-item"><span class="review-label">City</span><span class="review-value" id="reviewCity">—</span></div>
+                            <div class="review-item"><span class="review-label">Genre</span><span class="review-value" id="reviewGenre">Club Banger</span></div>
+                            <div class="review-item"><span class="review-label">Drop Type</span><span class="review-value" id="reviewType">Intro</span></div>
+                            <div class="review-item"><span class="review-label">Mood</span><span class="review-value" id="reviewMood">Aggressive</span></div>
+                            <div class="review-item"><span class="review-label">Energy</span><span class="review-value" id="reviewEnergy">8/10</span></div>
+                            <div class="review-item"><span class="review-label">Voice</span><span class="review-value" id="reviewVoice">Afro-Vibe</span></div>
+                        </div>
+                        <div class="btn-wizard-nav">
+                            <button class="btn-secondary" onclick="wizardPrev(4)">← Back</button>
+                            <button class="btn-primary" onclick="generateDrop()">🔥 Generate Drop</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Strict Mode Form -->
+            <div id="strictForm" style="display: none;">
+                <div class="section-card">
+                    <div class="section-header">✍️ Your Script</div>
+                    <div class="form-group">
+                        <textarea class="form-textarea" id="customScript" placeholder="Type exactly what you want the DJ to say..."></textarea>
+                    </div>
+                    <div class="section-header">🧙 String Tools</div>
+                    <div class="string-tools-grid">
+                        <button class="string-tool-btn" onclick="applyStringTool('capitalize')">Aa Capitalize</button>
+                        <button class="string-tool-btn" onclick="applyStringTool('auto_punctuate')">! Punctuate</button>
+                        <button class="string-tool-btn" onclick="applyStringTool('hashtags')"># Hashtags</button>
+                        <button class="string-tool-btn" onclick="applyStringTool('stutter_classic')">S-Stutter</button>
+                    </div>
+                    <button class="btn-primary" onclick="generateDrop()">🔥 Generate Drop</button>
+                </div>
+            </div>
+
+            <!-- Training Mode Form -->
+            <div id="trainingForm" style="display: none;">
+                <div class="section-card">
+                    <div class="section-header">🧠 Train AI</div>
+                    <div class="form-group">
+                        <label class="form-label" for="trainingExample">Example Drop</label>
+                        <textarea class="form-textarea" id="trainingExample" placeholder="Paste a DJ drop you want the AI to learn from..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="trainDjName">Your DJ Name</label>
+                        <input type="text" class="form-input" id="trainDjName" value="DJ Beshi">
+                    </div>
+                    <button class="btn-primary" onclick="generateDrop()">🔥 Train & Generate</button>
+                </div>
+            </div>
+
+            <!-- Live Preview Card -->
+            <div class="result-card" id="livePreviewCard">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                    <span class="live-dot"></span>
+                    <span style="font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.05em;">Live Preview</span>
+                </div>
+                <div class="result-script" id="livePreviewText" style="font-size:15px;margin-bottom:0;"></div>
+            </div>
+
+            <!-- Voice Recorder Section -->
+            <div class="section-card">
+                <div class="section-header">🎙️ Voice Recorder & Effects</div>
+                <div class="recorder-section">
+                    <div class="recorder-ring" id="recorderRing" onclick="toggleRecording()" role="button" tabindex="0" aria-label="Start or stop recording">
+                        <span class="recorder-icon" id="recorderIcon">🎙️</span>
+                    </div>
+                    <div class="recorder-label" id="recorderLabel">Tap to Record</div>
+                    <div class="recorder-time" id="recorderTime" style="display: none;">00:00</div>
+                    <div class="visualizer" id="visualizer" style="display: none;"></div>
+                    <div class="audio-wrap" id="recordedPlayback" style="display: none;">
+                        <audio id="rawAudio" controls></audio>
+                    </div>
+                </div>
+
+                <div class="section-header">✨ Effects</div>
+                <div class="effect-grid" id="effectGrid">
+                    <div class="effect-chip active" data-effect="none" onclick="selectEffect(this)" role="button" tabindex="0">
+                        <span class="effect-chip-icon">🚫</span><span class="effect-chip-label">None</span>
+                    </div>
+                    <div class="effect-chip" data-effect="helium" onclick="selectEffect(this)" role="button" tabindex="0">
+                        <span class="effect-chip-icon">🎈</span><span class="effect-chip-label">Helium</span>
+                    </div>
+                    <div class="effect-chip" data-effect="low" onclick="selectEffect(this)" role="button" tabindex="0">
+                        <span class="effect-chip-icon">🐻</span><span class="effect-chip-label">Low</span>
+                    </div>
+                    <div class="effect-chip" data-effect="robot" onclick="selectEffect(this)" role="button" tabindex="0">
+                        <span class="effect-chip-icon">🤖</span><span class="effect-chip-label">Robot</span>
+                    </div>
+                    <div class="effect-chip" data-effect="echo" onclick="selectEffect(this)" role="button" tabindex="0">
+                        <span class="effect-chip-icon">📢</span><span class="effect-chip-label">Echo</span>
+                    </div>
+                    <div class="effect-chip" data-effect="phone" onclick="selectEffect(this)" role="button" tabindex="0">
+                        <span class="effect-chip-icon">☎️</span><span class="effect-chip-label">Phone</span>
+                    </div>
+                    <div class="effect-chip" data-effect="slow" onclick="selectEffect(this)" role="button" tabindex="0">
+                        <span class="effect-chip-icon">🐌</span><span class="effect-chip-label">Slow</span>
+                    </div>
+                    <div class="effect-chip" data-effect="fast" onclick="selectEffect(this)" role="button" tabindex="0">
+                        <span class="effect-chip-icon">⚡</span><span class="effect-chip-label">Fast</span>
+                    </div>
+                </div>
+
+                <button class="btn-secondary" id="applyEffectBtn" onclick="applyVoiceEffect()" disabled>✨ Apply Effect</button>
+                <div class="audio-wrap" id="processedPlayback" style="display: none;">
+                    <audio id="processedAudio" controls></audio>
+                    <button class="btn-secondary" style="margin-top: 10px;" onclick="useAsBackground()">🎵 Use as Background Track</button>
+                </div>
+            </div>
+
+            <!-- Results -->
+            <div id="resultsArea" style="display: none;">
+                <div class="result-card">
+                    <div class="result-badge" id="resultBadge">✅ Neural Voice + LOUD FX</div>
+                    <div class="result-script" id="resultScript"></div>
+                    <div class="audio-wrap"><audio id="resultAudio" controls></audio></div>
+                    <button class="btn-secondary" onclick="saveToLibrary()">💾 Save to Library</button>
+                    <button class="btn-secondary" onclick="copyScript()">📋 Copy Script</button>
+                </div>
+            </div>
 
             <div class="credits">
                 Created by <strong>Macdonald Barasa</strong><br>
@@ -744,265 +1221,1374 @@
             </div>
         </div>
 
-        <!-- ==================== LIBRARY SCREEN (unchanged) ==================== -->
-        <div class="screen" id="screenLibrary"> ... (same as original) ... </div>
-
-        <!-- ==================== DISCOVER SCREEN (unchanged) ==================== -->
-        <div class="screen" id="screenDiscover"> ... (same as original) ... </div>
-
-        <!-- ==================== SETTINGS SCREEN (unchanged) ==================== -->
-        <div class="screen" id="screenSettings"> ... (same as original) ... </div>
-
-        <!-- ==================== ADMIN DASHBOARD SCREEN ==================== -->
-        <div class="screen" id="screenAdmin">
+        <!-- ==================== LIBRARY SCREEN ==================== -->
+        <div class="screen" id="screenLibrary">
             <div class="nav-header">
-                <button class="nav-btn" onclick="showScreen('screenHome')" aria-label="Back">←</button>
                 <div>
-                    <div class="nav-title">Admin Panel</div>
-                    <div class="nav-subtitle">Dashboard · simiyumacdonal1@gmail.com</div>
+                    <div class="nav-title">Library</div>
+                    <div class="nav-subtitle" id="libraryCount">0 drops saved</div>
                 </div>
-                <button class="nav-btn" onclick="adminLogout()" aria-label="Logout" style="font-size:14px;">🚪</button>
+                <button class="nav-btn" onclick="showScreen('screenSettings')" aria-label="Settings">⚙️</button>
             </div>
 
-            <div class="segmented-control" style="margin: 0 20px 16px;">
-                <button class="segment active" onclick="switchAdminTab('users', this)">👥 Users</button>
-                <button class="segment" onclick="switchAdminTab('payments', this)">💳 Payments</button>
-                <button class="segment" onclick="switchAdminTab('issues', this)">⚠️ Issues</button>
-                <button class="segment" onclick="switchAdminTab('stats', this)">📊 Stats</button>
+            <div id="libraryEmpty" class="empty-state">
+                <div class="empty-icon">🎵</div>
+                <div class="empty-title">No Drops Yet</div>
+                <div class="empty-subtitle">Your generated drops will appear here.<br>Tap Create to make your first drop!</div>
             </div>
 
-            <div id="adminContent" style="padding: 0 20px;">
-                <div id="adminUsers" class="admin-tab active"></div>
-                <div id="adminPayments" class="admin-tab" style="display:none;"></div>
-                <div id="adminIssues" class="admin-tab" style="display:none;"></div>
-                <div id="adminStats" class="admin-tab" style="display:none;"></div>
+            <div id="libraryList"></div>
+        </div>
+
+        <!-- ==================== DISCOVER SCREEN ==================== -->
+        <div class="screen" id="screenDiscover">
+            <div class="nav-header">
+                <div>
+                    <div class="nav-title">Discover</div>
+                    <div class="nav-subtitle">DJ world at your fingertips</div>
+                </div>
+                <button class="nav-btn" onclick="showPaymentModal()" aria-label="Credits" style="font-size:14px;">⚡</button>
+            </div>
+
+            <div class="discover-grid">
+                <div class="discover-card" onclick="showDiscoverList('dj-groups')">
+                    <div class="discover-card-icon">🎧</div>
+                    <div class="discover-card-title">DJ Groups</div>
+                    <div class="discover-card-desc">Top collectives & crews</div>
+                </div>
+                <div class="discover-card" onclick="showDiscoverList('streaming-apps')">
+                    <div class="discover-card-icon">🎵</div>
+                    <div class="discover-card-title">Streaming</div>
+                    <div class="discover-card-desc">Music apps & platforms</div>
+                </div>
+                <div class="discover-card" onclick="showDiscoverList('dj-software')">
+                    <div class="discover-card-icon">🎛️</div>
+                    <div class="discover-card-title">DJ Software</div>
+                    <div class="discover-card-desc">Production & mixing tools</div>
+                </div>
+                <div class="discover-card" onclick="showDiscoverList('festivals')">
+                    <div class="discover-card-icon">🎪</div>
+                    <div class="discover-card-title">Festivals</div>
+                    <div class="discover-card-desc">Events & lineups 2026</div>
+                </div>
+                <div class="discover-card" onclick="showDiscoverList('theater-streaming')">
+                    <div class="discover-card-icon">🎭</div>
+                    <div class="discover-card-title">Theater</div>
+                    <div class="discover-card-desc">Live performance streams</div>
+                </div>
+                <div class="discover-card" onclick="showDiscoverList('all')">
+                    <div class="discover-card-icon">🌐</div>
+                    <div class="discover-card-title">All Data</div>
+                    <div class="discover-card-desc">Everything at once</div>
+                </div>
+            </div>
+
+            <!-- Search -->
+            <div class="search-bar">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="discoverSearch" placeholder="Search DJs, apps, festivals..." oninput="debounceSearch(this.value)">
+            </div>
+
+            <!-- Results List -->
+            <div class="data-list" id="discoverList"></div>
+        </div>
+
+        <!-- ==================== SETTINGS SCREEN ==================== -->
+        <div class="screen" id="screenSettings">
+            <div class="nav-header">
+                <button class="nav-btn" onclick="goBack()" aria-label="Back">←</button>
+                <div><div class="nav-title">Settings</div></div>
+                <div style="width: 40px;"></div>
+            </div>
+
+            <div class="section-card">
+                <div class="section-header">👤 Account</div>
+                <div style="padding: 16px 20px; display: flex; align-items: center; gap: 14px;">
+                    <div style="width: 56px; height: 56px; border-radius: 18px; background: linear-gradient(135deg, var(--accent), var(--purple)); display: flex; align-items: center; justify-content: center; font-size: 24px;">👤</div>
+                    <div>
+                        <div style="font-size: 17px; font-weight: 700;">Macdonald Barasa</div>
+                        <div style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">simiyumacdonal1@gmail.com</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Credits & Subscription -->
+            <div class="section-card" onclick="showPaymentModal()" style="cursor:pointer;">
+                <div class="section-header">⚡ Credits & Plan</div>
+                <div class="toggle-row">
+                    <div class="toggle-info">
+                        <div class="toggle-title" id="settingsPlanTitle">Free Plan</div>
+                        <div class="toggle-desc" id="settingsCreditsDesc">0 drops remaining</div>
+                    </div>
+                    <span style="color: var(--accent); font-size: 14px; font-weight: 700;">Upgrade ›</span>
+                </div>
+            </div>
+
+            <div class="section-card">
+                <div class="section-header">⚙️ Preferences</div>
+                <div class="toggle-row">
+                    <div class="toggle-info">
+                        <div class="toggle-title">Auto-Stutter</div>
+                        <div class="toggle-desc">Add stutter effects automatically</div>
+                    </div>
+                    <div class="toggle-switch on" onclick="toggleSwitch(this)" role="switch" aria-checked="true">
+                        <div class="toggle-knob"></div>
+                    </div>
+                </div>
+                <div class="toggle-row">
+                    <div class="toggle-info">
+                        <div class="toggle-title">High Quality Audio</div>
+                        <div class="toggle-desc">320kbps MP3 output</div>
+                    </div>
+                    <div class="toggle-switch on" onclick="toggleSwitch(this)" role="switch" aria-checked="true">
+                        <div class="toggle-knob"></div>
+                    </div>
+                </div>
+                <div class="toggle-row">
+                    <div class="toggle-info">
+                        <div class="toggle-title">Offline Mode</div>
+                        <div class="toggle-desc">Use basic TTS when offline</div>
+                    </div>
+                    <div class="toggle-switch" onclick="toggleSwitch(this)" role="switch" aria-checked="false">
+                        <div class="toggle-knob"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-card">
+                <div class="section-header">🎚️ Audio</div>
+                <div class="toggle-row" style="cursor: pointer;" onclick="showToast('FX presets updated')">
+                    <div class="toggle-info"><div class="toggle-title">FX Presets</div><div class="toggle-desc">Customize default effects</div></div>
+                    <span style="color: var(--text-muted); font-size: 20px;">›</span>
+                </div>
+                <div class="toggle-row" style="cursor: pointer;" onclick="showToast('Voice settings saved')">
+                    <div class="toggle-info"><div class="toggle-title">Default Voice</div><div class="toggle-desc">Afro-Vibe (Male NG)</div></div>
+                    <span style="color: var(--text-muted); font-size: 20px;">›</span>
+                </div>
+            </div>
+
+            <div class="section-card">
+                <div class="section-header">ℹ️ About</div>
+                <div class="toggle-row"><div class="toggle-info"><div class="toggle-title">Version</div></div><span style="color: var(--accent); font-weight: 700; font-size: 15px;">5.0 Live</span></div>
+                <div class="toggle-row" style="cursor: pointer;" onclick="showToast('Thanks for rating! ⭐⭐⭐⭐⭐')">
+                    <div class="toggle-info"><div class="toggle-title">Rate DJ Drop Factory</div></div>
+                    <span style="color: var(--text-muted); font-size: 20px;">›</span>
+                </div>
+            </div>
+
+            <div class="credits">
+                <strong>Premium AI DJ Drop Factory v5.0 — Live Edition</strong><br>
+                Created by Macdonald Barasa<br>
+                AI Training | Loud Audio | Voice Effects | Library | Web Data | String Wizard | Live Sync | Payments
             </div>
         </div>
 
-        <!-- ==================== ADMIN LOGIN MODAL ==================== -->
-        <div class="modal-overlay" id="adminLoginModal" onclick="if(event.target===this)closeAdminLogin()">
+        <!-- Player Bar -->
+        <div class="player-bar" id="playerBar">
+            <div class="player-art">🎵</div>
+            <div class="player-info">
+                <div class="player-title" id="playerTitle">DJ Drop</div>
+                <div class="player-artist" id="playerArtist">DJ Beshi</div>
+            </div>
+            <button class="player-btn" id="playerPlayBtn" onclick="togglePlayer()" aria-label="Play or pause">▶️</button>
+        </div>
+
+        <!-- Tab Bar -->
+        <div class="tab-bar">
+            <button class="tab-item active" onclick="showScreen('screenHome')">
+                <span class="tab-icon">🏠</span><span class="tab-label">Create</span>
+            </button>
+            <button class="tab-item" onclick="showScreen('screenLibrary')">
+                <span class="tab-icon">🎵</span><span class="tab-label">Library</span>
+            </button>
+            <button class="tab-item" onclick="showScreen('screenDiscover')">
+                <span class="tab-icon">🌐</span><span class="tab-label">Discover</span>
+            </button>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="spinner-wrap"><div class="spinner"></div><div class="spinner-inner"></div></div>
+            <div class="loading-text" id="loadingText">Generating...</div>
+            <div class="loading-sub">This may take 10-30 seconds</div>
+        </div>
+
+        <!-- Toast -->
+        <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+        <!-- ==================== PAYMENT MODAL ==================== -->
+        <div class="modal-overlay" id="paymentModal" onclick="if(event.target===this)closePaymentModal()">
             <div class="modal-sheet">
                 <div class="modal-header">
-                    <div class="modal-title">🔒 Admin Login</div>
-                    <button class="modal-close" onclick="closeAdminLogin()">✕</button>
+                    <div class="modal-title">⚡ Get Credits</div>
+                    <button class="modal-close" onclick="closePaymentModal()">✕</button>
                 </div>
                 <div style="padding: 0 20px 20px; text-align: center;">
-                    <p style="color: var(--text-secondary); font-size:14px; margin-bottom:20px;">
-                        An OTP will be sent to<br><strong>simiyumacdonal1@gmail.com</strong>
+                    <div class="premium-badge">🔥 Premium Drops</div>
+                    <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 20px;">
+                        Purchase credits to generate unlimited premium DJ drops with neural voices and loud FX.
                     </p>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Email</label>
-                    <input type="email" class="form-input" id="adminEmail" value="simiyumacdonal1@gmail.com" readonly>
-                </div>
+                <div id="packagesContainer"></div>
                 <div style="padding: 0 20px;">
-                    <button class="btn-primary" id="sendOtpBtn" onclick="sendAdminOtp()">📧 Send OTP</button>
+                    <label class="form-label" style="margin-top: 8px;">Phone Number (M-Pesa)</label>
+                    <input type="tel" class="form-input" id="paymentPhone" placeholder="e.g. 254712345678">
                 </div>
-                <div class="form-group" style="margin-top:10px;">
-                    <label class="form-label">Enter OTP</label>
-                    <input type="text" class="form-input" id="adminOtp" placeholder="6‑digit code" maxlength="6" inputmode="numeric">
+                <button class="pay-btn" id="payBtn" onclick="initiatePayment()" style="margin-top: 16px;">
+                    Pay & Unlock
+                </button>
+                <div style="text-align: center; padding: 12px 20px; color: var(--text-muted); font-size: 12px;">
+                    Secure payment powered by Flutterwave. Your number is encrypted.
                 </div>
-                <div style="padding: 0 20px;">
-                    <button class="btn-primary" id="verifyOtpBtn" onclick="verifyAdminOtp()" disabled>✅ Verify & Enter</button>
-                </div>
-                <div style="padding: 12px 20px; color: var(--text-muted); font-size:12px; text-align:center;" id="adminOtpMessage"></div>
             </div>
         </div>
-
-        <div class="player-bar" id="playerBar">... (unchanged) ...</div>
-
-        <div class="tab-bar">
-            <button class="tab-item active" onclick="showScreen('screenHome')"><span class="tab-icon">🏠</span><span class="tab-label">Create</span></button>
-            <button class="tab-item" onclick="showScreen('screenLibrary')"><span class="tab-icon">🎵</span><span class="tab-label">Library</span></button>
-            <button class="tab-item" onclick="showScreen('screenDiscover')"><span class="tab-icon">🌐</span><span class="tab-label">Discover</span></button>
-        </div>
-
-        <div class="loading-overlay" id="loadingOverlay">... (unchanged) ...</div>
-        <div class="toast" id="toast" role="status" aria-live="polite"></div>
-        <div class="modal-overlay" id="paymentModal">... (unchanged) ...</div>
-        <div class="modal-overlay" id="shareModal">... (unchanged) ...</div>
     </div>
 
     <script>
-        // ==================== STATE & ADMIN ====================
-        let adminToken = localStorage.getItem('df_admin_token') || null;
-        const ADMIN_EMAIL = 'simiyumacdonal1@gmail.com';
+        // ==================== STATE ====================
+        let currentScreen = 'screenHome';
+        let currentMode = 'ai';
+        let selectedEffect = 'none';
+        let isRecording = false;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let recordedBlob = null;
+        let processedResult = null;
+        let currentAudio = null;
+        let isPlaying = false;
+        let recordingTimer = null;
+        let recordingSeconds = 0;
+        let lastGeneratedDrop = null;
+        let activeStream = null;
+        let wizardStep = 1;
+        let debounceTimer = null;
+        let livePreviewDebounce = null;
+        let liveEngine = null;
+        let userCredits = 0;
+        let userSubscription = 'free';
+        let selectedPackage = null;
+        let deviceId = localStorage.getItem('df_device_id') || 'dev_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('df_device_id', deviceId);
 
-        // ==================== ADMIN LOGIN FUNCTIONS ====================
-        function showAdminLogin() {
-            if (adminToken) {
-                showScreen('screenAdmin');
+        // ==================== CLOCK ====================
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').textContent = 
+                now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // ==================== NAVIGATION ====================
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+            document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+            if (screenId === 'screenHome') document.querySelectorAll('.tab-item')[0].classList.add('active');
+            if (screenId === 'screenLibrary') document.querySelectorAll('.tab-item')[1].classList.add('active');
+            if (screenId === 'screenDiscover') document.querySelectorAll('.tab-item')[2].classList.add('active');
+            currentScreen = screenId;
+            if (screenId === 'screenLibrary') renderLibrary();
+            if (screenId === 'screenDiscover') loadDiscoverAll();
+            if (screenId === 'screenSettings') loadUserCredits();
+        }
+
+        function goBack() { showScreen('screenHome'); }
+
+        // ==================== MODE SWITCHING ====================
+        function setMode(mode, btn) {
+            currentMode = mode;
+            document.querySelectorAll('.segment').forEach(s => s.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('aiForm').style.display = mode === 'ai' ? 'block' : 'none';
+            document.getElementById('strictForm').style.display = mode === 'strict' ? 'block' : 'none';
+            document.getElementById('trainingForm').style.display = mode === 'training' ? 'block' : 'none';
+            if (mode !== 'ai') {
+                const lp = document.getElementById('livePreviewCard');
+                if (lp) lp.style.display = 'none';
+            }
+        }
+
+        // ==================== WIZARD NAVIGATION ====================
+        function wizardNext(step) {
+            const data = gatherWizardData(step);
+            fetch('/api/wizard_validate', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({step: step, ...data})
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (res.valid) {
+                    document.getElementById(`wizardStep${step}`).classList.remove('active');
+                    document.getElementById(`step${step}Indicator`).classList.remove('active');
+                    document.getElementById(`step${step}Indicator`).classList.add('completed');
+                    wizardStep = step + 1;
+                    document.getElementById(`wizardStep${wizardStep}`).classList.add('active');
+                    document.getElementById(`step${wizardStep}Indicator`).classList.add('active');
+                    updateReview();
+                } else {
+                    showToast('❌ ' + (res.errors ? res.errors.join(', ') : 'Validation failed'));
+                }
+            })
+            .catch(() => {
+                document.getElementById(`wizardStep${step}`).classList.remove('active');
+                document.getElementById(`step${step}Indicator`).classList.remove('active');
+                document.getElementById(`step${step}Indicator`).classList.add('completed');
+                wizardStep = step + 1;
+                document.getElementById(`wizardStep${wizardStep}`).classList.add('active');
+                document.getElementById(`step${wizardStep}Indicator`).classList.add('active');
+                updateReview();
+            });
+        }
+
+        function wizardPrev(step) {
+            document.getElementById(`wizardStep${step}`).classList.remove('active');
+            document.getElementById(`step${step}Indicator`).classList.remove('active');
+            wizardStep = step - 1;
+            document.getElementById(`wizardStep${wizardStep}`).classList.add('active');
+            document.getElementById(`step${wizardStep}Indicator`).classList.add('active');
+            document.getElementById(`step${step}Indicator`).classList.remove('completed');
+        }
+
+        function gatherWizardData(step) {
+            return {
+                dj_name: document.getElementById('djName').value,
+                city: document.getElementById('city').value,
+                genre: document.getElementById('genre').value,
+                drop_type: document.getElementById('dropType').value,
+                energy: parseInt(document.getElementById('energy').value),
+                voice: document.getElementById('voice').value
+            };
+        }
+
+        function updateReview() {
+            document.getElementById('reviewName').textContent = document.getElementById('djName').value || '—';
+            document.getElementById('reviewCity').textContent = document.getElementById('city').value || '—';
+            document.getElementById('reviewGenre').textContent = document.getElementById('genre').options[document.getElementById('genre').selectedIndex].text.replace(/^.\s/, '');
+            document.getElementById('reviewType').textContent = document.getElementById('dropType').options[document.getElementById('dropType').selectedIndex].text.replace(/^.\s/, '');
+            document.getElementById('reviewMood').textContent = document.getElementById('mood').options[document.getElementById('mood').selectedIndex].text.replace(/^.\s/, '');
+            document.getElementById('reviewEnergy').textContent = document.getElementById('energy').value + '/10';
+            document.getElementById('reviewVoice').textContent = document.getElementById('voice').options[document.getElementById('voice').selectedIndex].text.replace(/^.\s/, '');
+        }
+
+        // ==================== ENERGY SLIDER ====================
+        const energySlider = document.getElementById('energy');
+        const energyValue = document.getElementById('energyValue');
+        function updateEnergyFill() {
+            const min = parseFloat(energySlider.min);
+            const max = parseFloat(energySlider.max);
+            const pct = ((energySlider.value - min) / (max - min)) * 100;
+            energySlider.style.setProperty('--progress', pct + '%');
+            energyValue.textContent = energySlider.value;
+        }
+        energySlider.addEventListener('input', updateEnergyFill);
+        updateEnergyFill();
+
+        // ==================== TOGGLE SWITCH ====================
+        function toggleSwitch(el) {
+            el.classList.toggle('on');
+            if (el.getAttribute('role') === 'switch') {
+                el.setAttribute('aria-checked', el.classList.contains('on') ? 'true' : 'false');
+            }
+        }
+
+        // ==================== TOAST ====================
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            clearTimeout(showToast._t);
+            showToast._t = setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+
+        // ==================== LOADING ====================
+        function showLoading(text) {
+            document.getElementById('loadingText').textContent = text;
+            document.getElementById('loadingOverlay').classList.add('show');
+        }
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.remove('show');
+        }
+
+        // ==================== VISUALIZER ====================
+        function initVisualizer() {
+            const viz = document.getElementById('visualizer');
+            viz.innerHTML = '';
+            for (let i = 0; i < 20; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'viz-bar';
+                bar.style.height = '4px';
+                viz.appendChild(bar);
+            }
+        }
+        initVisualizer();
+
+        // ==================== VOICE RECORDER ====================
+        async function toggleRecording() {
+            if (isRecording) stopRecording();
+            else startRecording();
+        }
+
+        async function startRecording() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                showToast('❌ Recording not supported');
                 return;
             }
-            document.getElementById('adminLoginModal').classList.add('show');
-            document.getElementById('adminOtp').value = '';
-            document.getElementById('adminOtpMessage').textContent = '';
-            document.getElementById('verifyOtpBtn').disabled = true;
-        }
-        function closeAdminLogin() {
-            document.getElementById('adminLoginModal').classList.remove('show');
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                activeStream = stream;
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+                mediaRecorder.onstop = () => {
+                    recordedBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+                    const url = URL.createObjectURL(recordedBlob);
+                    document.getElementById('rawAudio').src = url;
+                    document.getElementById('recordedPlayback').style.display = 'block';
+                    document.getElementById('applyEffectBtn').disabled = false;
+                    document.getElementById('visualizer').style.display = 'none';
+                    clearInterval(recordingTimer);
+                    stream.getTracks().forEach(t => t.stop());
+                    activeStream = null;
+                };
+                mediaRecorder.start();
+                isRecording = true;
+                recordingSeconds = 0;
+                document.getElementById('recorderRing').classList.add('recording');
+                document.getElementById('recorderIcon').textContent = '⏹️';
+                document.getElementById('recorderLabel').textContent = 'Recording... Tap to Stop';
+                document.getElementById('recorderTime').style.display = 'block';
+                document.getElementById('recorderTime').textContent = '00:00';
+                document.getElementById('visualizer').style.display = 'flex';
+                animateVisualizer();
+                recordingTimer = setInterval(() => {
+                    recordingSeconds++;
+                    const mins = Math.floor(recordingSeconds / 60).toString().padStart(2, '0');
+                    const secs = (recordingSeconds % 60).toString().padStart(2, '0');
+                    document.getElementById('recorderTime').textContent = `${mins}:${secs}`;
+                }, 1000);
+            } catch (err) {
+                showToast('❌ Microphone access denied');
+            }
         }
 
-        async function sendAdminOtp() {
-            const sendBtn = document.getElementById('sendOtpBtn');
-            sendBtn.disabled = true;
-            sendBtn.textContent = 'Sending...';
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+            isRecording = false;
+            document.getElementById('recorderRing').classList.remove('recording');
+            document.getElementById('recorderIcon').textContent = '🎙️';
+            document.getElementById('recorderLabel').textContent = 'Tap to Record';
+            document.getElementById('recorderTime').style.display = 'none';
+            clearInterval(recordingTimer);
+        }
+
+        function animateVisualizer() {
+            if (!isRecording) return;
+            const bars = document.querySelectorAll('.viz-bar');
+            bars.forEach(bar => { bar.style.height = (Math.random() * 45 + 4) + 'px'; });
+            requestAnimationFrame(animateVisualizer);
+        }
+
+        // ==================== EFFECT SELECTION ====================
+        function selectEffect(el) {
+            document.querySelectorAll('.effect-chip').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+            selectedEffect = el.dataset.effect;
+        }
+
+        // ==================== APPLY VOICE EFFECT ====================
+        async function applyVoiceEffect() {
+            if (!recordedBlob) return;
+            showLoading('Processing effect...');
+            const formData = new FormData();
+            formData.append('audio', recordedBlob, 'recording.webm');
+            formData.append('effect', selectedEffect);
             try {
-                const res = await fetch('/admin/login/send-otp', {
+                const res = await fetch('/api/process_voice', { method: 'POST', body: formData });
+                const data = await res.json();
+                hideLoading();
+                if (data.success) {
+                    processedResult = data;
+                    document.getElementById('processedAudio').src = data.audio_url;
+                    document.getElementById('processedPlayback').style.display = 'block';
+                    showToast(`✨ ${selectedEffect.toUpperCase()} effect applied!`);
+                } else {
+                    showToast('❌ Effect failed: ' + (data.error || 'unknown'));
+                }
+            } catch (err) {
+                hideLoading();
+                showToast('❌ Network error');
+            }
+        }
+
+        function useAsBackground() { showToast('🎵 Voice effect set as background track'); }
+
+        // ==================== STRING TOOLS ====================
+        async function applyStringTool(operation) {
+            const ta = document.getElementById('customScript');
+            const text = ta.value;
+            if (!text) { showToast('⚠️ Enter text first'); return; }
+            try {
+                const res = await fetch('/api/string_tools', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ email: ADMIN_EMAIL })
+                    body: JSON.stringify({text: text, operation: operation, genre: document.getElementById('genre').value})
                 });
                 const data = await res.json();
                 if (data.success) {
-                    document.getElementById('adminOtpMessage').textContent = '✅ OTP sent! Check your email.';
-                    document.getElementById('verifyOtpBtn').disabled = false;
-                } else {
-                    document.getElementById('adminOtpMessage').textContent = '❌ ' + (data.error || 'Failed');
+                    ta.value = data.result;
+                    showToast(`✅ ${operation.replace('_', ' ')} applied!`);
                 }
             } catch (e) {
-                document.getElementById('adminOtpMessage').textContent = '❌ Network error';
-            } finally {
-                sendBtn.disabled = false;
-                sendBtn.textContent = '📧 Send OTP';
+                if (operation === 'capitalize') {
+                    ta.value = text.replace(/\b\w/g, c => c.toUpperCase());
+                } else if (operation === 'auto_punctuate') {
+                    ta.value = text.trim() + (text.trim().slice(-1).match(/[.!?]/) ? '' : '!');
+                } else if (operation === 'stutter_classic') {
+                    const first = text.trim().split(' ')[0];
+                    ta.value = first[0] + '-' + first[0] + '-' + first[0] + '-' + text;
+                }
+                showToast('✅ Applied (offline mode)');
             }
         }
 
-        async function verifyAdminOtp() {
-            const otp = document.getElementById('adminOtp').value.trim();
-            if (otp.length !== 6) return;
-            const verifyBtn = document.getElementById('verifyOtpBtn');
-            verifyBtn.disabled = true;
-            verifyBtn.textContent = 'Verifying...';
+        function copyScript() {
+            const script = document.getElementById('resultScript').textContent;
+            if (script) {
+                navigator.clipboard.writeText(script).then(() => showToast('📋 Copied!'));
+            }
+        }
+
+        // ==================== WEB DATA INTEGRATION ====================
+        async function fetchTrendingGenres() {
             try {
-                const res = await fetch('/admin/login/verify-otp', {
+                const res = await fetch('/api/trends');
+                const data = await res.json();
+                if (data.success && data.trending) {
+                    const row = document.getElementById('trendingGenres');
+                    row.innerHTML = data.trending.slice(0, 4).map(g => 
+                        `<span class="suggestion-chip" onclick="document.getElementById('genre').value='${g.toLowerCase().replace(/\s+/g, '_')}';showToast('🎵 ${g} selected')">${g}</span>`
+                    ).join('');
+                    row.style.display = 'flex';
+                }
+            } catch (e) { console.log('Trends offline'); }
+        }
+
+        async function fetchCityVibe() {
+            const city = document.getElementById('city').value.trim();
+            if (!city) {
+                document.getElementById('cityVibe').style.display = 'none';
+                return;
+            }
+            try {
+                const res = await fetch(`/api/city_vibe?city=${encodeURIComponent(city)}`);
+                const data = await res.json();
+                if (data.success) {
+                    const v = data.data;
+                    const el = document.getElementById('cityVibe');
+                    el.textContent = `🌡️ ${v.temperature}°C • ${v.vibe} vibes • Suggested mood: ${v.suggested_mood}`;
+                    el.style.display = 'block';
+                    if (v.suggested_mood) {
+                        const moodSelect = document.getElementById('mood');
+                        for (let i = 0; i < moodSelect.options.length; i++) {
+                            if (moodSelect.options[i].value === v.suggested_mood) {
+                                moodSelect.selectedIndex = i;
+                                break;
+                            }
+                        }
+                    }
+                }
+            } catch (e) { console.log('City vibe offline'); }
+        }
+
+        async function fetchNameSuggestions() {
+            const genre = document.getElementById('genre').value;
+            try {
+                const res = await fetch(`/api/suggest_names?style=${encodeURIComponent(genre)}`);
+                const data = await res.json();
+                if (data.success && data.suggestions) {
+                    const row = document.getElementById('nameSuggestions');
+                    row.innerHTML = data.suggestions.slice(0, 4).map(n => 
+                        `<span class="suggestion-chip" onclick="document.getElementById('djName').value='${n.replace(/'/g, "\\'")}';showToast('🎤 ${n} selected')">${n}</span>`
+                    ).join('');
+                    row.style.display = 'flex';
+                }
+            } catch (e) { console.log('Names offline'); }
+        }
+
+        function onGenreChange() {
+            fetchNameSuggestions();
+            fetchTrendingGenres();
+        }
+
+        document.getElementById('city').addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(fetchCityVibe, 800);
+        });
+
+        // ==================== GENERATE DROP ====================
+        async function generateDrop() {
+            showLoading('Generating your premium drop...');
+
+            const data = {
+                mode: currentMode,
+                dj_name: (currentMode === 'training' ? document.getElementById('trainDjName').value : document.getElementById('djName').value) || 'DJ Beshi',
+                genre: document.getElementById('genre').value,
+                drop_type: document.getElementById('dropType').value,
+                mood: document.getElementById('mood').value,
+                energy: parseInt(document.getElementById('energy').value, 10),
+                voice: document.getElementById('voice').value,
+                city: document.getElementById('city').value,
+                use_stutter: document.getElementById('autoStutterToggle').classList.contains('on'),
+                custom_script: currentMode === 'strict' ? document.getElementById('customScript').value : '',
+                training_example: currentMode === 'training' ? document.getElementById('trainingExample').value : '',
+                user_stutter: document.getElementById('userStutter').value
+            };
+
+            try {
+                const res = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Device-ID': deviceId
+                    },
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                hideLoading();
+
+                if (result.success) {
+                    lastGeneratedDrop = result;
+                    document.getElementById('resultScript').textContent = result.script;
+                    document.getElementById('resultAudio').src = result.download_url;
+                    document.getElementById('resultsArea').style.display = 'block';
+                    
+                    const badge = document.getElementById('resultBadge');
+                    if (result.offline) {
+                        badge.textContent = '⚠️ Basic Audio Mode';
+                        badge.style.background = 'rgba(247, 197, 49, 0.1)';
+                        badge.style.color = 'var(--warning)';
+                    } else {
+                        badge.textContent = '✅ Neural Voice + LOUD FX';
+                        badge.style.background = 'rgba(0, 208, 132, 0.1)';
+                        badge.style.color = 'var(--success)';
+                    }
+                    document.getElementById('resultsArea').scrollIntoView({ behavior: 'smooth' });
+                    showToast('🔥 Drop generated successfully!');
+                    localStorage.removeItem('df_draft');
+                    if (liveEngine) liveEngine.clearServerDraft();
+                    // Update credits display
+                    if (result.credits_remaining !== undefined) {
+                        userCredits = result.credits_remaining;
+                        updateCreditDisplay();
+                    }
+                } else if (result.error === 'insufficient_credits') {
+                    showToast('❌ ' + (result.message || 'No credits left'));
+                    showPaymentModal();
+                } else {
+                    showToast('❌ Generation failed: ' + (result.error || 'unknown'));
+                }
+            } catch (err) {
+                hideLoading();
+                showToast('❌ Network error');
+            }
+        }
+
+        // ==================== SAVE TO LIBRARY ====================
+        async function saveToLibrary() {
+            if (!lastGeneratedDrop) return;
+            const drop = {
+                id: Date.now(),
+                title: lastGeneratedDrop.script.length > 50 ? lastGeneratedDrop.script.substring(0, 50) + '...' : lastGeneratedDrop.script,
+                script: lastGeneratedDrop.script,
+                url: lastGeneratedDrop.download_url,
+                genre: document.getElementById('genre').value,
+                date: new Date().toLocaleDateString(),
+                project: lastGeneratedDrop.project,
+                dj_name: document.getElementById('djName').value || 'DJ Beshi'
+            };
+            try {
+                const res = await fetch('/api/library', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ email: ADMIN_EMAIL, otp })
+                    body: JSON.stringify(drop)
                 });
-                const data = await res.json();
-                if (data.success && data.token) {
-                    adminToken = data.token;
-                    localStorage.setItem('df_admin_token', adminToken);
-                    closeAdminLogin();
-                    showScreen('screenAdmin');
-                    showToast('🔓 Admin access granted');
-                } else {
-                    document.getElementById('adminOtpMessage').textContent = '❌ ' + (data.error || 'Invalid OTP');
-                }
-            } catch (e) {
-                document.getElementById('adminOtpMessage').textContent = '❌ Network error';
-            } finally {
-                verifyBtn.disabled = false;
-                verifyBtn.textContent = '✅ Verify & Enter';
+                if (!res.ok) throw new Error('Server rejected save');
+                showToast('💾 Saved to Library!');
+            } catch (err) {
+                let library = JSON.parse(localStorage.getItem('djDrops') || '[]');
+                library.unshift(drop);
+                localStorage.setItem('djDrops', JSON.stringify(library));
+                showToast('💾 Saved locally (offline)');
             }
         }
 
-        function adminLogout() {
-            adminToken = null;
-            localStorage.removeItem('df_admin_token');
-            showScreen('screenHome');
-            showToast('🚪 Logged out');
-        }
-
-        function switchAdminTab(tab, btn) {
-            document.querySelectorAll('#screenAdmin .segment').forEach(s => s.classList.remove('active'));
-            btn.classList.add('active');
-            document.querySelectorAll('#adminContent .admin-tab').forEach(t => t.style.display = 'none');
-            const tabDiv = document.getElementById('admin' + tab.charAt(0).toUpperCase() + tab.slice(1));
-            if (tabDiv) tabDiv.style.display = 'block';
-            if (tab === 'users') loadAdminUsers();
-            else if (tab === 'payments') loadAdminPayments();
-            else if (tab === 'issues') loadAdminIssues();
-            else if (tab === 'stats') loadAdminStats();
-        }
-
-        async function adminFetch(url) {
-            const res = await fetch(url, { headers: { 'Authorization': `Bearer ${adminToken}` } });
-            if (res.status === 401) {
-                showToast('🔒 Session expired. Login again.');
-                adminLogout();
-                showAdminLogin();
-                return null;
-            }
-            return res.json();
-        }
-
+        // ==================== LIBRARY ====================
         function escapeHtml(str) {
             const div = document.createElement('div');
             div.textContent = str == null ? '' : String(str);
             return div.innerHTML;
         }
 
-        async function loadAdminUsers() {
-            const data = await adminFetch('/admin/users');
-            if (!data) return;
-            const container = document.getElementById('adminUsers');
-            container.innerHTML = data.users.length === 0 ? '<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">No users</div></div>' :
-                data.users.map(u => `
-                    <div class="data-item">
-                        <div class="data-item-title">${escapeHtml(u.device_id)}</div>
-                        <div class="data-item-meta">Credits: ${u.credits} | ${u.subscription} | Paid: KES ${u.total_paid} | ${u.created}</div>
-                    </div>
-                `).join('');
-        }
-
-        async function loadAdminPayments() {
-            const data = await adminFetch('/admin/payments');
-            if (!data) return;
-            const container = document.getElementById('adminPayments');
-            container.innerHTML = data.payments.length === 0 ? '<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">No payments</div></div>' :
-                data.payments.map(p => `
-                    <div class="data-item">
-                        <div class="data-item-title">TX: ${escapeHtml(p.tx_ref)}</div>
-                        <div class="data-item-meta">Device: ${escapeHtml(p.device_id)} | KES ${p.amount} | ${p.status} | Receipt: ${p.mpesa_receipt || 'N/A'} | ${p.created}</div>
-                    </div>
-                `).join('');
-        }
-
-        async function loadAdminIssues() {
-            const data = await adminFetch('/admin/issues');
-            if (!data) return;
-            const container = document.getElementById('adminIssues');
-            container.innerHTML = data.issues.length === 0 ? '<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">No issues</div></div>' :
-                data.issues.map(i => `
-                    <div class="data-item">
-                        <div class="data-item-title">#${i.id} - ${escapeHtml(i.device_id)}</div>
-                        <div class="data-item-meta">${escapeHtml(i.error)}<br><small>Endpoint: ${escapeHtml(i.endpoint)} | ${i.timestamp}</small></div>
-                    </div>
-                `).join('');
-        }
-
-        async function loadAdminStats() {
-            const data = await adminFetch('/admin/stats');
-            if (!data) return;
-            const s = data.stats;
-            document.getElementById('adminStats').innerHTML = `
-                <div class="review-item"><span class="review-label">Total Users</span><span class="review-value">${s.total_users}</span></div>
-                <div class="review-item"><span class="review-label">Total Revenue</span><span class="review-value">KES ${s.total_revenue_kes}</span></div>
-                <div class="review-item"><span class="review-label">Successful Payments</span><span class="review-value">${s.successful_payments}</span></div>
-                <div class="review-item"><span class="review-label">Total Drops Generated</span><span class="review-value">${s.total_drops_generated}</span></div>
-            `;
-        }
-
-        // Override showScreen to protect admin
-        const originalShowScreen = showScreen;
-        showScreen = function(screenId) {
-            if (screenId === 'screenAdmin' && !adminToken) {
-                showAdminLogin();
+        async function renderLibrary() {
+            const list = document.getElementById('libraryList');
+            const empty = document.getElementById('libraryEmpty');
+            const countEl = document.getElementById('libraryCount');
+            let library = [];
+            try {
+                const res = await fetch('/api/library');
+                const data = await res.json();
+                if (data.success) library = data.drops;
+                else throw new Error('bad response');
+            } catch (err) {
+                library = JSON.parse(localStorage.getItem('djDrops') || '[]');
+            }
+            countEl.textContent = `${library.length} drop${library.length !== 1 ? 's' : ''} saved`;
+            if (library.length === 0) {
+                list.innerHTML = '';
+                empty.style.display = 'block';
                 return;
             }
-            originalShowScreen(screenId);
-            if (screenId === 'screenAdmin') {
-                const activeSeg = document.querySelector('#screenAdmin .segment.active');
-                const tab = activeSeg ? activeSeg.textContent.trim().toLowerCase() : 'users';
-                switchAdminTab(tab, activeSeg || document.querySelector('#screenAdmin .segment'));
-            }
-        };
+            empty.style.display = 'none';
+            list.innerHTML = library.map(drop => `
+                <div class="library-item" data-id="${escapeHtml(drop.id)}" data-url="${escapeHtml(drop.url)}" data-title="${escapeHtml(drop.title)}">
+                    <div class="library-art">🎵</div>
+                    <div class="library-info">
+                        <div class="library-title">${escapeHtml(drop.title)}</div>
+                        <div class="library-meta">${escapeHtml(drop.genre || 'Unknown')} • ${escapeHtml(drop.date)}</div>
+                    </div>
+                    <div class="library-play" data-action="play">▶️</div>
+                    <button class="delete-btn" data-action="delete" aria-label="Delete drop">🗑️</button>
+                </div>
+            `).join('');
+        }
 
-        // ==================== ALL REMAINING JAVASCRIPT (unchanged) ====================
-        // (Include every single function from your original file below: clock, setMode, wizard, recorder, effects, string tools, library, discover, payments, share, live engine, etc.)
-        // They must remain exactly as they were. I won't paste them here for brevity but you must include them.
+        document.getElementById('libraryList').addEventListener('click', (e) => {
+            const item = e.target.closest('.library-item');
+            if (!item) return;
+            const action = e.target.closest('[data-action]')?.dataset.action;
+            const id = item.dataset.id;
+            const url = item.dataset.url;
+            const title = item.dataset.title;
+            if (action === 'delete') { e.stopPropagation(); deleteDrop(id); }
+            else { playDrop(url, title); }
+        });
+
+        async function deleteDrop(id) {
+            try {
+                const res = await fetch(`/api/library/${encodeURIComponent(id)}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error('Server rejected delete');
+            } catch (err) {
+                let library = JSON.parse(localStorage.getItem('djDrops') || '[]');
+                library = library.filter(d => String(d.id) !== String(id));
+                localStorage.setItem('djDrops', JSON.stringify(library));
+            }
+            showToast('🗑️ Drop deleted');
+            renderLibrary();
+        }
+
+        function playDrop(url, title) {
+            if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+            currentAudio = new Audio(url);
+            currentAudio.play().catch(() => showToast('❌ Could not play audio'));
+            isPlaying = true;
+            document.getElementById('playerTitle').textContent = title.length > 25 ? title.substring(0, 25) + '...' : title;
+            document.getElementById('playerArtist').textContent = 'DJ Beshi';
+            document.getElementById('playerPlayBtn').textContent = '⏸️';
+            document.getElementById('playerBar').classList.add('show');
+            currentAudio.onended = () => {
+                isPlaying = false;
+                document.getElementById('playerPlayBtn').textContent = '▶️';
+            };
+        }
+
+        function togglePlayer() {
+            if (!currentAudio) return;
+            if (isPlaying) {
+                currentAudio.pause();
+                document.getElementById('playerPlayBtn').textContent = '▶️';
+            } else {
+                currentAudio.play();
+                document.getElementById('playerPlayBtn').textContent = '⏸️';
+            }
+            isPlaying = !isPlaying;
+        }
+
+        // ==================== STATUS CHECK ====================
+        async function checkStatus() {
+            try {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+                const statusText = document.getElementById('statusText');
+                const webInd = document.getElementById('webIndicator');
+                const wifiIcon = document.getElementById('wifiIcon');
+                if (data.online && data.ffmpeg_available) {
+                    statusText.textContent = 'Ready to generate';
+                    webInd.textContent = '🌐 Live';
+                    webInd.classList.remove('offline');
+                    wifiIcon.textContent = '📶';
+                } else if (data.ffmpeg_available) {
+                    statusText.textContent = 'Offline mode - Basic audio';
+                    webInd.textContent = '📴 Offline';
+                    webInd.classList.add('offline');
+                    wifiIcon.textContent = '✈️';
+                } else {
+                    statusText.textContent = 'Script only mode';
+                    webInd.textContent = '⚠️ Limited';
+                    webInd.classList.add('offline');
+                    wifiIcon.textContent = '⚠️';
+                }
+            } catch (e) {
+                document.getElementById('statusText').textContent = 'Server offline';
+                document.getElementById('webIndicator').textContent = '📴 Offline';
+                document.getElementById('webIndicator').classList.add('offline');
+                document.getElementById('wifiIcon').textContent = '✈️';
+            }
+        }
+
+        // ==================== LIVE ENGINE ====================
+        class LiveEngine {
+            constructor() {
+                this.sessionId = this.getSessionId();
+                this.setupAutoSave();
+                this.setupLivePreview();
+                this.setupHeartbeat();
+                this.setupNetworkStatus();
+                this.setupVisibilityRefresh();
+                this.setupBeforeUnload();
+                this.setupPullToRefresh();
+                this.checkRecovery();
+            }
+
+            getSessionId() {
+                let id = localStorage.getItem('df_session_id');
+                if (!id) {
+                    id = 'sess_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                    localStorage.setItem('df_session_id', id);
+                }
+                return id;
+            }
+
+            setupAutoSave() {
+                setInterval(() => this.saveLocalDraft(), 2000);
+                setInterval(() => this.syncDraftToServer(), 10000);
+                const inputs = document.querySelectorAll('input, select, textarea');
+                inputs.forEach(el => el.addEventListener('input', () => this.saveLocalDraft()));
+            }
+
+            saveLocalDraft() {
+                const draft = {
+                    mode: currentMode,
+                    djName: document.getElementById('djName')?.value,
+                    city: document.getElementById('city')?.value,
+                    genre: document.getElementById('genre')?.value,
+                    dropType: document.getElementById('dropType')?.value,
+                    mood: document.getElementById('mood')?.value,
+                    energy: document.getElementById('energy')?.value,
+                    voice: document.getElementById('voice')?.value,
+                    customScript: document.getElementById('customScript')?.value,
+                    trainingExample: document.getElementById('trainingExample')?.value,
+                    userStutter: document.getElementById('userStutter')?.value,
+                    timestamp: Date.now()
+                };
+                localStorage.setItem('df_draft', JSON.stringify(draft));
+            }
+
+            async syncDraftToServer() {
+                if (!navigator.onLine) return;
+                const draft = localStorage.getItem('df_draft');
+                if (!draft) return;
+                try {
+                    await fetch('/api/draft', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Session-ID': this.sessionId
+                        },
+                        body: draft
+                    });
+                } catch(e) {}
+            }
+
+            async clearServerDraft() {
+                try {
+                    await fetch('/api/draft', {
+                        method: 'DELETE',
+                        headers: {'X-Session-ID': this.sessionId}
+                    });
+                } catch(e) {}
+            }
+
+            checkRecovery() {
+                const draft = localStorage.getItem('df_draft');
+                if (!draft) return;
+                const data = JSON.parse(draft);
+                if (Date.now() - data.timestamp > 24 * 60 * 60 * 1000) {
+                    localStorage.removeItem('df_draft');
+                    return;
+                }
+                const banner = document.getElementById('recoveryBanner');
+                if (banner) banner.style.display = 'flex';
+            }
+
+            async restoreDraft() {
+                let draft = null;
+                if (navigator.onLine) {
+                    try {
+                        const res = await fetch('/api/draft', {headers: {'X-Session-ID': this.sessionId}});
+                        const data = await res.json();
+                        if (data.success && data.draft) draft = data.draft;
+                    } catch(e) {}
+                }
+                if (!draft) {
+                    const local = localStorage.getItem('df_draft');
+                    if (local) draft = JSON.parse(local);
+                }
+                if (draft && Date.now() - draft.timestamp < 24*60*60*1000) {
+                    this.applyDraft(draft);
+                    showToast('🔄 Draft restored');
+                }
+            }
+
+            applyDraft(draft) {
+                if (draft.djName) document.getElementById('djName').value = draft.djName;
+                if (draft.city) document.getElementById('city').value = draft.city;
+                if (draft.genre) document.getElementById('genre').value = draft.genre;
+                if (draft.dropType) document.getElementById('dropType').value = draft.dropType;
+                if (draft.mood) document.getElementById('mood').value = draft.mood;
+                if (draft.energy) {
+                    document.getElementById('energy').value = draft.energy;
+                    updateEnergyFill();
+                }
+                if (draft.voice) document.getElementById('voice').value = draft.voice;
+                if (draft.customScript) document.getElementById('customScript').value = draft.customScript;
+                if (draft.trainingExample) document.getElementById('trainingExample').value = draft.trainingExample;
+                if (draft.userStutter) document.getElementById('userStutter').value = draft.userStutter;
+                if (draft.mode) {
+                    const modeIndex = {'ai': 0, 'strict': 1, 'training': 2}[draft.mode] || 0;
+                    const seg = document.querySelectorAll('.segment')[modeIndex];
+                    if (seg) setMode(draft.mode, seg);
+                }
+                onGenreChange();
+                fetchCityVibe();
+            }
+
+            setupLivePreview() {
+                const liveInputs = ['djName', 'city', 'genre', 'dropType', 'mood', 'energy', 'userStutter'];
+                const handler = () => {
+                    clearTimeout(livePreviewDebounce);
+                    livePreviewDebounce = setTimeout(() => this.fetchLivePreview(), 700);
+                };
+                liveInputs.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.addEventListener('input', handler);
+                });
+            }
+
+            async fetchLivePreview() {
+                if (currentMode !== 'ai') return;
+                const data = {
+                    dj_name: document.getElementById('djName').value || 'DJ Beshi',
+                    genre: document.getElementById('genre').value,
+                    drop_type: document.getElementById('dropType').value,
+                    mood: document.getElementById('mood').value,
+                    energy: parseInt(document.getElementById('energy').value),
+                    city: document.getElementById('city').value,
+                    use_stutter: document.getElementById('autoStutterToggle').classList.contains('on'),
+                    user_stutter: document.getElementById('userStutter').value
+                };
+                try {
+                    const res = await fetch('/api/live_preview', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(data)
+                    });
+                    const result = await res.json();
+                    if (result.success) {
+                        this.showLivePreview(result.best);
+                    }
+                } catch(e) {}
+            }
+
+            showLivePreview(text) {
+                let card = document.getElementById('livePreviewCard');
+                if (!card) return;
+                const txt = document.getElementById('livePreviewText');
+                txt.textContent = text;
+                card.style.display = 'block';
+            }
+
+            setupHeartbeat() {
+                this.heartbeat();
+                setInterval(() => this.heartbeat(), 30000);
+            }
+
+            async heartbeat() {
+                if (!navigator.onLine) return;
+                try {
+                    const res = await fetch('/api/heartbeat');
+                    const data = await res.json();
+                    if (data.success) {
+                        const statusText = document.getElementById('statusText');
+                        const webInd = document.getElementById('webIndicator');
+                        const wifiIcon = document.getElementById('wifiIcon');
+                        if (data.online && data.ffmpeg) {
+                            statusText.textContent = 'Ready to generate';
+                            webInd.textContent = '🌐 Live';
+                            webInd.classList.remove('offline');
+                            wifiIcon.textContent = '📶';
+                        } else if (data.ffmpeg) {
+                            statusText.textContent = 'Offline mode';
+                            webInd.textContent = '📴 Offline';
+                            webInd.classList.add('offline');
+                            wifiIcon.textContent = '✈️';
+                        }
+                        if (data.trending && data.trending.length > 0) {
+                            const chipRow = document.getElementById('trendingGenres');
+                            if (chipRow) {
+                                chipRow.innerHTML = data.trending.map(g => 
+                                    `<span class="suggestion-chip" onclick="document.getElementById('genre').value='${g.toLowerCase().replace(/\\s+/g, '_')}';showToast('🎵 ${g} selected')">${g}</span>`
+                                ).join('');
+                                chipRow.style.display = 'flex';
+                            }
+                        }
+                    }
+                } catch(e) {}
+            }
+
+            setupNetworkStatus() {
+                window.addEventListener('online', () => {
+                    showToast('🌐 Back online! Syncing...');
+                    this.syncDraftToServer();
+                    this.heartbeat();
+                    checkStatus();
+                });
+                window.addEventListener('offline', () => {
+                    showToast('📴 Offline mode. Data saved locally.');
+                    const webInd = document.getElementById('webIndicator');
+                    const wifiIcon = document.getElementById('wifiIcon');
+                    if (webInd) {
+                        webInd.textContent = '📴 Offline';
+                        webInd.classList.add('offline');
+                    }
+                    if (wifiIcon) wifiIcon.textContent = '✈️';
+                });
+            }
+
+            setupVisibilityRefresh() {
+                document.addEventListener('visibilitychange', () => {
+                    if (!document.hidden) {
+                        this.heartbeat();
+                        checkStatus();
+                        if (currentScreen === 'screenLibrary') renderLibrary();
+                        loadUserCredits();
+                    }
+                });
+            }
+
+            setupBeforeUnload() {
+                window.addEventListener('beforeunload', (e) => {
+                    const loading = document.getElementById('loadingOverlay');
+                    if (loading && loading.classList.contains('show')) {
+                        e.preventDefault();
+                        e.returnValue = 'Generation in progress. Are you sure?';
+                    }
+                    this.saveLocalDraft();
+                    this.syncDraftToServer();
+                });
+            }
+
+            setupPullToRefresh() {
+                let touchStartY = 0;
+                let isPulling = false;
+                const pullHint = document.getElementById('pullHint');
+                document.addEventListener('touchstart', e => {
+                    if (window.scrollY <= 5) {
+                        touchStartY = e.touches[0].clientY;
+                        isPulling = true;
+                    }
+                }, {passive: true});
+                document.addEventListener('touchmove', e => {
+                    if (!isPulling || window.scrollY > 5) return;
+                    const diff = e.touches[0].clientY - touchStartY;
+                    if (diff > 60 && diff < 140) {
+                        pullHint.classList.add('show');
+                    }
+                }, {passive: true});
+                document.addEventListener('touchend', e => {
+                    if (!isPulling) return;
+                    const diff = e.changedTouches[0].clientY - touchStartY;
+                    pullHint.classList.remove('show');
+                    if (diff > 100 && window.scrollY <= 5) {
+                        showToast('🔄 Refreshing live data...');
+                        checkStatus();
+                        fetchTrendingGenres();
+                        fetchNameSuggestions();
+                        this.heartbeat();
+                        if (currentScreen === 'screenLibrary') renderLibrary();
+                        loadUserCredits();
+                    }
+                    isPulling = false;
+                }, {passive: true});
+            }
+        }
+
+        // ==================== DISCOVER SCREEN LOGIC ====================
+        async function loadDiscoverAll() {
+            await showDiscoverList('all');
+        }
+
+        async function showDiscoverList(type) {
+            const list = document.getElementById('discoverList');
+            list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">Loading...</div>';
+            try {
+                let url = `/api/${type}`;
+                if (type === 'all') url = '/api/all';
+                const res = await fetch(url);
+                const data = await res.json();
+                if (!data.success) throw new Error(data.error);
+                
+                let items = [];
+                if (type === 'all') {
+                    Object.values(data.data).forEach(arr => items.push(...arr));
+                } else if (type === 'dj-groups') {
+                    items = data.dj_groups;
+                } else if (type === 'streaming-apps') {
+                    items = data.streaming_apps;
+                } else if (type === 'dj-software') {
+                    items = data.dj_software;
+                } else if (type === 'festivals') {
+                    items = data.festivals;
+                } else if (type === 'theater-streaming') {
+                    items = data.theater_streaming;
+                }
+                
+                renderDiscoverItems(items, type);
+            } catch (e) {
+                list.innerHTML = `<div style="text-align:center;padding:40px;color:var(--error);">Failed to load: ${e.message}</div>`;
+            }
+        }
+
+        function renderDiscoverItems(items, type) {
+            const list = document.getElementById('discoverList');
+            if (items.length === 0) {
+                list.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">No results</div></div>';
+                return;
+            }
+            list.innerHTML = items.map(item => {
+                let title = item.name || item.title || 'Unknown';
+                let meta = [];
+                let tags = [];
+                
+                if (type === 'dj-groups' || item.style) {
+                    if (item.origin) meta.push(item.origin);
+                    if (item.style) meta.push(item.style);
+                    if (item.activities) meta.push(item.activities.substring(0, 60) + '...');
+                } else if (type === 'streaming-apps' || item.catalog_size) {
+                    if (item.category) tags.push(item.category);
+                    if (item.price) meta.push(item.price);
+                    if (item.platform) meta.push(item.platform);
+                    if (item.free_tier) tags.push('Free Tier');
+                } else if (type === 'dj-software' || item.platform) {
+                    if (item.category) tags.push(item.category);
+                    if (item.platform) meta.push(item.platform);
+                    if (item.price) meta.push(item.price);
+                } else if (type === 'festivals' || item.dates) {
+                    if (item.location) meta.push(item.location);
+                    if (item.dates) meta.push(item.dates);
+                    if (item.genre) tags.push(item.genre);
+                } else if (type === 'theater-streaming' || item.content_type) {
+                    if (item.content_type) meta.push(item.content_type);
+                    if (item.region) meta.push(item.region);
+                }
+                
+                return `
+                    <div class="data-item">
+                        <div class="data-item-title">${escapeHtml(title)}</div>
+                        <div class="data-item-meta">${escapeHtml(meta.join(' • '))}</div>
+                        ${tags.map(t => `<span class="data-item-tag">${escapeHtml(t)}</span>`).join('')}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        let searchDebounce;
+        function debounceSearch(term) {
+            clearTimeout(searchDebounce);
+            searchDebounce = setTimeout(() => {
+                if (!term.trim()) {
+                    loadDiscoverAll();
+                    return;
+                }
+                fetch(`/api/search?q=${encodeURIComponent(term)}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            let all = [];
+                            Object.values(data.results).forEach(arr => all.push(...arr));
+                            renderDiscoverItems(all, 'search');
+                        }
+                    })
+                    .catch(() => showToast('❌ Search failed'));
+            }, 400);
+        }
+
+        // ==================== PAYMENT SYSTEM ====================
+        async function loadUserCredits() {
+            try {
+                const res = await fetch('/api/user/credits', {
+                    headers: {'X-Device-ID': deviceId}
+                });
+                const data = await res.json();
+                if (data.success) {
+                    userCredits = data.credits;
+                    userSubscription = data.subscription;
+                    updateCreditDisplay();
+                }
+            } catch (e) { console.log('Credits load failed'); }
+        }
+
+        function updateCreditDisplay() {
+            const pill = document.getElementById('creditPill');
+            const text = document.getElementById('creditText');
+            const settingsTitle = document.getElementById('settingsPlanTitle');
+            const settingsDesc = document.getElementById('settingsCreditsDesc');
+            
+            pill.style.display = 'flex';
+            
+            if (userSubscription === 'premium') {
+                text.textContent = '∞ Premium';
+                settingsTitle.textContent = 'Premium Plan';
+                settingsDesc.textContent = 'Unlimited drops active';
+            } else {
+                text.textContent = `${userCredits} drops`;
+                settingsTitle.textContent = userCredits > 0 ? 'Free Plan' : 'Free Plan (No Credits)';
+                settingsDesc.textContent = `${userCredits} drops remaining — Tap to buy more`;
+            }
+        }
+
+        async function showPaymentModal() {
+            document.getElementById('paymentModal').classList.add('show');
+            // Load packages
+            try {
+                const res = await fetch('/api/payment/packages');
+                const data = await res.json();
+                if (data.success) {
+                    const container = document.getElementById('packagesContainer');
+                    container.innerHTML = data.packages.map((pkg, idx) => `
+                        <div class="package-card ${pkg.id === 'standard' ? 'popular' : ''} ${idx === 1 ? 'selected' : ''}" 
+                             onclick="selectPackage('${pkg.id}', this)" 
+                             data-id="${pkg.id}" data-credits="${pkg.credits}" data-price="${pkg.price}" data-days="${pkg.duration_days || 0}">
+                            <div class="package-name">${pkg.name}</div>
+                            <div class="package-price">${data.currency} ${pkg.price}<span> / ${pkg.subscription ? (pkg.duration_days > 30 ? 'year' : 'month') : 'one-time'}</span></div>
+                            <div class="package-desc">${pkg.description}</div>
+                        </div>
+                    `).join('');
+                    // Auto-select standard
+                    selectedPackage = data.packages[1];
+                }
+            } catch (e) { showToast('❌ Failed to load packages'); }
+        }
+
+        function closePaymentModal() {
+            document.getElementById('paymentModal').classList.remove('show');
+        }
+
+        function selectPackage(id, el) {
+            document.querySelectorAll('.package-card').forEach(c => c.classList.remove('selected'));
+            el.classList.add('selected');
+            selectedPackage = {
+                id: id,
+                credits: parseInt(el.dataset.credits),
+                price: parseInt(el.dataset.price),
+                days: parseInt(el.dataset.days) || 0
+            };
+        }
+
+        async function initiatePayment() {
+            const phone = document.getElementById('paymentPhone').value.trim();
+            if (!phone || phone.length < 10) {
+                showToast('⚠️ Enter a valid phone number');
+                return;
+            }
+            if (!selectedPackage) {
+                showToast('⚠️ Select a package first');
+                return;
+            }
+            
+            const btn = document.getElementById('payBtn');
+            btn.disabled = true;
+            btn.textContent = 'Processing...';
+            
+            try {
+                const res = await fetch('/api/payment/initiate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Device-ID': deviceId
+                    },
+                    body: JSON.stringify({
+                        package_id: selectedPackage.id,
+                        phone: phone,
+                        method: 'mpesa'
+                    })
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    showToast('📱 Check your phone for payment prompt');
+                    // Poll for verification (mock mode auto-verifies)
+                    setTimeout(() => verifyPayment(data.tx_ref), 3000);
+                } else {
+                    showToast('❌ ' + (data.error || 'Payment failed'));
+                }
+            } catch (e) {
+                showToast('❌ Network error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Pay & Unlock';
+            }
+        }
+
+        async function verifyPayment(tx_ref) {
+            try {
+                const res = await fetch('/api/payment/verify', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Device-ID': deviceId
+                    },
+                    body: JSON.stringify({tx_ref: tx_ref, mock_verify: true})
+                });
+                const data = await res.json();
+                if (data.success && data.status === 'success') {
+                    showToast(`✅ ${data.credits_added > 9000 ? 'Premium activated' : data.credits_added + ' credits added'}!`);
+                    closePaymentModal();
+                    loadUserCredits();
+                } else {
+                    showToast('⏳ Payment pending... Check again soon');
+                }
+            } catch (e) {
+                showToast('❌ Verification failed');
+            }
+        }
+
+        // ==================== PWA ====================
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js').catch(() => {});
+        }
+
+        window.addEventListener('beforeunload', () => {
+            if (activeStream) activeStream.getTracks().forEach(t => t.stop());
+        });
+
+        // ==================== INIT ====================
+        checkStatus();
+        fetchTrendingGenres();
+        fetchNameSuggestions();
+        liveEngine = new LiveEngine();
+        loadUserCredits();
     </script>
 </body>
 </html>
