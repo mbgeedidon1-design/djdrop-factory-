@@ -11,7 +11,6 @@
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/static/icon-192.png">
     <style>
-        /* All CSS from earlier – unchanged */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
         :root {
@@ -766,6 +765,32 @@
         }
         .search-bar input:focus { border-color: var(--accent); }
         .search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); font-size: 16px; color: var(--text-muted); }
+
+        /* Share modal specific */
+        .modal-share {
+            background: var(--bg-elevated);
+            border-radius: 28px 28px 0 0;
+            width: 100%; max-width: 430px;
+            max-height: 85vh; overflow-y: auto;
+            padding: 24px 0 40px;
+            border-top: 1px solid var(--border);
+            animation: slideUp 0.3s ease;
+            display: none;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .modal-share.show { display: flex; }
+        .share-option {
+            display: flex; align-items: center; gap: 14px;
+            padding: 14px 20px; border-radius: 14px;
+            background: var(--bg-card); margin: 0 20px;
+            text-decoration: none; color: var(--text);
+            transition: all 0.2s ease;
+        }
+        .share-option:hover { background: var(--accent-soft); }
+        .share-option-icon { font-size: 24px; width: 32px; text-align: center; }
+        .share-option-text { font-weight: 600; }
+        .share-option-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
     </style>
 </head>
 <body>
@@ -866,6 +891,12 @@
                             <label class="form-label" for="city">City / Location</label>
                             <input type="text" class="form-input" id="city" placeholder="e.g. Lagos, London, NYC">
                             <div id="cityVibe" style="padding: 0 20px 12px; font-size: 13px; color: var(--accent2); display: none;"></div>
+                        </div>
+                        <!-- Background Track Upload -->
+                        <div class="form-group">
+                            <label class="form-label">Background Track</label>
+                            <input type="file" id="bgTrackUpload" accept="audio/*" style="display:block;margin-top:6px;color:var(--text-secondary);">
+                            <small style="color:var(--text-muted);display:block;margin-top:4px;">Upload an instrumental or beat</small>
                         </div>
                         <div class="btn-wizard-nav">
                             <div></div>
@@ -975,6 +1006,7 @@
                             <div class="review-item"><span class="review-label">Mood</span><span class="review-value" id="reviewMood">Aggressive</span></div>
                             <div class="review-item"><span class="review-label">Energy</span><span class="review-value" id="reviewEnergy">8/10</span></div>
                             <div class="review-item"><span class="review-label">Voice</span><span class="review-value" id="reviewVoice">Afro-Vibe</span></div>
+                            <div class="review-item"><span class="review-label">Background</span><span class="review-value" id="reviewBg">None</span></div>
                         </div>
                         <div class="btn-wizard-nav">
                             <button class="btn-secondary" onclick="wizardPrev(4)">← Back</button>
@@ -1031,7 +1063,7 @@
             <div class="section-card">
                 <div class="section-header">🎙️ Voice Recorder & Effects</div>
                 <div class="recorder-section">
-                    <div class="recorder-ring" id="recorderRing" onclick="toggleRecording()" role="button" tabindex="0" aria-label="Start or stop recording">
+                    <div class="recorder-ring" id="recorderRing" onclick="toggleRecording()" role="button" tabindex="0">
                         <span class="recorder-icon" id="recorderIcon">🎙️</span>
                     </div>
                     <div class="recorder-label" id="recorderLabel">Tap to Record</div>
@@ -1041,7 +1073,6 @@
                         <audio id="rawAudio" controls></audio>
                     </div>
                 </div>
-
                 <div class="section-header">✨ Effects</div>
                 <div class="effect-grid" id="effectGrid">
                     <div class="effect-chip active" data-effect="none" onclick="selectEffect(this)" role="button" tabindex="0">
@@ -1069,7 +1100,6 @@
                         <span class="effect-chip-icon">⚡</span><span class="effect-chip-label">Fast</span>
                     </div>
                 </div>
-
                 <button class="btn-secondary" id="applyEffectBtn" onclick="applyVoiceEffect()" disabled>✨ Apply Effect</button>
                 <div class="audio-wrap" id="processedPlayback" style="display: none;">
                     <audio id="processedAudio" controls></audio>
@@ -1085,6 +1115,7 @@
                     <div class="audio-wrap"><audio id="resultAudio" controls></audio></div>
                     <button class="btn-secondary" onclick="saveToLibrary()">💾 Save to Library</button>
                     <button class="btn-secondary" onclick="copyScript()">📋 Copy Script</button>
+                    <!-- Share button will be added dynamically -->
                 </div>
             </div>
 
@@ -1152,7 +1183,6 @@
                     <div class="discover-card-desc">Everything at once</div>
                 </div>
             </div>
-
             <div class="search-bar">
                 <span class="search-icon">🔍</span>
                 <input type="text" id="discoverSearch" placeholder="Search DJs, apps, festivals..." oninput="debounceSearch(this.value)">
@@ -1177,7 +1207,6 @@
                     </div>
                 </div>
             </div>
-
             <div class="section-card" onclick="showPaymentModal()" style="cursor:pointer;">
                 <div class="section-header">⚡ Credits & Plan</div>
                 <div class="toggle-row">
@@ -1188,7 +1217,6 @@
                     <span style="color: var(--accent); font-size: 14px; font-weight: 700;">Upgrade ›</span>
                 </div>
             </div>
-
             <div class="section-card">
                 <div class="section-header">⚙️ Preferences</div>
                 <div class="toggle-row">
@@ -1219,19 +1247,6 @@
                     </div>
                 </div>
             </div>
-
-            <div class="section-card">
-                <div class="section-header">🎚️ Audio</div>
-                <div class="toggle-row" style="cursor: pointer;" onclick="showToast('FX presets updated')">
-                    <div class="toggle-info"><div class="toggle-title">FX Presets</div><div class="toggle-desc">Customize default effects</div></div>
-                    <span style="color: var(--text-muted); font-size: 20px;">›</span>
-                </div>
-                <div class="toggle-row" style="cursor: pointer;" onclick="showToast('Voice settings saved')">
-                    <div class="toggle-info"><div class="toggle-title">Default Voice</div><div class="toggle-desc">Afro-Vibe (Male NG)</div></div>
-                    <span style="color: var(--text-muted); font-size: 20px;">›</span>
-                </div>
-            </div>
-
             <div class="section-card">
                 <div class="section-header">ℹ️ About</div>
                 <div class="toggle-row"><div class="toggle-info"><div class="toggle-title">Version</div></div><span style="color: var(--accent); font-weight: 700; font-size: 15px;">5.0 Live</span></div>
@@ -1296,8 +1311,7 @@
                 <div id="packagesContainer"></div>
                 <div style="padding: 0 20px;">
                     <label class="form-label" style="margin-top: 8px;">Phone Number (M-Pesa)</label>
-                    <!-- Updated input with pattern and placeholder -->
-                    <input type="tel" class="form-input" id="paymentPhone" placeholder="e.g. 254708374149 (test number)" pattern="254[0-9]{9}">
+                    <input type="tel" class="form-input" id="paymentPhone" placeholder="e.g. 254708374149" pattern="254[0-9]{9}">
                 </div>
                 <button class="pay-btn" id="payBtn" onclick="initiatePayment()" style="margin-top: 16px;">
                     Pay & Unlock
@@ -1305,6 +1319,17 @@
                 <div style="text-align: center; padding: 12px 20px; color: var(--text-muted); font-size: 12px;">
                     Secure payment powered by M-Pesa. Your number is encrypted.
                 </div>
+            </div>
+        </div>
+
+        <!-- ==================== SHARE MODAL ==================== -->
+        <div class="modal-overlay" id="shareModal" onclick="if(event.target===this)closeShareModal()">
+            <div class="modal-share" id="shareModalContent">
+                <div class="modal-header">
+                    <div class="modal-title">🔗 Share Drop</div>
+                    <button class="modal-close" onclick="closeShareModal()">✕</button>
+                </div>
+                <div id="shareLinksContainer"></div>
             </div>
         </div>
     </div>
@@ -1333,6 +1358,8 @@
         let userSubscription = 'free';
         let selectedPackage = null;
         let deviceId = localStorage.getItem('df_device_id') || 'dev_' + Math.random().toString(36).substr(2, 9);
+        let uploadedBgTrackUrl = null;
+
         localStorage.setItem('df_device_id', deviceId);
 
         // ==================== CLOCK ====================
@@ -1375,6 +1402,27 @@
             }
         }
 
+        // ==================== BACKGROUND TRACK UPLOAD ====================
+        document.getElementById('bgTrackUpload')?.addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('audio', file);
+            try {
+                const res = await fetch('/api/upload_bg', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (data.success) {
+                    uploadedBgTrackUrl = data.filename;
+                    document.getElementById('reviewBg').textContent = file.name;
+                    showToast('✅ Background uploaded!');
+                } else {
+                    showToast('❌ Upload failed');
+                }
+            } catch (err) {
+                showToast('❌ Network error');
+            }
+        });
+
         // ==================== WIZARD NAVIGATION ====================
         function wizardNext(step) {
             const data = gatherWizardData(step);
@@ -1398,7 +1446,6 @@
                 }
             })
             .catch(() => {
-                // Fallback: allow navigation even if validation fails
                 document.getElementById(`wizardStep${step}`).classList.remove('active');
                 document.getElementById(`step${step}Indicator`).classList.remove('active');
                 document.getElementById(`step${step}Indicator`).classList.add('completed');
@@ -1437,6 +1484,7 @@
             document.getElementById('reviewMood').textContent = document.getElementById('mood').options[document.getElementById('mood').selectedIndex].text.replace(/^.\s/, '');
             document.getElementById('reviewEnergy').textContent = document.getElementById('energy').value + '/10';
             document.getElementById('reviewVoice').textContent = document.getElementById('voice').options[document.getElementById('voice').selectedIndex].text.replace(/^.\s/, '');
+            document.getElementById('reviewBg').textContent = uploadedBgTrackUrl ? 'Uploaded ✓' : 'None';
         }
 
         // ==================== ENERGY SLIDER ====================
@@ -1590,7 +1638,15 @@
             }
         }
 
-        function useAsBackground() { showToast('🎵 Voice effect set as background track'); }
+        function useAsBackground() {
+            if (processedResult && processedResult.audio_url) {
+                uploadedBgTrackUrl = processedResult.audio_url.split('/').pop();
+                document.getElementById('reviewBg').textContent = 'Processed track ✓';
+                showToast('🎵 Voice effect set as background track');
+            } else {
+                showToast('⚠️ No processed audio available');
+            }
+        }
 
         // ==================== STRING TOOLS ====================
         async function applyStringTool(operation) {
@@ -1609,7 +1665,6 @@
                     showToast(`✅ ${operation.replace('_', ' ')} applied!`);
                 }
             } catch (e) {
-                // fallback basic operations
                 if (operation === 'capitalize') {
                     ta.value = text.replace(/\b\w/g, c => c.toUpperCase());
                 } else if (operation === 'auto_punctuate') {
@@ -1699,8 +1754,7 @@
         // ==================== GENERATE DROP ====================
         async function generateDrop() {
             showLoading('Generating your premium drop...');
-
-            const data = {
+            const payload = {
                 mode: currentMode,
                 dj_name: (currentMode === 'training' ? document.getElementById('trainDjName').value : document.getElementById('djName').value) || 'DJ Beshi',
                 genre: document.getElementById('genre').value,
@@ -1712,9 +1766,9 @@
                 use_stutter: document.getElementById('autoStutterToggle').classList.contains('on'),
                 custom_script: currentMode === 'strict' ? document.getElementById('customScript').value : '',
                 training_example: currentMode === 'training' ? document.getElementById('trainingExample').value : '',
-                user_stutter: document.getElementById('userStutter').value
+                user_stutter: document.getElementById('userStutter').value,
+                bg_track: uploadedBgTrackUrl || ''
             };
-
             try {
                 const res = await fetch('/api/generate', {
                     method: 'POST',
@@ -1722,32 +1776,33 @@
                         'Content-Type': 'application/json',
                         'X-Device-ID': deviceId
                     },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify(payload)
                 });
                 const result = await res.json();
                 hideLoading();
-
                 if (result.success) {
                     lastGeneratedDrop = result;
                     document.getElementById('resultScript').textContent = result.script;
                     document.getElementById('resultAudio').src = result.download_url;
                     document.getElementById('resultsArea').style.display = 'block';
-                    
                     const badge = document.getElementById('resultBadge');
-                    if (result.offline) {
-                        badge.textContent = '⚠️ Basic Audio Mode';
-                        badge.style.background = 'rgba(247, 197, 49, 0.1)';
-                        badge.style.color = 'var(--warning)';
-                    } else {
-                        badge.textContent = '✅ Neural Voice + LOUD FX';
-                        badge.style.background = 'rgba(0, 208, 132, 0.1)';
-                        badge.style.color = 'var(--success)';
-                    }
+                    badge.textContent = '✅ Neural Voice + LOUD FX';
+                    badge.style.background = 'rgba(0, 208, 132, 0.1)';
+                    badge.style.color = 'var(--success)';
+                    // Add share button dynamically
+                    const existingShareBtn = document.getElementById('dynamicShareBtn');
+                    if (existingShareBtn) existingShareBtn.remove();
+                    const shareBtn = document.createElement('button');
+                    shareBtn.id = 'dynamicShareBtn';
+                    shareBtn.className = 'btn-secondary';
+                    shareBtn.textContent = '🔗 Share';
+                    shareBtn.style.marginTop = '8px';
+                    shareBtn.onclick = () => openShareModal(result.project);
+                    document.getElementById('resultsArea').appendChild(shareBtn);
                     document.getElementById('resultsArea').scrollIntoView({ behavior: 'smooth' });
                     showToast('🔥 Drop generated successfully!');
                     localStorage.removeItem('df_draft');
                     if (liveEngine) liveEngine.clearServerDraft();
-                    // Update credits display
                     if (result.credits_remaining !== undefined) {
                         userCredits = result.credits_remaining;
                         updateCreditDisplay();
@@ -1768,26 +1823,27 @@
         async function saveToLibrary() {
             if (!lastGeneratedDrop) return;
             const drop = {
-                id: Date.now(),
                 title: lastGeneratedDrop.script.length > 50 ? lastGeneratedDrop.script.substring(0, 50) + '...' : lastGeneratedDrop.script,
                 script: lastGeneratedDrop.script,
                 url: lastGeneratedDrop.download_url,
                 genre: document.getElementById('genre').value,
-                date: new Date().toLocaleDateString(),
-                project: lastGeneratedDrop.project,
-                dj_name: document.getElementById('djName').value || 'DJ Beshi'
+                dj_name: document.getElementById('djName').value || 'DJ Beshi',
+                project: lastGeneratedDrop.project
             };
             try {
                 const res = await fetch('/api/library', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Device-ID': deviceId
+                    },
                     body: JSON.stringify(drop)
                 });
                 if (!res.ok) throw new Error('Server rejected save');
                 showToast('💾 Saved to Library!');
             } catch (err) {
                 let library = JSON.parse(localStorage.getItem('djDrops') || '[]');
-                library.unshift(drop);
+                library.unshift({...drop, id: Date.now(), date: new Date().toLocaleDateString()});
                 localStorage.setItem('djDrops', JSON.stringify(library));
                 showToast('💾 Saved locally (offline)');
             }
@@ -1806,7 +1862,7 @@
             const countEl = document.getElementById('libraryCount');
             let library = [];
             try {
-                const res = await fetch('/api/library');
+                const res = await fetch('/api/library', { headers: {'X-Device-ID': deviceId} });
                 const data = await res.json();
                 if (data.success) library = data.drops;
                 else throw new Error('bad response');
@@ -1846,7 +1902,10 @@
 
         async function deleteDrop(id) {
             try {
-                const res = await fetch(`/api/library/${encodeURIComponent(id)}`, { method: 'DELETE' });
+                const res = await fetch(`/api/library/${encodeURIComponent(id)}`, {
+                    method: 'DELETE',
+                    headers: {'X-Device-ID': deviceId}
+                });
                 if (!res.ok) throw new Error('Server rejected delete');
             } catch (err) {
                 let library = JSON.parse(localStorage.getItem('djDrops') || '[]');
@@ -2217,7 +2276,6 @@
                 const res = await fetch(url);
                 const data = await res.json();
                 if (!data.success) throw new Error(data.error);
-                
                 let items = [];
                 if (type === 'all') {
                     Object.values(data.data).forEach(arr => items.push(...arr));
@@ -2232,7 +2290,6 @@
                 } else if (type === 'theater-streaming') {
                     items = data.theater_streaming;
                 }
-                
                 renderDiscoverItems(items, type);
             } catch (e) {
                 list.innerHTML = `<div style="text-align:center;padding:40px;color:var(--error);">Failed to load: ${e.message}</div>`;
@@ -2249,7 +2306,6 @@
                 let title = item.name || item.title || 'Unknown';
                 let meta = [];
                 let tags = [];
-                
                 if (type === 'dj-groups' || item.style) {
                     if (item.origin) meta.push(item.origin);
                     if (item.style) meta.push(item.style);
@@ -2271,7 +2327,6 @@
                     if (item.content_type) meta.push(item.content_type);
                     if (item.region) meta.push(item.region);
                 }
-                
                 return `
                     <div class="data-item">
                         <div class="data-item-title">${escapeHtml(title)}</div>
@@ -2323,9 +2378,7 @@
             const text = document.getElementById('creditText');
             const settingsTitle = document.getElementById('settingsPlanTitle');
             const settingsDesc = document.getElementById('settingsCreditsDesc');
-            
             pill.style.display = 'flex';
-            
             if (userSubscription === 'premium') {
                 text.textContent = '∞ Premium';
                 settingsTitle.textContent = 'Premium Plan';
@@ -2339,7 +2392,6 @@
 
         async function showPaymentModal() {
             document.getElementById('paymentModal').classList.add('show');
-            // Load packages
             try {
                 const res = await fetch('/api/payment/packages');
                 const data = await res.json();
@@ -2354,7 +2406,6 @@
                             <div class="package-desc">${pkg.description}</div>
                         </div>
                     `).join('');
-                    // Auto-select standard
                     selectedPackage = data.packages[1];
                 }
             } catch (e) { showToast('❌ Failed to load packages'); }
@@ -2375,23 +2426,19 @@
             };
         }
 
-        // ==================== UPDATED PAYMENT INITIATE ====================
         async function initiatePayment() {
             const phone = document.getElementById('paymentPhone').value.trim();
-            // Validate phone number: must be 12 digits starting with 254
             if (!/^254[0-9]{9}$/.test(phone)) {
-                showToast('⚠️ Enter a valid 12-digit number starting with 254 (e.g., 254708374149)');
+                showToast('⚠️ Enter a valid 12-digit number starting with 254');
                 return;
             }
             if (!selectedPackage) {
                 showToast('⚠️ Select a package first');
                 return;
             }
-            
             const btn = document.getElementById('payBtn');
             btn.disabled = true;
             btn.textContent = 'Processing...';
-            
             try {
                 const res = await fetch('/api/payment/initiate', {
                     method: 'POST',
@@ -2406,10 +2453,8 @@
                     })
                 });
                 const data = await res.json();
-                
                 if (data.success) {
                     showToast('📱 Check your phone for the M-Pesa prompt');
-                    // Poll for verification every 5 seconds for up to 60 seconds
                     let attempts = 0;
                     const maxAttempts = 12;
                     const interval = setInterval(async () => {
@@ -2426,16 +2471,19 @@
                             const verifyData = await verifyRes.json();
                             if (verifyData.success && verifyData.status === 'success') {
                                 clearInterval(interval);
-                                showToast(`✅ ${verifyData.credits_added > 9000 ? 'Premium activated' : verifyData.credits_added + ' credits added'}!`);
+                                if (selectedPackage.days > 0) {
+                                    showToast('✅ Premium activated!');
+                                    userSubscription = 'premium';
+                                } else {
+                                    showToast(`✅ ${selectedPackage.credits} credits added!`);
+                                }
                                 closePaymentModal();
                                 loadUserCredits();
                             } else if (attempts >= maxAttempts) {
                                 clearInterval(interval);
-                                showToast('⏳ Payment still pending. Please check your M-Pesa message.');
+                                showToast('⏳ Payment still pending. Check M-Pesa message.');
                             }
-                        } catch (err) {
-                            // Ignore individual verify errors, continue polling
-                        }
+                        } catch (err) {}
                     }, 5000);
                 } else {
                     showToast('❌ ' + (data.error || 'Payment failed'));
@@ -2445,6 +2493,66 @@
             } finally {
                 btn.disabled = false;
                 btn.textContent = 'Pay & Unlock';
+            }
+        }
+
+        // ==================== SHARE MODAL ====================
+        let currentShareProject = null;
+
+        function openShareModal(project) {
+            currentShareProject = project;
+            document.getElementById('shareModal').classList.add('show');
+            loadShareLinks(project);
+        }
+
+        function closeShareModal() {
+            document.getElementById('shareModal').classList.remove('show');
+            currentShareProject = null;
+        }
+
+        async function loadShareLinks(project) {
+            const container = document.getElementById('shareLinksContainer');
+            container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);">Loading...</div>';
+            try {
+                const res = await fetch(`/api/share/${project}`);
+                const data = await res.json();
+                if (data.success) {
+                    const targets = data.targets;
+                    container.innerHTML = `
+                        <a href="${targets.whatsapp}" target="_blank" class="share-option">
+                            <span class="share-option-icon">💬</span>
+                            <div>
+                                <div class="share-option-text">WhatsApp</div>
+                                <div class="share-option-desc">Share directly to a chat</div>
+                            </div>
+                        </a>
+                        <a href="${targets.telegram}" target="_blank" class="share-option">
+                            <span class="share-option-icon">✈️</span>
+                            <div>
+                                <div class="share-option-text">Telegram</div>
+                                <div class="share-option-desc">Send to Telegram</div>
+                            </div>
+                        </a>
+                        <a href="${targets.twitter}" target="_blank" class="share-option">
+                            <span class="share-option-icon">🐦</span>
+                            <div>
+                                <div class="share-option-text">Twitter / X</div>
+                                <div class="share-option-desc">Tweet the drop</div>
+                            </div>
+                        </a>
+                        <div class="share-option" onclick="navigator.clipboard.writeText('${data.share_link}').then(()=>showToast('📋 Link copied!'))">
+                            <span class="share-option-icon">🔗</span>
+                            <div>
+                                <div class="share-option-text">Copy Link</div>
+                                <div class="share-option-desc">${data.share_link}</div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--error);">Failed to load share links</div>';
+                }
+            } catch (err) {
+                container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--error);">Network error</div>';
             }
         }
 
@@ -2463,8 +2571,7 @@
         fetchNameSuggestions();
         liveEngine = new LiveEngine();
         loadUserCredits();
-
-        console.log('DJ Drop Factory v5.0 Live — Loaded successfully!');
+        console.log('DJ Drop Factory v5.0 Live — Ready!');
     </script>
 </body>
 </html>
