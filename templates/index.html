@@ -1111,23 +1111,47 @@
                 </div>
             </div>
 
-            <!-- Strict Mode Form (UPDATED with Energy Slider) -->
+            <!-- Strict Mode Form (UPDATED: includes genre, energy, voice) -->
             <div id="strictForm" style="display: none;">
                 <div class="section-card">
-                    <div class="section-header">✍️ Your Script</div>
+                    <div class="section-header">🎛️ Audio Settings</div>
                     <div class="form-group">
-                        <textarea class="form-textarea" id="customScript" placeholder="Type exactly what you want the DJ to say..."></textarea>
+                        <label class="form-label" for="strictGenre">Genre</label>
+                        <select class="form-select" id="strictGenre">
+                            <option value="amapiano">🎹 Amapiano</option>
+                            <option value="dancehall">🔥 Dancehall</option>
+                            <option value="radio">📻 Radio</option>
+                            <option value="club_banger" selected>💥 Club Banger</option>
+                            <option value="afrobeat">🌍 Afrobeat</option>
+                            <option value="trap">🎤 Trap</option>
+                        </select>
                     </div>
-                    
-                    <!-- NEW: Energy Slider for Strict Mode -->
                     <div class="slider-wrap">
                         <div class="slider-header">
                             <span class="slider-label">Energy Level</span>
                             <span class="slider-value" id="strictEnergyValue">8</span>
                         </div>
-                        <input type="range" id="strictEnergy" min="1" max="10" value="8" style="--progress: 80%">
+                        <input type="range" id="strictEnergy" min="1" max="10" value="8" style="--progress: 80%" oninput="updateStrictEnergy()">
                     </div>
-                    
+                    <div class="form-group">
+                        <label class="form-label" for="strictVoice">Voice</label>
+                        <select class="form-select" id="strictVoice">
+                            <option value="1">🧔 Deep Studio Heavy (Male US)</option>
+                            <option value="2">🧔 Crisp Energetic Host (Male UK)</option>
+                            <option value="3">👩 Smooth High-End (Female US)</option>
+                            <option value="4" selected>🧔 Natural Afro-Vibe (Male NG)</option>
+                            <option value="5">👩 Bright Radio Host (Female UK)</option>
+                            <option value="6">👩 Warm Afro Voice (Female NG)</option>
+                            <option value="7">✨ Auto by Genre</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <div class="section-header">✍️ Your Script</div>
+                    <div class="form-group">
+                        <textarea class="form-textarea" id="customScript" placeholder="Type exactly what you want the DJ to say..."></textarea>
+                    </div>
                     <div class="section-header">🧙 String Tools</div>
                     <div class="string-tools-grid">
                         <button class="string-tool-btn" onclick="applyStringTool('capitalize')">Aa Capitalize</button>
@@ -1582,7 +1606,7 @@
             document.getElementById('reviewVoice').textContent = document.getElementById('voice').options[document.getElementById('voice').selectedIndex].text.replace(/^.\s/, '');
         }
 
-        // ==================== ENERGY SLIDER (AI MODE) ====================
+        // ==================== ENERGY SLIDER (Wizard) ====================
         const energySlider = document.getElementById('energy');
         const energyValue = document.getElementById('energyValue');
         function updateEnergyFill() {
@@ -1595,18 +1619,14 @@
         energySlider.addEventListener('input', updateEnergyFill);
         updateEnergyFill();
 
-        // ==================== ENERGY SLIDER (STRICT MODE) ====================
-        const strictEnergySlider = document.getElementById('strictEnergy');
-        const strictEnergyValue = document.getElementById('strictEnergyValue');
-        function updateStrictEnergyFill() {
-            const min = parseFloat(strictEnergySlider.min);
-            const max = parseFloat(strictEnergySlider.max);
-            const pct = ((strictEnergySlider.value - min) / (max - min)) * 100;
-            strictEnergySlider.style.setProperty('--progress', pct + '%');
-            strictEnergyValue.textContent = strictEnergySlider.value;
+        // ==================== ENERGY SLIDER (Strict Mode) ====================
+        function updateStrictEnergy() {
+            const slider = document.getElementById('strictEnergy');
+            const val = document.getElementById('strictEnergyValue');
+            const pct = ((slider.value - slider.min) / (slider.max - slider.min)) * 100;
+            slider.style.setProperty('--progress', pct + '%');
+            val.textContent = slider.value;
         }
-        strictEnergySlider.addEventListener('input', updateStrictEnergyFill);
-        updateStrictEnergyFill();
 
         // ==================== TOGGLE SWITCH ====================
         function toggleSwitch(el) {
@@ -1756,7 +1776,7 @@
                 const res = await fetch('/api/string_tools', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({text: text, operation: operation, genre: document.getElementById('genre').value})
+                    body: JSON.stringify({text: text, operation: operation, genre: document.getElementById('strictGenre') ? document.getElementById('strictGenre').value : 'club_banger'})
                 });
                 const data = await res.json();
                 if (data.success) {
@@ -1850,23 +1870,34 @@
             debounceTimer = setTimeout(fetchCityVibe, 800);
         });
 
-        // ==================== GENERATE DROP ====================
+        // ==================== GENERATE DROP (updated for strict mode) ====================
         async function generateDrop() {
             showLoading('Generating your premium drop...');
+
+            // Choose which set of inputs to use based on mode
+            let genre, drop_type, mood, energy, voice;
+            if (currentMode === 'strict') {
+                genre = document.getElementById('strictGenre').value;
+                drop_type = 'intro'; // default for strict
+                mood = 'hype';
+                energy = parseInt(document.getElementById('strictEnergy').value);
+                voice = document.getElementById('strictVoice').value;
+            } else {
+                genre = document.getElementById('genre').value;
+                drop_type = document.getElementById('dropType').value;
+                mood = document.getElementById('mood').value;
+                energy = parseInt(document.getElementById('energy').value);
+                voice = document.getElementById('voice').value;
+            }
 
             const data = {
                 mode: currentMode,
                 dj_name: (currentMode === 'training' ? document.getElementById('trainDjName').value : document.getElementById('djName').value) || 'DJ Beshi',
-                genre: document.getElementById('genre').value,
-                drop_type: document.getElementById('dropType').value,
-                mood: document.getElementById('mood').value,
-                energy: parseInt(
-                    currentMode === 'strict' 
-                        ? document.getElementById('strictEnergy').value 
-                        : document.getElementById('energy').value, 
-                    10
-                ),
-                voice: document.getElementById('voice').value,
+                genre: genre,
+                drop_type: drop_type,
+                mood: mood,
+                energy: energy,
+                voice: voice,
                 city: document.getElementById('city').value,
                 use_stutter: document.getElementById('autoStutterToggle').classList.contains('on'),
                 custom_script: currentMode === 'strict' ? document.getElementById('customScript').value : '',
@@ -1931,7 +1962,7 @@
                 title: lastGeneratedDrop.script.length > 50 ? lastGeneratedDrop.script.substring(0, 50) + '...' : lastGeneratedDrop.script,
                 script: lastGeneratedDrop.script,
                 url: lastGeneratedDrop.download_url,
-                genre: document.getElementById('genre').value,
+                genre: currentMode === 'strict' ? document.getElementById('strictGenre').value : document.getElementById('genre').value,
                 date: new Date().toLocaleDateString(),
                 project: lastGeneratedDrop.project,
                 dj_name: document.getElementById('djName').value || 'DJ Beshi'
@@ -2114,7 +2145,6 @@
                     dropType: document.getElementById('dropType')?.value,
                     mood: document.getElementById('mood')?.value,
                     energy: document.getElementById('energy')?.value,
-                    strictEnergy: document.getElementById('strictEnergy')?.value,
                     voice: document.getElementById('voice')?.value,
                     customScript: document.getElementById('customScript')?.value,
                     trainingExample: document.getElementById('trainingExample')?.value,
@@ -2189,10 +2219,6 @@
                 if (draft.energy) {
                     document.getElementById('energy').value = draft.energy;
                     updateEnergyFill();
-                }
-                if (draft.strictEnergy) {
-                    document.getElementById('strictEnergy').value = draft.strictEnergy;
-                    updateStrictEnergyFill();
                 }
                 if (draft.voice) document.getElementById('voice').value = draft.voice;
                 if (draft.customScript) document.getElementById('customScript').value = draft.customScript;

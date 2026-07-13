@@ -1117,7 +1117,7 @@ class PremiumDJScriptAI:
 
 
 # ============================================================
-# AUDIO / FX ENGINE - LOUD VERSION
+# AUDIO / FX ENGINE - LOUD VERSION (with louder amapiano)
 # ============================================================
 
 class PremiumAudioStudio:
@@ -1154,10 +1154,14 @@ class PremiumAudioStudio:
                 "space": "aecho=0.80:0.50:700|900:0.12|0.08",
                 "phaser": "aphaser=speed=0.25:decay=0.40",
                 "stereo": cls.safe_stereo(0.03),
+                # ** LOUDER: vocal gain up, loudness target up **
+                "vocal_gain": 1.5,
+                "loudness": "loudnorm=I=-7:TP=-0.5:LRA=5",
                 "duck_threshold": "0.025",
                 "duck_release": "400",
                 "bg_gain": 0.22,
-                "vocal_gain": 1.3
+                # also boost the limiter slightly
+                "limiter": "alimiter=limit=0.95:level=1"
             })
             if energy >= 8:
                 profile["space"] = "aecho=0.82:0.55:650|850:0.16|0.10"
@@ -2274,12 +2278,6 @@ def api_payment_initiate():
         store.create_payment(tx_ref, device_id, pkg['price'], method)
         
         # In production, integrate Flutterwave or Daraja here:
-        # 1. Call Flutterwave API with MERCHANT_PHONE as business account
-        # 2. Initiate STK push to user's phone
-        # 3. Return pending status
-        
-        # For now, return mock structure with instructions
-        # The actual merchant number is used server-side only
         response = {
             "success": True,
             "tx_ref": tx_ref,
@@ -2292,25 +2290,8 @@ def api_payment_initiate():
                 "manual": f"Go to M-Pesa → Lipa na M-Pesa → Paybill. Enter Business Number and Account Number shown in your app."
             },
             "verification_url": f"/api/payment/verify",
-            "mock_mode": True  # Remove this when you add real Flutterwave keys
+            "mock_mode": True
         }
-        
-        # If you have Flutterwave secret, uncomment below:
-        # headers = {
-        #     "Authorization": f"Bearer {FLUTTERWAVE_SECRET}",
-        #     "Content-Type": "application/json"
-        # }
-        # payload = {
-        #     "tx_ref": tx_ref,
-        #     "amount": pkg['price'],
-        #     "currency": CURRENCY,
-        #     "payment_options": "mpesa",
-        #     "customer": {"phonenumber": user_phone, "name": "DJ Drop User"},
-        #     "customizations": {"title": "DJ Drop Factory Credits"},
-        #     "redirect_url": PAYMENT_CALLBACK
-        # }
-        # fw_res = requests.post("https://api.flutterwave.com/v3/payments", json=payload, headers=headers)
-        # response['flutterwave_link'] = fw_res.json().get('data', {}).get('link')
         
         return jsonify(response)
         
@@ -2322,7 +2303,6 @@ def api_payment_initiate():
 def api_payment_verify():
     """
     Verifies a payment and credits the user.
-    In production, this should check Flutterwave/Daraja status.
     """
     try:
         data = request.get_json()
@@ -2336,19 +2316,10 @@ def api_payment_verify():
         if not payment:
             return jsonify({"success": False, "error": "Transaction not found"}), 404
         
-        # MOCK VERIFICATION (remove in production)
-        # In production, call Flutterwave verify API:
-        # verify_url = f"https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref={tx_ref}"
-        # headers = {"Authorization": f"Bearer {FLUTTERWAVE_SECRET}"}
-        # r = requests.get(verify_url, headers=headers)
-        # if r.json()['status'] == 'success': ...
-        
-        # For demo, auto-verify after 5 seconds or check mock flag
         mock_verify = data.get("mock_verify", False)
         if mock_verify or payment['status'] == 'pending':
             store.verify_payment(tx_ref)
             
-            # Determine package from amount
             amount = payment['amount']
             if amount <= 50:
                 credits, days = 5, 0
@@ -2362,7 +2333,6 @@ def api_payment_verify():
             user = store.get_or_create_user(device_id)
             
             if days > 0:
-                # Subscription
                 expires = datetime.now() + timedelta(days=days)
                 conn = sqlite3.connect(store.db_path)
                 cursor = conn.cursor()
@@ -2373,7 +2343,6 @@ def api_payment_verify():
                 conn.commit()
                 conn.close()
             else:
-                # Credits pack
                 store.add_credits(device_id, credits)
                 conn = sqlite3.connect(store.db_path)
                 cursor = conn.cursor()
@@ -2405,10 +2374,6 @@ def api_payment_verify():
 
 @app.route("/api/payment/callback", methods=["POST", "GET"])
 def api_payment_callback():
-    """
-    Webhook for payment provider callbacks.
-    Flutterwave/Daraja will POST here when payment completes.
-    """
     try:
         data = request.get_json() or request.args.to_dict()
         tx_ref = data.get("txRef") or data.get("tx_ref")
@@ -2416,7 +2381,6 @@ def api_payment_callback():
         
         if tx_ref and status == "successful":
             store.verify_payment(tx_ref)
-            # Lookup device_id from payment and credit user...
         
         return jsonify({"success": True}), 200
     except Exception as e:
