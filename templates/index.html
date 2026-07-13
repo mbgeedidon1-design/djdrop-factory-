@@ -1111,13 +1111,23 @@
                 </div>
             </div>
 
-            <!-- Strict Mode Form -->
+            <!-- Strict Mode Form (UPDATED with Energy Slider) -->
             <div id="strictForm" style="display: none;">
                 <div class="section-card">
                     <div class="section-header">✍️ Your Script</div>
                     <div class="form-group">
                         <textarea class="form-textarea" id="customScript" placeholder="Type exactly what you want the DJ to say..."></textarea>
                     </div>
+                    
+                    <!-- NEW: Energy Slider for Strict Mode -->
+                    <div class="slider-wrap">
+                        <div class="slider-header">
+                            <span class="slider-label">Energy Level</span>
+                            <span class="slider-value" id="strictEnergyValue">8</span>
+                        </div>
+                        <input type="range" id="strictEnergy" min="1" max="10" value="8" style="--progress: 80%">
+                    </div>
+                    
                     <div class="section-header">🧙 String Tools</div>
                     <div class="string-tools-grid">
                         <button class="string-tool-btn" onclick="applyStringTool('capitalize')">Aa Capitalize</button>
@@ -1572,7 +1582,7 @@
             document.getElementById('reviewVoice').textContent = document.getElementById('voice').options[document.getElementById('voice').selectedIndex].text.replace(/^.\s/, '');
         }
 
-        // ==================== ENERGY SLIDER ====================
+        // ==================== ENERGY SLIDER (AI MODE) ====================
         const energySlider = document.getElementById('energy');
         const energyValue = document.getElementById('energyValue');
         function updateEnergyFill() {
@@ -1584,6 +1594,19 @@
         }
         energySlider.addEventListener('input', updateEnergyFill);
         updateEnergyFill();
+
+        // ==================== ENERGY SLIDER (STRICT MODE) ====================
+        const strictEnergySlider = document.getElementById('strictEnergy');
+        const strictEnergyValue = document.getElementById('strictEnergyValue');
+        function updateStrictEnergyFill() {
+            const min = parseFloat(strictEnergySlider.min);
+            const max = parseFloat(strictEnergySlider.max);
+            const pct = ((strictEnergySlider.value - min) / (max - min)) * 100;
+            strictEnergySlider.style.setProperty('--progress', pct + '%');
+            strictEnergyValue.textContent = strictEnergySlider.value;
+        }
+        strictEnergySlider.addEventListener('input', updateStrictEnergyFill);
+        updateStrictEnergyFill();
 
         // ==================== TOGGLE SWITCH ====================
         function toggleSwitch(el) {
@@ -1837,7 +1860,12 @@
                 genre: document.getElementById('genre').value,
                 drop_type: document.getElementById('dropType').value,
                 mood: document.getElementById('mood').value,
-                energy: parseInt(document.getElementById('energy').value, 10),
+                energy: parseInt(
+                    currentMode === 'strict' 
+                        ? document.getElementById('strictEnergy').value 
+                        : document.getElementById('energy').value, 
+                    10
+                ),
                 voice: document.getElementById('voice').value,
                 city: document.getElementById('city').value,
                 use_stutter: document.getElementById('autoStutterToggle').classList.contains('on'),
@@ -2086,6 +2114,7 @@
                     dropType: document.getElementById('dropType')?.value,
                     mood: document.getElementById('mood')?.value,
                     energy: document.getElementById('energy')?.value,
+                    strictEnergy: document.getElementById('strictEnergy')?.value,
                     voice: document.getElementById('voice')?.value,
                     customScript: document.getElementById('customScript')?.value,
                     trainingExample: document.getElementById('trainingExample')?.value,
@@ -2160,6 +2189,10 @@
                 if (draft.energy) {
                     document.getElementById('energy').value = draft.energy;
                     updateEnergyFill();
+                }
+                if (draft.strictEnergy) {
+                    document.getElementById('strictEnergy').value = draft.strictEnergy;
+                    updateStrictEnergyFill();
                 }
                 if (draft.voice) document.getElementById('voice').value = draft.voice;
                 if (draft.customScript) document.getElementById('customScript').value = draft.customScript;
