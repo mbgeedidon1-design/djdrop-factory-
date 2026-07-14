@@ -1083,6 +1083,34 @@
                             <label class="form-label" for="userStutter">Custom Stutter (optional)</label>
                             <input type="text" class="form-input" id="userStutter" placeholder="e.g. D-D-DJ Beshi">
                         </div>
+                        <!-- FX Mode -->
+                        <div class="form-group">
+                            <label class="form-label" for="fxMode">FX Mode</label>
+                            <select class="form-select" id="fxMode">
+                                <option value="auto" selected>⚙️ Auto (Genre adaptive)</option>
+                                <option value="dry">🚫 Dry (No FX)</option>
+                                <option value="clean">🧼 Clean (Subtle polish)</option>
+                                <option value="light">💡 Light</option>
+                                <option value="heavy">🔥 Heavy</option>
+                                <option value="insane">🤯 Insane</option>
+                            </select>
+                        </div>
+                        <!-- Vocal Gain Slider -->
+                        <div class="slider-wrap">
+                            <div class="slider-header">
+                                <span class="slider-label">Vocal Gain</span>
+                                <span class="slider-value" id="vocalGainValue">1.8</span>
+                            </div>
+                            <input type="range" id="vocalGain" min="0.5" max="3.0" step="0.1" value="1.8" style="--progress: 60%">
+                        </div>
+                        <!-- Background Gain Slider -->
+                        <div class="slider-wrap">
+                            <div class="slider-header">
+                                <span class="slider-label">Background Gain</span>
+                                <span class="slider-value" id="bgGainValue">0.25</span>
+                            </div>
+                            <input type="range" id="bgGain" min="0.0" max="1.0" step="0.05" value="0.25" style="--progress: 25%">
+                        </div>
                         <div class="btn-wizard-nav">
                             <button class="btn-secondary" onclick="wizardPrev(3)">← Back</button>
                             <button class="btn-primary" onclick="wizardNext(3)">Next →</button>
@@ -1102,6 +1130,9 @@
                             <div class="review-item"><span class="review-label">Mood</span><span class="review-value" id="reviewMood">Aggressive</span></div>
                             <div class="review-item"><span class="review-label">Energy</span><span class="review-value" id="reviewEnergy">8/10</span></div>
                             <div class="review-item"><span class="review-label">Voice</span><span class="review-value" id="reviewVoice">Afro-Vibe</span></div>
+                            <div class="review-item"><span class="review-label">FX Mode</span><span class="review-value" id="reviewFxMode">Auto</span></div>
+                            <div class="review-item"><span class="review-label">Vocal Gain</span><span class="review-value" id="reviewVocalGain">1.8x</span></div>
+                            <div class="review-item"><span class="review-label">BG Gain</span><span class="review-value" id="reviewBgGain">0.25</span></div>
                         </div>
                         <div class="btn-wizard-nav">
                             <button class="btn-secondary" onclick="wizardPrev(4)">← Back</button>
@@ -1111,7 +1142,7 @@
                 </div>
             </div>
 
-            <!-- Strict Mode Form (UPDATED: includes genre, energy, voice) -->
+            <!-- Strict Mode Form (UPDATED: includes genre, energy, voice, FX mode, vocal/bg gains) -->
             <div id="strictForm" style="display: none;">
                 <div class="section-card">
                     <div class="section-header">🎛️ Audio Settings</div>
@@ -1144,6 +1175,31 @@
                             <option value="6">👩 Warm Afro Voice (Female NG)</option>
                             <option value="7">✨ Auto by Genre</option>
                         </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="strictFxMode">FX Mode</label>
+                        <select class="form-select" id="strictFxMode">
+                            <option value="auto" selected>⚙️ Auto</option>
+                            <option value="dry">🚫 Dry</option>
+                            <option value="clean">🧼 Clean</option>
+                            <option value="light">💡 Light</option>
+                            <option value="heavy">🔥 Heavy</option>
+                            <option value="insane">🤯 Insane</option>
+                        </select>
+                    </div>
+                    <div class="slider-wrap">
+                        <div class="slider-header">
+                            <span class="slider-label">Vocal Gain</span>
+                            <span class="slider-value" id="strictVocalGainValue">1.8</span>
+                        </div>
+                        <input type="range" id="strictVocalGain" min="0.5" max="3.0" step="0.1" value="1.8" style="--progress: 60%">
+                    </div>
+                    <div class="slider-wrap">
+                        <div class="slider-header">
+                            <span class="slider-label">Background Gain</span>
+                            <span class="slider-value" id="strictBgGainValue">0.25</span>
+                        </div>
+                        <input type="range" id="strictBgGain" min="0.0" max="1.0" step="0.05" value="0.25" style="--progress: 25%">
                     </div>
                 </div>
 
@@ -1604,6 +1660,9 @@
             document.getElementById('reviewMood').textContent = document.getElementById('mood').options[document.getElementById('mood').selectedIndex].text.replace(/^.\s/, '');
             document.getElementById('reviewEnergy').textContent = document.getElementById('energy').value + '/10';
             document.getElementById('reviewVoice').textContent = document.getElementById('voice').options[document.getElementById('voice').selectedIndex].text.replace(/^.\s/, '');
+            document.getElementById('reviewFxMode').textContent = document.getElementById('fxMode').options[document.getElementById('fxMode').selectedIndex].text.replace(/^.\s/, '');
+            document.getElementById('reviewVocalGain').textContent = document.getElementById('vocalGain').value + 'x';
+            document.getElementById('reviewBgGain').textContent = document.getElementById('bgGain').value;
         }
 
         // ==================== ENERGY SLIDER (Wizard) ====================
@@ -1619,7 +1678,31 @@
         energySlider.addEventListener('input', updateEnergyFill);
         updateEnergyFill();
 
-        // ==================== ENERGY SLIDER (Strict Mode) ====================
+        // ==================== VOCAL GAIN SLIDER ====================
+        const vocalGainSlider = document.getElementById('vocalGain');
+        const vocalGainValue = document.getElementById('vocalGainValue');
+        function updateVocalGainFill() {
+            const val = parseFloat(vocalGainSlider.value);
+            const pct = ((val - 0.5) / (3.0 - 0.5)) * 100;
+            vocalGainSlider.style.setProperty('--progress', pct + '%');
+            vocalGainValue.textContent = val.toFixed(1);
+        }
+        vocalGainSlider.addEventListener('input', updateVocalGainFill);
+        updateVocalGainFill();
+
+        // ==================== BG GAIN SLIDER ====================
+        const bgGainSlider = document.getElementById('bgGain');
+        const bgGainValue = document.getElementById('bgGainValue');
+        function updateBgGainFill() {
+            const val = parseFloat(bgGainSlider.value);
+            const pct = (val / 1.0) * 100;
+            bgGainSlider.style.setProperty('--progress', pct + '%');
+            bgGainValue.textContent = val.toFixed(2);
+        }
+        bgGainSlider.addEventListener('input', updateBgGainFill);
+        updateBgGainFill();
+
+        // ==================== STRICT MODE SLIDERS ====================
         function updateStrictEnergy() {
             const slider = document.getElementById('strictEnergy');
             const val = document.getElementById('strictEnergyValue');
@@ -1627,6 +1710,24 @@
             slider.style.setProperty('--progress', pct + '%');
             val.textContent = slider.value;
         }
+
+        const strictVocalGainSlider = document.getElementById('strictVocalGain');
+        const strictVocalGainValue = document.getElementById('strictVocalGainValue');
+        strictVocalGainSlider.addEventListener('input', () => {
+            const val = parseFloat(strictVocalGainSlider.value);
+            const pct = ((val - 0.5) / (3.0 - 0.5)) * 100;
+            strictVocalGainSlider.style.setProperty('--progress', pct + '%');
+            strictVocalGainValue.textContent = val.toFixed(1);
+        });
+
+        const strictBgGainSlider = document.getElementById('strictBgGain');
+        const strictBgGainValue = document.getElementById('strictBgGainValue');
+        strictBgGainSlider.addEventListener('input', () => {
+            const val = parseFloat(strictBgGainSlider.value);
+            const pct = (val / 1.0) * 100;
+            strictBgGainSlider.style.setProperty('--progress', pct + '%');
+            strictBgGainValue.textContent = val.toFixed(2);
+        });
 
         // ==================== TOGGLE SWITCH ====================
         function toggleSwitch(el) {
@@ -1870,24 +1971,29 @@
             debounceTimer = setTimeout(fetchCityVibe, 800);
         });
 
-        // ==================== GENERATE DROP (updated for strict mode) ====================
+        // ==================== GENERATE DROP (includes fx_mode, vocal_gain, bg_gain) ====================
         async function generateDrop() {
             showLoading('Generating your premium drop...');
 
-            // Choose which set of inputs to use based on mode
-            let genre, drop_type, mood, energy, voice;
+            let genre, drop_type, mood, energy, voice, fxMode, vocalGainVal, bgGainVal;
             if (currentMode === 'strict') {
                 genre = document.getElementById('strictGenre').value;
-                drop_type = 'intro'; // default for strict
+                drop_type = 'intro';
                 mood = 'hype';
                 energy = parseInt(document.getElementById('strictEnergy').value);
                 voice = document.getElementById('strictVoice').value;
+                fxMode = document.getElementById('strictFxMode').value;
+                vocalGainVal = parseFloat(document.getElementById('strictVocalGain').value);
+                bgGainVal = parseFloat(document.getElementById('strictBgGain').value);
             } else {
                 genre = document.getElementById('genre').value;
                 drop_type = document.getElementById('dropType').value;
                 mood = document.getElementById('mood').value;
                 energy = parseInt(document.getElementById('energy').value);
                 voice = document.getElementById('voice').value;
+                fxMode = document.getElementById('fxMode').value;
+                vocalGainVal = parseFloat(document.getElementById('vocalGain').value);
+                bgGainVal = parseFloat(document.getElementById('bgGain').value);
             }
 
             const data = {
@@ -1902,7 +2008,10 @@
                 use_stutter: document.getElementById('autoStutterToggle').classList.contains('on'),
                 custom_script: currentMode === 'strict' ? document.getElementById('customScript').value : '',
                 training_example: currentMode === 'training' ? document.getElementById('trainingExample').value : '',
-                user_stutter: document.getElementById('userStutter').value
+                user_stutter: document.getElementById('userStutter').value,
+                fx_mode: fxMode,
+                vocal_gain: vocalGainVal,
+                bg_gain: bgGainVal
             };
 
             try {
@@ -1937,7 +2046,6 @@
                     showToast('🔥 Drop generated successfully!');
                     localStorage.removeItem('df_draft');
                     if (liveEngine) liveEngine.clearServerDraft();
-                    // Update credits display
                     if (result.credits_remaining !== undefined) {
                         userCredits = result.credits_remaining;
                         updateCreditDisplay();
@@ -2106,7 +2214,7 @@
             }
         }
 
-        // ==================== LIVE ENGINE ====================
+        // ==================== LIVE ENGINE (unchanged except it picks up new sliders) ====================
         class LiveEngine {
             constructor() {
                 this.sessionId = this.getSessionId();
@@ -2149,6 +2257,9 @@
                     customScript: document.getElementById('customScript')?.value,
                     trainingExample: document.getElementById('trainingExample')?.value,
                     userStutter: document.getElementById('userStutter')?.value,
+                    fxMode: document.getElementById('fxMode')?.value,
+                    vocalGain: document.getElementById('vocalGain')?.value,
+                    bgGain: document.getElementById('bgGain')?.value,
                     timestamp: Date.now()
                 };
                 localStorage.setItem('df_draft', JSON.stringify(draft));
@@ -2224,6 +2335,15 @@
                 if (draft.customScript) document.getElementById('customScript').value = draft.customScript;
                 if (draft.trainingExample) document.getElementById('trainingExample').value = draft.trainingExample;
                 if (draft.userStutter) document.getElementById('userStutter').value = draft.userStutter;
+                if (draft.fxMode) document.getElementById('fxMode').value = draft.fxMode;
+                if (draft.vocalGain) {
+                    document.getElementById('vocalGain').value = draft.vocalGain;
+                    updateVocalGainFill();
+                }
+                if (draft.bgGain) {
+                    document.getElementById('bgGain').value = draft.bgGain;
+                    updateBgGainFill();
+                }
                 if (draft.mode) {
                     const modeIndex = {'ai': 0, 'strict': 1, 'training': 2}[draft.mode] || 0;
                     const seg = document.querySelectorAll('.segment')[modeIndex];
@@ -2529,7 +2649,6 @@
 
         async function showPaymentModal() {
             document.getElementById('paymentModal').classList.add('show');
-            // Load packages
             try {
                 const res = await fetch('/api/payment/packages');
                 const data = await res.json();
@@ -2544,7 +2663,6 @@
                             <div class="package-desc">${pkg.description}</div>
                         </div>
                     `).join('');
-                    // Auto-select standard
                     selectedPackage = data.packages[1];
                 }
             } catch (e) { showToast('❌ Failed to load packages'); }
@@ -2597,7 +2715,6 @@
                 
                 if (data.success) {
                     showToast('📱 Check your phone for payment prompt');
-                    // Poll for verification (mock mode auto-verifies)
                     setTimeout(() => verifyPayment(data.tx_ref), 3000);
                 } else {
                     showToast('❌ ' + (data.error || 'Payment failed'));

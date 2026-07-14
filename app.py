@@ -1117,7 +1117,7 @@ class PremiumDJScriptAI:
 
 
 # ============================================================
-# AUDIO / FX ENGINE - LOUD VERSION (with louder amapiano)
+# AUDIO / FX ENGINE - LOUD VERSION (with louder amapiano and clean mode)
 # ============================================================
 
 class PremiumAudioStudio:
@@ -1139,12 +1139,14 @@ class PremiumAudioStudio:
             "space": "",
             "phaser": "",
             "stereo": "",
-            "loudness": "loudnorm=I=-10:TP=-0.5:LRA=5",
+            # increased loudness target for extra volume
+            "loudness": "loudnorm=I=-9:TP=-0.5:LRA=5",
             "limiter": "alimiter=limit=0.95:level=1",
             "duck_threshold": "0.02",
             "duck_release": "200",
-            "bg_gain": 0.20,
-            "vocal_gain": 1.2
+            # boosted defaults for all genres
+            "bg_gain": 0.25,
+            "vocal_gain": 1.8
         }
         if style == "amapiano":
             profile.update({
@@ -1154,13 +1156,10 @@ class PremiumAudioStudio:
                 "space": "aecho=0.80:0.50:700|900:0.12|0.08",
                 "phaser": "aphaser=speed=0.25:decay=0.40",
                 "stereo": cls.safe_stereo(0.03),
-                # ** LOUDER: vocal gain up, loudness target up **
-                "vocal_gain": 1.5,
-                "loudness": "loudnorm=I=-7:TP=-0.5:LRA=5",
+                "vocal_gain": 2.0,   # even louder for amapiano
+                "bg_gain": 0.28,
                 "duck_threshold": "0.025",
                 "duck_release": "400",
-                "bg_gain": 0.22,
-                # also boost the limiter slightly
                 "limiter": "alimiter=limit=0.95:level=1"
             })
             if energy >= 8:
@@ -1175,8 +1174,8 @@ class PremiumAudioStudio:
                 "stereo": cls.safe_stereo(0.03),
                 "duck_threshold": "0.03",
                 "duck_release": "150",
-                "bg_gain": 0.20,
-                "vocal_gain": 1.4
+                "bg_gain": 0.25,
+                "vocal_gain": 1.9
             })
             if energy >= 8:
                 profile["echo"] = "aecho=0.85:0.58:180|260:0.16|0.10"
@@ -1188,8 +1187,8 @@ class PremiumAudioStudio:
                 "slap": "aecho=0.72:0.38:95:0.10",
                 "duck_threshold": "0.03",
                 "duck_release": "160",
-                "bg_gain": 0.15,
-                "vocal_gain": 1.2
+                "bg_gain": 0.20,
+                "vocal_gain": 1.7
             })
         elif style == "afrobeat":
             profile.update({
@@ -1200,8 +1199,8 @@ class PremiumAudioStudio:
                 "stereo": cls.safe_stereo(0.03),
                 "duck_threshold": "0.028",
                 "duck_release": "300",
-                "bg_gain": 0.22,
-                "vocal_gain": 1.3
+                "bg_gain": 0.25,
+                "vocal_gain": 1.85
             })
         elif style == "trap":
             profile.update({
@@ -1212,8 +1211,8 @@ class PremiumAudioStudio:
                 "stereo": cls.safe_stereo(0.04),
                 "duck_threshold": "0.025",
                 "duck_release": "250",
-                "bg_gain": 0.20,
-                "vocal_gain": 1.35
+                "bg_gain": 0.25,
+                "vocal_gain": 1.9
             })
         else:
             profile.update({
@@ -1224,8 +1223,8 @@ class PremiumAudioStudio:
                 "stereo": cls.safe_stereo(0.04),
                 "duck_threshold": "0.025",
                 "duck_release": "280",
-                "bg_gain": 0.21,
-                "vocal_gain": 1.4
+                "bg_gain": 0.25,
+                "vocal_gain": 1.85
             })
             if energy >= 8:
                 profile["echo"] = "aecho=0.87:0.68:160|320:0.26|0.14"
@@ -1242,7 +1241,14 @@ class PremiumAudioStudio:
         chain.append(p["deesser_eq"])
         style_key = style.lower().strip()
         if fx_mode == "dry":
+            # no additional effects
             pass
+        elif fx_mode == "clean":
+            # very light processing: just a touch of stereo and maybe a soft reverb for polish
+            if p["stereo"]:
+                chain.append(p["stereo"])
+            # subtle space for clean presence
+            chain.append("aecho=0.6:0.3:1200:0.04")
         elif fx_mode == "light":
             if p["slap"]:
                 chain.append(p["slap"])
@@ -1261,7 +1267,7 @@ class PremiumAudioStudio:
             if p["phaser"]: chain.append(p["phaser"])
             if p["stereo"]: chain.append(p["stereo"])
             chain.append("acompressor=threshold=-12dB:ratio=4:attack=2:release=80")
-        else:
+        else:  # auto: original logic
             if style_key == "radio":
                 if p["slap"]: chain.append(p["slap"])
             elif style_key == "dancehall":
