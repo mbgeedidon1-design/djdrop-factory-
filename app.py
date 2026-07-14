@@ -6,7 +6,8 @@
 #           Web Data Puller, String Wizard, Wizard Validation,
 #           LIVE Draft Sync, Live Preview, Heartbeat,
 #           DJ Directory, Streaming Apps, Festival Guide,
-#           Theater Streaming, Payment & Credits System
+#           Theater Streaming, Payment & Credits System,
+#           Tokenized Internal Search, Free Web Search (DuckDuckGo)
 # ============================================================
 
 import os
@@ -369,17 +370,45 @@ class DataStore:
         }
     
     def search(self, term):
+        """
+        Advanced tokenized search engine. 
+        Splits queries into tokens and ensures all tokens match across any text fields.
+        """
+        term = (term or "").strip()
+        if not term:
+            return {table: [] for table in ["dj_groups", "streaming_apps", "dj_software", "festivals_events", "theater_streaming"]}
+            
+        # Tokenize query (e.g., "Tomorrowland Thailand" -> ["Tomorrowland", "Thailand"])
+        tokens = [f"%{t}%" for t in term.split() if t.strip()]
+        if not tokens:
+            return {}
+            
         tables = ["dj_groups", "streaming_apps", "dj_software", "festivals_events", "theater_streaming"]
         results = {}
+        
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
+        
         for table in tables:
+            # Dynamically fetch column names to prevent SQL errors if schema changes
             cursor.execute(f"PRAGMA table_info({table})")
             columns = [row[1] for row in cursor.fetchall()]
-            conditions = " OR ".join([f"{col} LIKE ?" for col in columns])
-            cursor.execute(f"SELECT * FROM {table} WHERE {conditions}", [f"%{term}%"] * len(columns))
+            
+            # Build query: For every token, at least one column must match (AND grouping)
+            clauses = []
+            params = []
+            for token in tokens:
+                token_clause = " OR ".join([f"{col} LIKE ?" for col in columns])
+                clauses.append(f"({token_clause})")
+                params.extend([token] * len(columns))
+            
+            where_clause = " AND ".join(clauses)
+            sql = f"SELECT * FROM {table} WHERE {where_clause} ORDER BY id DESC"
+            
+            cursor.execute(sql, params)
             results[table] = [dict(row) for row in cursor.fetchall()]
+            
         conn.close()
         return results
     
@@ -2160,7 +2189,7 @@ def delete_from_library(drop_id):
 
 
 # ============================================================
-# NEW: DISCOVER / DATA API ROUTES
+# DISCOVER / DATA API ROUTES
 # ============================================================
 
 @app.route("/api/all")
@@ -2219,8 +2248,6 @@ def api_theater_streaming():
 @app.route("/api/search")
 def api_search():
     term = request.args.get("q", "")
-    if not term:
-        return jsonify({"success": False, "error": "Missing 'q' parameter"}), 400
     return jsonify({
         "success": True,
         "results": store.search(term)
@@ -2228,7 +2255,62 @@ def api_search():
 
 
 # ============================================================
-# NEW: PAYMENT & CREDITS SYSTEM
+# FREE WEB SEARCH (DuckDuckGo Instant Answer API)
+# ============================================================
+@app.route("/api/web_search")
+def api_web_search():
+    query = request.args.get("q", "").strip()
+    if not query:
+        return jsonify({"success": False, "error": "No search term"}), 400
+
+    if not has_internet():
+        return jsonify({"success": False, "error": "Offline – no web access"}), 503
+
+    try:
+        # DuckDuckGo's free public API (no API key needed)
+        url = f"https://api.duckduckgo.com/?q={urllib.parse.quote(query)}&format=json&no_html=1&skip_disambig=1"
+        req = urllib.request.Request(url, headers={'User-Agent': 'DJDropFactory/5.0'})
+        with urllib.request.urlopen(req, timeout=6) as resp:
+            data = json.loads(resp.read())
+
+        results = []
+
+        # Main abstract (summary + link)
+        if data.get("AbstractText") and data.get("AbstractURL"):
+            results.append({
+                "title": data.get("AbstractSource") or "Web Result",
+                "snippet": data.get("AbstractText"),
+                "url": data.get("AbstractURL"),
+                "source": "duckduckgo"
+            })
+
+        # Related topics
+        for topic in data.get("RelatedTopics", []):
+            if isinstance(topic, dict) and "Text" in topic and "FirstURL" in topic:
+                text = topic["Text"]
+                if " - " in text:
+                    title, desc = text.split(" - ", 1)
+                else:
+                    title = text[:60] + ("…" if len(text) > 60 else "")
+                    desc = text
+                results.append({
+                    "title": title.strip(),
+                    "snippet": desc.strip(),
+                    "url": topic["FirstURL"],
+                    "source": "duckduckgo"
+                })
+
+        return jsonify({
+            "success": True,
+            "results": results[:8]
+        })
+
+    except Exception as e:
+        return jsonify({"success": False, "error": f"Web search failed: {str(e)}"}), 500
+
+
+# ============================================================
+# PAYMENT & CREDITS SYSTEM
 # ============================================================
 
 @app.route("/api/user/credits")
@@ -2258,16 +2340,12 @@ def api_payment_packages():
 
 @app.route("/api/payment/initiate", methods=["POST"])
 def api_payment_initiate():
-    """
-    Initiates a payment. The merchant phone is NEVER exposed to frontend.
-    Returns a transaction reference for the user to complete payment.
-    """
     try:
         data = request.get_json()
         device_id = request.headers.get('X-Device-ID', 'anonymous')
         package_id = data.get("package_id", "basic")
-        user_phone = data.get("phone", "").strip()  # User's phone for STK push
-        method = data.get("method", "mpesa")  # mpesa, card, bank
+        user_phone = data.get("phone", "").strip()
+        method = data.get("method", "mpesa")
         
         packages = {
             "basic": {"credits": 5, "price": 50},
@@ -2283,7 +2361,6 @@ def api_payment_initiate():
         tx_ref = f"DJF-{device_id[:8]}-{int(time.time())}"
         store.create_payment(tx_ref, device_id, pkg['price'], method)
         
-        # In production, integrate Flutterwave or Daraja here:
         response = {
             "success": True,
             "tx_ref": tx_ref,
@@ -2307,9 +2384,6 @@ def api_payment_initiate():
 
 @app.route("/api/payment/verify", methods=["POST"])
 def api_payment_verify():
-    """
-    Verifies a payment and credits the user.
-    """
     try:
         data = request.get_json()
         tx_ref = data.get("tx_ref")
@@ -2423,5 +2497,6 @@ if __name__ == "__main__":
     print("          LIVE Draft Sync | Live Preview | Heartbeat")
     print("          DJ Directory | Streaming Guide | Festival Guide")
     print("          Theater Streaming | Payment & Credits System")
+    print("          Advanced Tokenized Search | Free Web Search (DuckDuckGo)")
     print("=" * 60)
     app.run(host="0.0.0.0", port=5000, debug=True)

@@ -643,7 +643,7 @@
         }
         .credits a { color: var(--accent); text-decoration: none; }
 
-        /* ==================== NEW: DISCOVER SCREEN ==================== */
+        /* ==================== DISCOVER SCREEN ==================== */
         .discover-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -721,7 +721,7 @@
             margin-right: 4px;
         }
 
-        /* ==================== NEW: PAYMENT / PREMIUM ==================== */
+        /* ==================== PAYMENT / PREMIUM ==================== */
         .premium-badge {
             display: inline-flex;
             align-items: center;
@@ -1142,7 +1142,7 @@
                 </div>
             </div>
 
-            <!-- Strict Mode Form (UPDATED: includes genre, energy, voice, FX mode, vocal/bg gains) -->
+            <!-- Strict Mode Form -->
             <div id="strictForm" style="display: none;">
                 <div class="section-card">
                     <div class="section-header">🎛️ Audio Settings</div>
@@ -1376,11 +1376,16 @@
             <!-- Search -->
             <div class="search-bar">
                 <span class="search-icon">🔍</span>
-                <input type="text" id="discoverSearch" placeholder="Search DJs, apps, festivals..." oninput="debounceSearch(this.value)">
+                <input type="text" id="discoverSearch" placeholder="Search DJs, apps, festivals, or the web..." oninput="debounceSearch(this.value)">
             </div>
 
-            <!-- Results List -->
+            <!-- Internal Results -->
             <div class="data-list" id="discoverList"></div>
+
+            <!-- Web Results -->
+            <div class="data-list" id="webResults" style="display:none;">
+                <div class="section-header" style="margin-top:16px;">🌐 Web Results</div>
+            </div>
         </div>
 
         <!-- ==================== SETTINGS SCREEN ==================== -->
@@ -1665,7 +1670,7 @@
             document.getElementById('reviewBgGain').textContent = document.getElementById('bgGain').value;
         }
 
-        // ==================== ENERGY SLIDER (Wizard) ====================
+        // ==================== ENERGY SLIDER ====================
         const energySlider = document.getElementById('energy');
         const energyValue = document.getElementById('energyValue');
         function updateEnergyFill() {
@@ -1971,7 +1976,7 @@
             debounceTimer = setTimeout(fetchCityVibe, 800);
         });
 
-        // ==================== GENERATE DROP (includes fx_mode, vocal_gain, bg_gain) ====================
+        // ==================== GENERATE DROP ====================
         async function generateDrop() {
             showLoading('Generating your premium drop...');
 
@@ -2214,7 +2219,7 @@
             }
         }
 
-        // ==================== LIVE ENGINE (unchanged except it picks up new sliders) ====================
+        // ==================== LIVE ENGINE ====================
         class LiveEngine {
             constructor() {
                 this.sessionId = this.getSessionId();
@@ -2520,6 +2525,8 @@
 
         async function showDiscoverList(type) {
             const list = document.getElementById('discoverList');
+            const webContainer = document.getElementById('webResults');
+            if (webContainer) webContainer.style.display = 'none';
             list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">Loading...</div>';
             try {
                 let url = `/api/${type}`;
@@ -2592,24 +2599,75 @@
             }).join('');
         }
 
+        function renderWebResults(results) {
+            const container = document.getElementById('webResults');
+            if (!container) return;
+            let html = '<div class="section-header" style="margin-top:16px;">🌐 Web Results</div>';
+            results.forEach(item => {
+                html += `
+                    <div class="data-item" onclick="window.open('${escapeHtml(item.url)}', '_blank')" style="cursor:pointer;">
+                        <div class="data-item-title">${escapeHtml(item.title)}</div>
+                        <div class="data-item-meta">${escapeHtml(item.snippet).substring(0, 150)}…</div>
+                        <div class="data-item-tag">🔗 ${escapeHtml(item.source)}</div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+            container.style.display = 'block';
+        }
+
         let searchDebounce;
         function debounceSearch(term) {
             clearTimeout(searchDebounce);
             searchDebounce = setTimeout(() => {
-                if (!term.trim()) {
+                const trimmed = term.trim();
+                const webContainer = document.getElementById('webResults');
+                const listContainer = document.getElementById('discoverList');
+
+                // Always search internal database
+                if (!trimmed) {
                     loadDiscoverAll();
+                    if (webContainer) webContainer.style.display = 'none';
                     return;
                 }
-                fetch(`/api/search?q=${encodeURIComponent(term)}`)
+
+                // Internal search (uses the advanced tokenized search on backend)
+                fetch(`/api/search?q=${encodeURIComponent(trimmed)}`)
                     .then(r => r.json())
                     .then(data => {
                         if (data.success) {
                             let all = [];
                             Object.values(data.results).forEach(arr => all.push(...arr));
-                            renderDiscoverItems(all, 'search');
+                            renderDiscoverItems(all, 'internal');
+                        } else {
+                            listContainer.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);">No results</div>';
                         }
                     })
-                    .catch(() => showToast('❌ Search failed'));
+                    .catch(() => {
+                        listContainer.innerHTML = '<div style="text-align:center;padding:20px;color:var(--error);">Search failed</div>';
+                    });
+
+                // Web search (only if online)
+                fetch('/api/status')
+                    .then(r => r.json())
+                    .then(status => {
+                        if (status.online) {
+                            fetch(`/api/web_search?q=${encodeURIComponent(trimmed)}`)
+                                .then(r => r.json())
+                                .then(webData => {
+                                    if (webData.success && webData.results && webData.results.length > 0) {
+                                        renderWebResults(webData.results);
+                                    } else {
+                                        if (webContainer) webContainer.style.display = 'none';
+                                    }
+                                })
+                                .catch(() => {
+                                    if (webContainer) webContainer.style.display = 'none';
+                                });
+                        } else {
+                            if (webContainer) webContainer.style.display = 'none';
+                        }
+                    });
             }, 400);
         }
 
