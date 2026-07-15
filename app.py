@@ -13,12 +13,13 @@
 # vocal straight through, so they sounded loud by comparison.
 #
 # Features: AI Training, Loud Audio, Voice Effects, Library API,
-# Web Data Puller, String Wizard, Wizard Validation,
-# LIVE Draft Sync, Live Preview, Heartbeat,
-# DJ Directory, Streaming Apps, Festival Guide,
-# Theater Streaming, Payment & Credits System,
-# Tokenized Internal Search, Free Web Search (DuckDuckGo)
+#           Web Data Puller, String Wizard, Wizard Validation,
+#           LIVE Draft Sync, Live Preview, Heartbeat,
+#           DJ Directory, Streaming Apps, Festival Guide,
+#           Theater Streaming, Payment & Credits System,
+#           Tokenized Internal Search, Free Web Search (DuckDuckGo)
 # ============================================================
+
 import os
 import re
 import random
@@ -35,6 +36,7 @@ import threading
 from pathlib import Path
 from datetime import datetime, timedelta
 from io import BytesIO
+
 from flask import Flask, render_template, request, jsonify, send_file, send_from_directory, make_response
 import edge_tts
 
@@ -47,17 +49,18 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 TRAINING_DIR = BASE_DIR / "training_data"
 TRAINING_DIR.mkdir(exist_ok=True)
 
-# ========================
+# ============================================================
 # CONFIG & SECRETS
-# ========================
+# ============================================================
 MERCHANT_PHONE = os.environ.get("MERCHANT_PHONE", "254748322641")  # Server-side only
-FLUTTERWAVE_SECRET = os.environ.get("FLUTTERWAVE_SECRET", "")  # Get from dashboard
+FLUTTERWAVE_SECRET = os.environ.get("FLUTTERWAVE_SECRET", "")      # Get from dashboard
 PAYMENT_CALLBACK = os.environ.get("PAYMENT_CALLBACK", "https://yourapp.onrender.com/api/payment/callback")
 CURRENCY = os.environ.get("CURRENCY", "KES")
 
-# ========================
+# ============================================================
 # PERFORMANCE: Response compression & caching headers
-# ========================
+# ============================================================
+
 @app.after_request
 def after_request(response):
     response.headers["X-Content-Type-Options"] = "nosniff"
@@ -70,7 +73,7 @@ def after_request(response):
                 buffer = BytesIO()
                 gzip.GzipFile(fileobj=buffer, mode='w').write(response.get_data())
                 compressed = buffer.getvalue()
-                if len(compressed) <= response.content_length:
+                if len(compressed) < response.content_length:
                     response.set_data(compressed)
                     response.headers['Content-Encoding'] = 'gzip'
                     response.headers['Content-Length'] = len(compressed)
@@ -78,9 +81,11 @@ def after_request(response):
                 pass
     return response
 
-# ========================
+
+# ============================================================
 # TOOLS CHECK
-# ========================
+# ============================================================
+
 def has_internet(timeout=3):
     try:
         urllib.request.urlopen('https://www.google.com', timeout=timeout)
@@ -98,23 +103,26 @@ FFMPEG_AVAILABLE = check_ffmpeg() is not None
 ESPEAK_AVAILABLE = check_espeak() is not None
 
 print("=" * 60)
-print("DJ DROP FACTORY PRO v5.0 - LIVE EDITION")
+print("DJ DROP FACTORY PRO v5.0 — LIVE EDITION")
 print("=" * 60)
 print(f"Internet: {'YES' if has_internet() else 'NO'}")
-print(f"FFmpeg: {'YES' if FFMPEG_AVAILABLE else 'NO'}")
-print(f"espeak: {'YES' if ESPEAK_AVAILABLE else 'NO'}")
+print(f"FFmpeg:   {'YES' if FFMPEG_AVAILABLE else 'NO'}")
+print(f"espeak:   {'YES' if ESPEAK_AVAILABLE else 'NO'}")
 print("=" * 60)
 
+
 # ============================================================
-# DATA STORE - DJ Groups, Streaming Apps, Software, Festivals, Theater
+# DATA STORE — DJ Groups, Streaming Apps, Software, Festivals, Theater
 # ============================================================
+
 class DataStore:
     """Holds all music/DJ data. SQLite-backed, queryable, searchable."""
+    
     def __init__(self, db_path="dj_music.db"):
         self.db_path = db_path
         self._init_db()
         self._seed_if_empty()
-
+    
     def _init_db(self):
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -186,7 +194,7 @@ class DataStore:
         """)
         conn.commit()
         conn.close()
-
+    
     def _seed_if_empty(self):
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -194,18 +202,18 @@ class DataStore:
         if cursor.fetchone()[0] > 0:
             conn.close()
             return
-
-        # — DJ GROUPS —
+        
+        # ── DJ GROUPS ──
         dj_groups = [
             ("C2C", "France", "Turntablism / Hip-Hop", "DMC competitions, live shows, world tours", "DMC World Championship, international tours"),
             ("Scratch Perverts", "UK", "Turntablism / Scratch", "DMC championships, live battles, club residencies", "DMC World Finals, BBC Radio 1 residency"),
             ("Berywam", "France", "Beatbox / Turntablism", "Live performances, beatbox battles, collaborations", "World Beatbox Championship, DMC events"),
             ("DJ Fly", "France", "Turntablism", "DMC competitions, live shows, workshops", "DMC World Championship winner"),
-            ("Swedish House Mafia", "Sweden", "EDM / House", "Ibiza residencies, world tours, festival headlining", "Ushuaia Ibiza residency, Creamfields headline"),
+            ("Swedish House Mafia", "Sweden", "EDM / House", "Ibiza residencies, world tours, festival headlining", "Ushuaïa Ibiza residency, Creamfields headline"),
             ("The Martinez Brothers", "USA", "House / Techno", "Ibiza residencies, global tours, label releases", "DC-10 Ibiza residency, Circoloco"),
             ("ARTBAT", "Ukraine", "Melodic Techno", "Festival headlining, global tours, label releases", "Tomorrowland, Ultra Music Festival"),
             ("CamelPhat", "UK", "House / Tech House", "Ibiza residencies, label releases, world tours", "Pacha Ibiza residency, Creamfields"),
-            ("MEDUZA", "Italy", "House", "Global residencies, festival headlining", "Hi Ibiza residency, Tomorrowland"),
+            ("MEDUZA", "Italy", "House", "Global residencies, festival headlining", "Hï Ibiza residency, Tomorrowland"),
             ("RÜFÜS DU SOL", "Australia", "Indie Dance / House", "World tours, Ibiza residencies, live sets", "Sónar Festival, Coachella"),
             ("Overmono", "UK", "Electronic / Experimental", "World tours, live sets, remixes", "Glastonbury, Boiler Room"),
             ("TOMORA", "International", "Electronic", "Live performances, collaborative shows", "Roundhouse London, festival circuits"),
@@ -214,8 +222,8 @@ class DataStore:
             "INSERT INTO dj_groups (name, origin, style, activities, notable_events) VALUES (?,?,?,?,?)",
             dj_groups
         )
-
-        # — STREAMING APPS —
+        
+        # ── STREAMING APPS ──
         streaming_apps = [
             ("Spotify", "Major Paid", "Overall experience, algorithms", "$12.99/mo", "100M+ tracks", 1, "All"),
             ("Apple Music", "Major Paid", "Apple ecosystem, Spatial Audio", "$10.99/mo", "100M+ tracks", 0, "Apple, Android"),
@@ -239,8 +247,8 @@ class DataStore:
             "INSERT INTO streaming_apps (name, category, best_for, price, catalog_size, free_tier, platform) VALUES (?,?,?,?,?,?,?)",
             streaming_apps
         )
-
-        # — DJ SOFTWARE —
+        
+        # ── DJ SOFTWARE ──
         dj_software = [
             ("Rekordbox", "Mac/Windows", "Music prep, CDJ integration, cloud sync", "Paid", "Pro DJ"),
             ("Serato DJ Pro", "Mac/Windows", "Industry standard, DVS, streaming", "Paid", "Pro DJ"),
@@ -263,8 +271,8 @@ class DataStore:
             "INSERT INTO dj_software (name, platform, features, price, category) VALUES (?,?,?,?,?)",
             dj_software
         )
-
-        # — FESTIVALS & EVENTS —
+        
+        # ── FESTIVALS & EVENTS ──
         festivals = [
             ("Tomorrowland Thailand", "Pattaya, Thailand", "Dec 11-13, 2026", "Massive lineup, 6 stages", "EDM"),
             ("Creamfields", "Daresbury, UK", "Summer 2026", "Calvin Harris, Underworld, Sonny Fodera", "EDM/House"),
@@ -282,8 +290,8 @@ class DataStore:
             "INSERT INTO festivals_events (name, location, dates, headliners, genre) VALUES (?,?,?,?,?)",
             festivals
         )
-
-        # — THEATER STREAMING —
+        
+        # ── THEATER STREAMING ──
         theater = [
             ("BroadwayHD", "Broadway shows, musicals", "USA/Global"),
             ("National Theatre at Home", "UK theater productions", "UK/Global"),
@@ -295,11 +303,11 @@ class DataStore:
             "INSERT INTO theater_streaming (name, content_type, region) VALUES (?,?,?)",
             theater
         )
-
+        
         conn.commit()
         conn.close()
         print("[DataStore] Database seeded with all music/DJ data.")
-
+    
     def _query(self, sql, params=(), one=False):
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
@@ -309,7 +317,7 @@ class DataStore:
         conn.close()
         result = [dict(row) for row in rows]
         return result[0] if one and result else result
-
+    
     def get_dj_groups(self, style=None, origin=None):
         query = "SELECT * FROM dj_groups WHERE 1=1"
         params = []
@@ -320,7 +328,7 @@ class DataStore:
             query += " AND origin = ?"
             params.append(origin)
         return self._query(query, params)
-
+    
     def get_streaming_apps(self, category=None, free_only=None):
         query = "SELECT * FROM streaming_apps WHERE 1=1"
         params = []
@@ -331,7 +339,7 @@ class DataStore:
             query += " AND free_tier = ?"
             params.append(1 if free_only else 0)
         return self._query(query, params)
-
+    
     def get_dj_software(self, category=None, platform=None):
         query = "SELECT * FROM dj_software WHERE 1=1"
         params = []
@@ -342,7 +350,7 @@ class DataStore:
             query += " AND platform LIKE ?"
             params.append(f"%{platform}%")
         return self._query(query, params)
-
+    
     def get_festivals(self, genre=None, location=None):
         query = "SELECT * FROM festivals_events WHERE 1=1"
         params = []
@@ -353,7 +361,7 @@ class DataStore:
             query += " AND location LIKE ?"
             params.append(f"%{location}%")
         return self._query(query, params)
-
+    
     def get_theater_streaming(self, region=None):
         query = "SELECT * FROM theater_streaming WHERE 1=1"
         params = []
@@ -361,7 +369,7 @@ class DataStore:
             query += " AND region LIKE ?"
             params.append(f"%{region}%")
         return self._query(query, params)
-
+    
     def get_all(self):
         return {
             "dj_groups": self.get_dj_groups(),
@@ -370,40 +378,52 @@ class DataStore:
             "festivals_events": self.get_festivals(),
             "theater_streaming": self.get_theater_streaming(),
         }
-
+    
     def search(self, term):
         """
-        Advanced tokenized search engine.
+        Advanced tokenized search engine. 
         Splits queries into tokens and ensures all tokens match across any text fields.
         """
         term = (term or "").strip()
         if not term:
             return {table: [] for table in ["dj_groups", "streaming_apps", "dj_software", "festivals_events", "theater_streaming"]}
+            
+        # Tokenize query (e.g., "Tomorrowland Thailand" -> ["Tomorrowland", "Thailand"])
         tokens = [f"%{t}%" for t in term.split() if t.strip()]
         if not tokens:
             return {}
+            
         tables = ["dj_groups", "streaming_apps", "dj_software", "festivals_events", "theater_streaming"]
         results = {}
+        
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
+        
         for table in tables:
+            # Dynamically fetch column names to prevent SQL errors if schema changes
             cursor.execute(f"PRAGMA table_info({table})")
             columns = [row[1] for row in cursor.fetchall()]
+            
+            # Build query: For every token, at least one column must match (AND grouping)
             clauses = []
             params = []
             for token in tokens:
                 token_clause = " OR ".join([f"{col} LIKE ?" for col in columns])
                 clauses.append(f"({token_clause})")
                 params.extend([token] * len(columns))
+            
             where_clause = " AND ".join(clauses)
             sql = f"SELECT * FROM {table} WHERE {where_clause} ORDER BY id DESC"
+            
             cursor.execute(sql, params)
             results[table] = [dict(row) for row in cursor.fetchall()]
+            
         conn.close()
         return results
-
-    # USER & PAYMENT SYSTEM
+    
+    # ── USER & PAYMENT SYSTEM ──
+    
     def get_or_create_user(self, device_id):
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -420,14 +440,14 @@ class DataStore:
             'subscription': row[3], 'subscription_expires': row[4],
             'total_paid': row[5], 'created_at': row[6]
         }
-
+    
     def add_credits(self, device_id, amount):
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         cursor.execute("UPDATE users SET credits = credits + ? WHERE device_id = ?", (amount, device_id))
         conn.commit()
         conn.close()
-
+    
     def deduct_credit(self, device_id):
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -437,6 +457,7 @@ class DataStore:
             conn.close()
             return False
         credits, sub, sub_exp = row[0], row[1], row[2]
+        # Check active subscription
         if sub == 'premium' and sub_exp:
             if datetime.fromisoformat(sub_exp) > datetime.now():
                 conn.close()
@@ -448,7 +469,7 @@ class DataStore:
             return True
         conn.close()
         return False
-
+    
     def create_payment(self, tx_ref, device_id, amount, method="mpesa"):
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -458,14 +479,18 @@ class DataStore:
         )
         conn.commit()
         conn.close()
-
+    
     def verify_payment(self, tx_ref):
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        cursor.execute("UPDATE payments SET status='completed', verified=1 WHERE tx_ref = ?", (tx_ref,))
-        conn.commit()
+        cursor.execute("SELECT * FROM payments WHERE tx_ref = ?", (tx_ref,))
+        row = cursor.fetchone()
+        if row:
+            cursor.execute("UPDATE payments SET status = 'success', verified = 1 WHERE tx_ref = ?", (tx_ref,))
+            conn.commit()
         conn.close()
-
+        return row is not None
+    
     def get_payment(self, tx_ref):
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
@@ -475,24 +500,30 @@ class DataStore:
         conn.close()
         return dict(row) if row else None
 
+
+store = DataStore()
+
+
 # ============================================================
 # WEB DATA PULLER
 # ============================================================
-class WebDataPuller:
-    _cache = {}
 
+class WebDataPuller:
+    CACHE = {}
+    CACHE_TTL = 300
+    
     @classmethod
     def _get_cached(cls, key):
-        if key in cls._cache:
-            data, timestamp = cls._cache[key]
-            if (datetime.now() - timestamp).seconds < 3600:
+        if key in cls.CACHE:
+            ts, data = cls.CACHE[key]
+            if time.time() - ts < cls.CACHE_TTL:
                 return data
         return None
-
+    
     @classmethod
-    def _set_cached(cls, key, value):
-        cls._cache[key] = (value, datetime.now())
-
+    def _set_cached(cls, key, data):
+        cls.CACHE[key] = (time.time(), data)
+    
     @classmethod
     def fetch_trending_genres(cls):
         cached = cls._get_cached('trending_genres')
@@ -500,12 +531,12 @@ class WebDataPuller:
             return cached
         genres = []
         try:
-            url = "https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=music%20genre&format=json&srlimit=10"
+            url = "https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=popular+music+genres+2026&format=json&origin=*"
             req = urllib.request.Request(url, headers={'User-Agent': 'DJDropFactory/5.0'})
             with urllib.request.urlopen(req, timeout=5) as resp:
                 data = json.loads(resp.read())
-                genres = [item['title'].replace("music", "").replace("genre", "").strip()
-                          for item in data.get('query', {}).get('search', [])[:6]]
+                genres = [item['title'].replace("music", "").replace("genre", "").strip() 
+                         for item in data.get('query', {}).get('search', [])[:6]]
         except Exception as e:
             print(f"[WebPull] Genre fetch failed: {e}")
         if not genres:
@@ -518,7 +549,7 @@ class WebDataPuller:
             genres = genres[:8]
         cls._set_cached('trending_genres', genres)
         return genres
-
+    
     @classmethod
     def fetch_city_vibe(cls, city):
         if not city or not city.strip():
@@ -534,40 +565,32 @@ class WebDataPuller:
             req = urllib.request.Request(geo_url, headers={'User-Agent': 'DJDropFactory/5.0'})
             with urllib.request.urlopen(req, timeout=5) as resp:
                 geo = json.loads(resp.read())
-            if geo.get('results'):
-                lat = geo['results'][0]['latitude']
-                lon = geo['results'][0]['longitude']
-                name = geo['results'][0].get('name', city_clean)
-                w_url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current_weather=true"
-                w_req = urllib.request.Request(w_url, headers={'User-Agent': 'DJDropFactory/5.0'})
-                with urllib.request.urlopen(w_req, timeout=5) as w_resp:
-                    w_data = json.loads(w_resp.read())
-                    weather = w_data.get('current_weather', {})
-                    temp = weather.get('temperature', 25)
-                    code = weather.get('weathercode', 0)
-                    if temp > 32:
-                        vibe = "scorching hot"
-                    elif temp > 26:
-                        vibe = "tropical heat"
-                    elif temp > 20:
-                        vibe = "warm"
-                    elif temp > 10:
-                        vibe = "cool breeze"
-                    else:
-                        vibe = "freezing cold"
-                    mood = "hype"
-                    if code in [0, 1]:
-                        mood = "festival"
-                    elif code in [51, 53, 55, 61, 63, 65]:
-                        mood = "dark"
-                    elif code in [71, 73, 75, 85, 86]:
-                        mood = "aggressive"
-                    result = {"city": name, "temperature": temp, "vibe": vibe, "weather_code": code, "suggested_mood": mood}
+                if geo.get('results'):
+                    lat = geo['results'][0]['latitude']
+                    lon = geo['results'][0]['longitude']
+                    name = geo['results'][0].get('name', city_clean)
+                    w_url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current_weather=true"
+                    w_req = urllib.request.Request(w_url, headers={'User-Agent': 'DJDropFactory/5.0'})
+                    with urllib.request.urlopen(w_req, timeout=5) as w_resp:
+                        w_data = json.loads(w_resp.read())
+                        weather = w_data.get('current_weather', {})
+                        temp = weather.get('temperature', 25)
+                        code = weather.get('weathercode', 0)
+                        if temp > 32: vibe = "scorching hot"
+                        elif temp > 26: vibe = "tropical heat"
+                        elif temp > 20: vibe = "warm"
+                        elif temp > 10: vibe = "cool breeze"
+                        else: vibe = "freezing cold"
+                        mood = "hype"
+                        if code in [0, 1]: mood = "festival"
+                        elif code in [51, 53, 55, 61, 63, 65]: mood = "dark"
+                        elif code in [71, 73, 75, 85, 86]: mood = "aggressive"
+                        result = {"city": name, "temperature": temp, "vibe": vibe, "weather_code": code, "suggested_mood": mood}
         except Exception as e:
             print(f"[WebPull] City vibe failed: {e}")
         cls._set_cached(f'city_{city_clean.lower()}', result)
         return result
-
+    
     @classmethod
     def fetch_dj_name_suggestions(cls, style=""):
         cached = cls._get_cached(f'names_{style.lower().strip()}')
@@ -596,7 +619,7 @@ class WebDataPuller:
                 suggestions.append(name)
         cls._set_cached(f'names_{style.lower().strip()}', suggestions)
         return suggestions
-
+    
     @classmethod
     def fetch_quote_of_the_day(cls):
         cached = cls._get_cached('quote')
@@ -618,15 +641,17 @@ class WebDataPuller:
                     q = data[0].get('q', '')
                     a = data[0].get('a', '')
                     if q:
-                        quotes = [f"{q} - {a}"]
+                        quotes = [f"{q} — {a}"]
         except Exception as e:
             print(f"[WebPull] Quote fetch failed: {e}")
         cls._set_cached('quote', quotes)
         return quotes
 
+
 # ============================================================
 # STRING WIZARD
 # ============================================================
+
 class StringWizard:
     TEMPLATES = {
         "intro": "{opener} {dj_name} is {verb}{city_part}. {energy_line}{exclaim} {closer}",
@@ -636,7 +661,7 @@ class StringWizard:
         "radio_id": "You're locked in with {display_name}{city_part}{station_part}{slogan_part}. Premium radio sound.",
         "producer_tag": "{opener} {display_name}. Premium sound design only.",
     }
-
+    
     HASHTAGS = {
         "amapiano": ["#Amapiano", "#Yanos", "#LogDrum", "#PrivateSchool", "#PianoVibes"],
         "dancehall": ["#Dancehall", "#Riddim", "#Soundclash", "#Bashment", "#PullUp"],
@@ -645,7 +670,7 @@ class StringWizard:
         "club_banger": ["#Club", "#Banger", "#Party", "#MainEvent", "#Nightlife"],
         "radio": ["#Radio", "#OnAir", "#Broadcast", "#Live", "#Frequency"],
     }
-
+    
     @classmethod
     def process_template(cls, template_key, variables):
         template = cls.TEMPLATES.get(template_key, "{dj_name} on the mic!")
@@ -655,7 +680,7 @@ class StringWizard:
             result = result.replace(placeholder, str(value) if value is not None else "")
         result = re.sub(r'\s+', ' ', result).strip()
         return result
-
+    
     @classmethod
     def smart_capitalize(cls, text):
         words = text.split()
@@ -671,15 +696,15 @@ class StringWizard:
             else:
                 result.append(w.capitalize() if w == w.lower() else w)
         return " ".join(result)
-
+    
     @classmethod
     def generate_slug(cls, text):
         text = text.lower().strip()
         text = re.sub(r'[^\w\s-]', '', text)
         text = re.sub(r'[\s_]+', '-', text)
         text = re.sub(r'-+', '-', text)
-        return text[:60].strip('- ')
-
+        return text[:60].strip('-')
+    
     @classmethod
     def add_hashtags(cls, text, genre):
         tags = cls.HASHTAGS.get(genre.lower().replace(" ", "_"), ["#DJDrop", "#Fire"])
@@ -688,7 +713,7 @@ class StringWizard:
         if new_tags:
             return text + " " + " ".join(new_tags)
         return text
-
+    
     @classmethod
     def stutter_pattern(cls, text, pattern="classic"):
         if not text or not text.strip():
@@ -710,7 +735,7 @@ class StringWizard:
         elif pattern == "underscore":
             return text.lower().replace(" ", "_")
         return text
-
+    
     @classmethod
     def analyze_sentiment(cls, text):
         t = text.lower()
@@ -723,7 +748,7 @@ class StringWizard:
         elif chill_score > hype_score:
             return "chill", chill_score
         return "neutral", max(hype_score, chill_score)
-
+    
     @classmethod
     def format_for_platform(cls, text, platform="generic"):
         if platform == "twitter":
@@ -735,7 +760,7 @@ class StringWizard:
         elif platform == "whatsapp":
             return text[:700] if len(text) > 700 else text
         return text
-
+    
     @classmethod
     def extract_keywords(cls, text):
         stopwords = {"the", "a", "an", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "do", "does", "did", "will", "would", "could", "should", "may", "might", "must", "shall", "can", "need", "dare", "ought", "used", "to", "of", "in", "for", "on", "with", "at", "by", "from", "as", "into", "through", "during", "before", "after", "above", "below", "between", "under", "and", "but", "or", "yet", "so", "if", "because", "although", "though", "while", "where", "when", "that", "which", "who", "whom", "whose", "what", "this", "these", "those", "i", "me", "my", "myself", "we", "our", "you", "your", "he", "him", "his", "she", "her", "it", "its", "they", "them", "their", "dj", "mc"}
@@ -748,31 +773,33 @@ class StringWizard:
                 seen.add(w)
                 result.append(w)
         return result[:10]
-
+    
     @classmethod
     def auto_punctuate(cls, text):
         text = text.strip()
         if not text:
             return text
         text = text[0].upper() + text[1:]
-        if text[-1] not in "!?":
+        if text[-1] not in ".!?":
             text += "!"
         text = re.sub(r'\s+', ' ', text)
-        sentences = re.split(r'([.?!]\s+)', text)
+        sentences = re.split(r'([.!?]\s+)', text)
         result = ""
         for i, part in enumerate(sentences):
-            if i >= 0 and part and part[0] == ' ' and len(part) > 1:
+            if i > 0 and part and part[0] == ' ' and len(part) > 1:
                 result += ' ' + part[1].upper() + part[2:]
             else:
                 result += part
         return result
 
+
 # ============================================================
 # AI TRAINING ENGINE
 # ============================================================
+
 class AITrainingEngine:
     TRAINING_FILE = TRAINING_DIR / "trained_examples.json"
-
+    
     @classmethod
     def save_training(cls, example_text, genre, style_notes):
         examples = []
@@ -792,42 +819,42 @@ class AITrainingEngine:
         with open(cls.TRAINING_FILE, 'w') as f:
             json.dump(examples, f, indent=2)
         return len(examples)
-
+    
     @classmethod
     def load_training(cls):
         if not cls.TRAINING_FILE.exists():
             return []
         with open(cls.TRAINING_FILE, 'r') as f:
             return json.load(f)
-
+    
     @classmethod
     def analyze_style(cls, text):
         return {
             "length": len(text),
             "words": text.split(),
-            "has_stutter": bool(re.search(r'(\w)\.\.\.\1-\1', text)),
-            "energy_marks": text.count('!') + text.count('?'),
+            "has_stutter": bool(re.search(r'(\w)\.\.\.|\1-\1', text)),
+            "energy_markers": text.count('!') + text.count('?'),
             "has_location": bool(re.search(r'\bin\b|\bfrom\b', text.lower())),
             "has_callout": bool(re.search(r'stand up|make some noise|hands up', text.lower())),
             "repeated_words": [word for word in set(text.split()) if text.lower().split().count(word.lower()) > 1]
         }
-
+    
     @classmethod
     def mimic_drop(cls, example_text, dj_name, genre="club_banger", energy=8):
         style = cls.analyze_style(example_text)
-        has_closer = bool(re.search(r'[!.?]\s*[^.!?]+[!.?]?$', example_text))
+        has_opener = bool(re.match(r'^[^.!?]+[!.,]', example_text))
+        has_closer = bool(re.search(r'[!.,]\s*[^.!?]+[!.,]?$', example_text))
         parts = []
         if style["has_callout"]:
             openers = ["Yo!", "Listen up!", "Check it!", "Ayo!"]
             parts.append(random.choice(openers))
         if style["has_stutter"] or random.random() < 0.5:
             first_letter = dj_name[0] if dj_name else "D"
-            stutter_patterns = [f"{first_letter}-{first_letter}-{dj_name}", f"{first_letter}.. {first_letter}... {dj_name}", f"{dj_name}! {dj_name}!", dj_name]
+            stutter_patterns = [f"{first_letter}-{first_letter}-{dj_name}", f"{first_letter}... {first_letter}... {dj_name}", f"{dj_name}! {dj_name}!", dj_name]
             dj_display = random.choice(stutter_patterns)
         else:
             dj_display = dj_name
         parts.append(dj_display)
-
         energy_phrases = {
             "amapiano": ["log drum pressure", "piano vibes only", "strictly smooth", "private school settings"],
             "dancehall": ["sound system active", "riddim pressure", "madness only", "pull up selectah"],
@@ -839,12 +866,11 @@ class AITrainingEngine:
         genre_key = genre.lower().replace(" ", "_").strip()
         phrases = energy_phrases.get(genre_key, energy_phrases["club_banger"])
         if energy >= 8:
-            parts.append(random.choice(phrases) + "!!")
+            parts.append(random.choice(phrases) + "!!!")
         elif energy >= 5:
             parts.append(random.choice(phrases) + "!")
         else:
             parts.append(random.choice(phrases))
-
         if style["has_location"]:
             locations = ["in the building", "worldwide", "to the world", "in full effect"]
             parts.append(random.choice(locations))
@@ -854,7 +880,7 @@ class AITrainingEngine:
         result = " ".join(parts)
         result = re.sub(r'\s+', ' ', result).strip()
         return result
-
+    
     @classmethod
     def generate_from_training(cls, dj_name, genre, energy, example_text=None):
         if example_text and example_text.strip():
@@ -864,13 +890,15 @@ class AITrainingEngine:
         if examples:
             genre_examples = [e for e in examples if e.get("genre") == genre]
             if genre_examples:
-                best = max(genre_examples, key=lambda x: x.get("length", 0))
+                best = max(genre_examples, key=lambda x: x.get("exclamation_count", 0) * energy / 10)
                 return cls.mimic_drop(best["text"], dj_name, genre, energy)
         return None
 
+
 # ============================================================
-# PREMIUM DJ SCRIPT AI
+# SCRIPT AI ENGINE
 # ============================================================
+
 class PremiumDJScriptAI:
     GENRE_DATA = {
         "amapiano": {
@@ -936,59 +964,65 @@ class PremiumDJScriptAI:
         if user_stutter.strip():
             return cls.normalize_for_stutter(user_stutter)
         first_word = words[0]
+        tail = words[-1]
         if style == "none":
             return name
         if style == "classic":
-            c = first_word[0].upper()
+            c = first_word[0]
             return f"{c}-{c}-{c}-{name}"
-        elif style == "echo":
-            return f"{name}... {name}..."
-        elif style == "stutter":
-            return f"{first_word[0].upper()}-{first_word[0].upper()}-{name}"
-        elif style == "build":
-            c = first_word[0].upper()
-            return f"{c}.. {c}... {first_word}... {name}"
+        if style == "build_up":
+            c = first_word[0]
+            return f"{c}... {c}... {first_word}... {name}"
+        if style == "echo_name":
+            return f"{tail}... {tail}... {name}"
+        if style == "hype_repeat":
+            return f"{name}! {name}!"
+        if style == "underscore":
+            compact = name.lower().replace(" ", "_")
+            return compact
         return name
 
     @classmethod
-    def choose_stutter_style(cls, genre_key, use_stutter):
+    def energy_profile(cls, energy):
+        if energy <= 3:
+            return {"exclaim": "", "extra": "steady vibes only."}
+        elif energy <= 6:
+            return {"exclaim": "!", "extra": "locked and loaded."}
+        elif energy <= 8:
+            return {"exclaim": "!!", "extra": "full pressure mode!!"}
+        return {"exclaim": "!!!", "extra": "shutdown mode."}
+
+    @classmethod
+    def choose_stutter_style(cls, genre, use_stutter):
         if not use_stutter:
             return "none"
-        styles = ["classic", "echo", "stutter", "build"]
-        if genre_key == "dancehall":
-            return "echo"
-        elif genre_key == "amapiano":
-            return random.choice(["classic", "build"])
-        elif genre_key == "trap":
-            return "stutter"
-        return random.choice(styles)
-
-    @classmethod
-    def energy_profile(cls, energy):
-        if energy >= 9:
-            return {"exclaim": "!!!", "extra": "Absolute madness!"}
-        elif energy >= 7:
-            return {"exclaim": "!!", "extra": "Full power!"}
-        elif energy >= 5:
-            return {"exclaim": "!", "extra": "Let's ride!"}
-        else:
-            return {"exclaim": ".", "extra": "Smooth vibes."}
-
-    @classmethod
-    def score_line(cls, text, genre_key, energy, drop_type):
-        t = text.lower()
-        score = 10
-        score += min(len(text) // 10, 5)
-        score += text.count('!') * 2
-        keywords = {
-            "amapiano": ["piano", "log", "drum", "vibes", "smooth", "private", "school"],
-            "dancehall": ["riddim", "sound", "selectah", "bashment", "pull up", "madness"],
-            "radio": ["locked", "air", "broadcast", "premium", "station", "frequency"],
-            "club_banger": ["club", "banger", "party", "main", "event", "shutdown"],
-            "afrobeat": ["afro", "rhythm", "groove", "wave", "melodic", "vibes"],
-            "trap": ["808", "bass", "dark", "heavy", "trap", "pressure"]
+        mapping = {
+            "dancehall": "classic",
+            "club_banger": "build_up",
+            "amapiano": "echo_name",
+            "radio": "none",
+            "afrobeat": "echo_name",
+            "trap": "underscore",
         }
-        for kw in keywords.get(genre_key, []):
+        return mapping.get(genre, "classic")
+
+    @classmethod
+    def score_line(cls, text, genre, energy, drop_type):
+        score = 0
+        t = text.lower()
+        if 40 <= len(text) <= 150:
+            score += 3
+        if "!" in text:
+            score += 2
+        keywords = {
+            "amapiano": ["piano", "groove", "log drum", "culture", "vibes"],
+            "dancehall": ["riddim", "sound", "selectah", "danger", "reload"],
+            "radio": ["locked", "airwaves", "frequency", "broadcast", "station"],
+            "club_banger": ["club", "crowd", "noise", "shutdown", "main event"],
+            "afrobeat": ["afro", "groove", "rhythm", "vibes", "wave"],
+            "trap": ["808", "bass", "pressure", "heavy", "trap"]
+        }
+        for kw in keywords.get(genre, []):
             if kw in t:
                 score += 2
         if drop_type == "promo" and any(x in t for x in ["experience", "live", "event", "pull up"]):
@@ -1095,23 +1129,16 @@ class PremiumDJScriptAI:
         return cls.build_intro(display_name, data, mood, city, energy)
 
     @classmethod
-    def generate(cls, dj_name, genre, use_stutter, drop_type="intro", mood="hype", energy=8,
-                 city="", event_name="", user_stutter="", station_name="", slogan="", crew_tag="", count=5):
+    def generate(cls, dj_name, genre, use_stutter, drop_type="intro", mood="hype",
+                 energy=8, city="", event_name="", user_stutter="", station_name="",
+                 slogan="", crew_tag="", count=5):
         outputs = []
         for _ in range(count):
             line = cls.compose_one(
-                dj_name=dj_name,
-                genre=genre,
-                drop_type=drop_type,
-                mood=mood,
-                energy=energy,
-                use_stutter=use_stutter,
-                city=city,
-                event_name=event_name,
-                user_stutter=user_stutter,
-                station_name=station_name,
-                slogan=slogan,
-                crew_tag=crew_tag
+                dj_name=dj_name, genre=genre, drop_type=drop_type, mood=mood,
+                energy=energy, use_stutter=use_stutter, city=city,
+                event_name=event_name, user_stutter=user_stutter,
+                station_name=station_name, slogan=slogan, crew_tag=crew_tag
             )
             genre_key = genre.lower().replace(" ", "_").strip()
             if genre_key not in cls.GENRE_DATA:
@@ -1127,9 +1154,11 @@ class PremiumDJScriptAI:
         final.sort(key=lambda x: x["score"], reverse=True)
         return final
 
+
 # ============================================================
-# AUDIO / FX ENGINE - LOUD VERSION
+# AUDIO / FX ENGINE - LOUD VERSION (with louder amapiano and clean mode)
 # ============================================================
+
 class PremiumAudioStudio:
     @classmethod
     def safe_stereo(cls, mlev):
@@ -1149,31 +1178,68 @@ class PremiumAudioStudio:
             "space": "",
             "phaser": "",
             "stereo": "",
-            "loudness": "loudnorm=I=-14:TP=-1.0:LRA=7",
-            "limiter": "compand=0.01|0.01:0.1|0.05:1:1:0:0:0"
+            # increased loudness target for extra volume
+            "loudness": "loudnorm=I=-9:TP=-0.5:LRA=5",
+            "limiter": "alimiter=limit=0.95:level=1",
+            "duck_threshold": "0.02",
+            "duck_release": "200",
+            # boosted defaults for all genres
+            "bg_gain": 0.25,
+            "vocal_gain": 1.8
         }
         if style == "amapiano":
             profile.update({
-                "echo": "aecho=0.85:0.65:180|360:0.22|0.12",
-                "space": "aecho=0.6:0.4:1200:0.06",
-                "phaser": "aphaser=speed=0.35:decay=0.30",
-                "stereo": cls.safe_stereo(0.05),
-                "loudness": "loudnorm=I=-12:TP=-0.5:LRA=7",
+                "highpass": 90,
+                "presence_eq": "equalizer=f=2800:width_type=q:width=1.0:g=3.5",
+                "echo": "aecho=0.85:0.60:220|440:0.25|0.15",
+                "space": "aecho=0.80:0.50:700|900:0.12|0.08",
+                "phaser": "aphaser=speed=0.25:decay=0.40",
+                "stereo": cls.safe_stereo(0.03),
+                "vocal_gain": 2.0,   # even louder for amapiano
+                "bg_gain": 0.28,
+                "duck_threshold": "0.025",
+                "duck_release": "400",
+                "limiter": "alimiter=limit=0.95:level=1"
             })
+            if energy >= 8:
+                profile["space"] = "aecho=0.82:0.55:650|850:0.16|0.10"
+                profile["phaser"] = "aphaser=speed=0.30:decay=0.45"
         elif style == "dancehall":
             profile.update({
-                "slap": "aecho=0.6:0.4:60|90:0.18|0.12",
-                "echo": "aecho=0.8:0.6:160|320:0.20|0.15",
-                "phaser": "aphaser=speed=0.45:decay=0.35",
-                "stereo": cls.safe_stereo(0.04),
-                "loudness": "loudnorm=I=-13:TP=-0.5:LRA=8",
+                "highpass": 105,
+                "presence_eq": "equalizer=f=3500:width_type=q:width=1.0:g=5.0",
+                "slap": "aecho=0.88:0.60:110:0.22",
+                "echo": "aecho=0.82:0.55:220:0.12",
+                "stereo": cls.safe_stereo(0.03),
+                "duck_threshold": "0.03",
+                "duck_release": "150",
+                "bg_gain": 0.25,
+                "vocal_gain": 1.9
             })
+            if energy >= 8:
+                profile["echo"] = "aecho=0.85:0.58:180|260:0.16|0.10"
         elif style == "radio":
             profile.update({
-                "slap": "aecho=0.5:0.3:50:0.15",
-                "compressor": "acompressor=threshold=-16dB:ratio=4:attack=3:release=120",
-                "presence_eq": "equalizer=f=3000:width_type=q:width=1.2:g=3.5",
-                "loudness": "loudnorm=I=-16:TP=-1.0:LRA=5",
+                "highpass": 95,
+                "compressor": "acompressor=threshold=-16dB:ratio=4:attack=8:release=120",
+                "presence_eq": "equalizer=f=3000:width_type=q:width=1.1:g=4.5",
+                "slap": "aecho=0.72:0.38:95:0.10",
+                "duck_threshold": "0.03",
+                "duck_release": "160",
+                "bg_gain": 0.20,
+                "vocal_gain": 1.7
+            })
+        elif style == "afrobeat":
+            profile.update({
+                "highpass": 95,
+                "presence_eq": "equalizer=f=3000:width_type=q:width=1.1:g=4.0",
+                "echo": "aecho=0.82:0.55:240|360:0.16|0.10",
+                "space": "aecho=0.78:0.45:650|820:0.10|0.06",
+                "stereo": cls.safe_stereo(0.03),
+                "duck_threshold": "0.028",
+                "duck_release": "300",
+                "bg_gain": 0.25,
+                "vocal_gain": 1.85
             })
         elif style == "trap":
             profile.update({
@@ -1182,7 +1248,10 @@ class PremiumAudioStudio:
                 "echo": "aecho=0.85:0.65:160|320:0.22|0.12",
                 "phaser": "aphaser=speed=0.40:decay=0.35",
                 "stereo": cls.safe_stereo(0.04),
-                "loudness": "loudnorm=I=-13:TP=-0.5:LRA=6",
+                "duck_threshold": "0.025",
+                "duck_release": "250",
+                "bg_gain": 0.25,
+                "vocal_gain": 1.9
             })
         else:
             profile.update({
@@ -1191,11 +1260,14 @@ class PremiumAudioStudio:
                 "echo": "aecho=0.85:0.65:180|360:0.22|0.12",
                 "phaser": "aphaser=speed=0.40:decay=0.35",
                 "stereo": cls.safe_stereo(0.04),
-                "loudness": "loudnorm=I=-14:TP=-1.0:LRA=7",
+                "duck_threshold": "0.025",
+                "duck_release": "280",
+                "bg_gain": 0.25,
+                "vocal_gain": 1.85
             })
-        if energy >= 8:
-            profile["echo"] = "aecho=0.87:0.68:160|320:0.26|0.14"
-            profile["phaser"] = "aphaser=speed=0.50:decay=0.40"
+            if energy >= 8:
+                profile["echo"] = "aecho=0.87:0.68:160|320:0.26|0.14"
+                profile["phaser"] = "aphaser=speed=0.50:decay=0.40"
         return profile
 
     @classmethod
@@ -1207,12 +1279,14 @@ class PremiumAudioStudio:
         chain.append(p["presence_eq"])
         chain.append(p["deesser_eq"])
         style_key = style.lower().strip()
-
         if fx_mode == "dry":
+            # no additional effects
             pass
         elif fx_mode == "clean":
+            # very light processing: just a touch of stereo and maybe a soft reverb for polish
             if p["stereo"]:
                 chain.append(p["stereo"])
+            # subtle space for clean presence
             chain.append("aecho=0.6:0.3:1200:0.04")
         elif fx_mode == "light":
             if p["slap"]:
@@ -1232,7 +1306,7 @@ class PremiumAudioStudio:
             if p["phaser"]: chain.append(p["phaser"])
             if p["stereo"]: chain.append(p["stereo"])
             chain.append("acompressor=threshold=-12dB:ratio=4:attack=2:release=80")
-        else:  # auto
+        else:  # auto: original logic
             if style_key == "radio":
                 if p["slap"]: chain.append(p["slap"])
             elif style_key == "dancehall":
@@ -1269,11 +1343,13 @@ class PremiumAudioStudio:
     def render_wet_vocal(cls, vocal_path, wet_output_path, style_preset, energy=8,
                          fx_mode="auto", vocal_gain=1.0):
         vocal_fx, p = cls.build_vocal_fx_chain(style_preset, energy, fx_mode)
+        final_gain = vocal_gain * p["vocal_gain"]
+        if abs(final_gain - 1.0) > 0.0001:
+            vocal_fx = f"volume={final_gain:.2f},{vocal_fx}"
         cmd = [
             "ffmpeg", "-y",
             "-i", vocal_path,
-            "-af", f"volume={vocal_gain}, {vocal_fx}",
-            "-c:a", "libmp3lame",
+            "-af", vocal_fx,
             "-b:a", "320k",
             wet_output_path
         ]
@@ -1281,25 +1357,45 @@ class PremiumAudioStudio:
 
     @classmethod
     def render_final_master(cls, wet_vocal_path, bg_path, final_output_path,
-                            style_preset, energy=8, bg_gain=0.25):
+                            style_preset, energy=8, bg_gain=None):
+        # ------------------------------------------------------------------
+        # FIX: ffmpeg's `amix` filter defaults to normalize=1, which silently
+        # divides the combined output by the number of inputs (here /2, i.e.
+        # roughly -6dB) EVEN THOUGH the background has already been ducked
+        # to near-silence under the vocal. That auto-halving was applied on
+        # top of a vocal that was never re-normalized after mixing, so any
+        # drop rendered with a background track came out much quieter than
+        # one rendered without a background track (the "no bg" branch below
+        # just copies the already loudnorm'd wet vocal straight through).
+        # This had nothing to do with genre — it happened for any genre
+        # whenever a bg_path was supplied.
+        #
+        # Fix: set normalize=0 on amix (so it stops auto-attenuating), then
+        # re-apply loudnorm + limiter on the final mixed signal so the
+        # output level is consistent and controlled, whether or not a
+        # background track was used.
+        # ------------------------------------------------------------------
+        profile = cls.get_fx_profile(style_preset, energy)
+        if bg_gain is None:
+            bg_gain = profile["bg_gain"]
         if bg_path and os.path.exists(bg_path):
-            profile = cls.get_fx_profile(style_preset, energy)
-            duck = f"compand=attacks=0.1:decays={profile.get('duck_release', 200)}e-3:points=-80/-80|-30/{bg_gain}|0/{bg_gain}|20/{bg_gain}:gain={bg_gain}"
+            filter_complex = (
+                f"[1:a]volume={bg_gain}[bgquiet];"
+                f"[bgquiet][0:a]sidechaincompress="
+                f"threshold={profile['duck_threshold']}:ratio=15:attack=3:release={profile['duck_release']}[bgduck];"
+                f"[0:a][bgduck]amix=inputs=2:duration=first:dropout_transition=2:normalize=0[mixed];"
+                f"[mixed]{profile['loudness']},{profile['limiter']}[out]"
+            )
             cmd = [
                 "ffmpeg", "-y",
                 "-i", wet_vocal_path,
                 "-i", bg_path,
-                "-filter_complex",
-                f"[0:a]volume=1.0,highpass=f=80,loudnorm=I=-14:TP=-1.0:LRA=7[voice];"
-                f"[1:a]volume={bg_gain},highpass=f=40,lowpass=f=15000,{duck}[bg];"
-                f"[voice][bg]amix=inputs=2:duration=first:dropout_transition=2,"
-                f"loudnorm=I=-14:TP=-1.0:LRA=7",
-                "-c:a", "libmp3lame",
+                "-filter_complex", filter_complex,
+                "-map", "[out]",
                 "-b:a", "320k",
                 final_output_path
             ]
         else:
-            # No background: just apply final loudness
             cmd = [
                 "ffmpeg", "-y",
                 "-i", wet_vocal_path,
@@ -1309,9 +1405,11 @@ class PremiumAudioStudio:
             ]
         cls.run_ffmpeg(cmd)
 
+
 # ============================================================
 # VOICE PRESETS
 # ============================================================
+
 VOICE_PRESETS = {
     "amapiano": {"rate": "+2%", "volume": "+10%"},
     "dancehall": {"rate": "+11%", "volume": "+16%"},
@@ -1320,6 +1418,7 @@ VOICE_PRESETS = {
     "afrobeat": {"rate": "+5%", "volume": "+11%"},
     "trap": {"rate": "+6%", "volume": "+13%"},
 }
+
 VOICE_MAP = {
     "1": ("Deep Studio Heavy Voice (Male - US)", "en-US-AndrewNeural"),
     "2": ("Crisp Energetic Host (Male - UK)", "en-GB-RyanNeural"),
@@ -1328,6 +1427,7 @@ VOICE_MAP = {
     "5": ("Bright Female Radio Host (UK)", "en-GB-SoniaNeural"),
     "6": ("Warm Female Afro Voice (NG)", "en-NG-EzinneNeural"),
 }
+
 AUTO_GENRE_VOICE = {
     "amapiano": "en-NG-AbeoNeural",
     "dancehall": "en-US-AndrewNeural",
@@ -1337,15 +1437,18 @@ AUTO_GENRE_VOICE = {
     "trap": "en-US-AndrewNeural"
 }
 
+
 def safe_filename(name):
     name = (name or "").strip()
     name = re.sub(r"[^\w\-\. ]+", "", name)
     name = re.sub(r"\s+", "_", name)
     return name or "premium_master"
 
+
 # ============================================================
 # TTS WITH GRACEFUL DEGRADATION
 # ============================================================
+
 async def synthesize_tts_smart(text, voice, out_path, rate, volume):
     online = has_internet()
     if online:
@@ -1362,10 +1465,11 @@ async def synthesize_tts_smart(text, voice, out_path, rate, volume):
             subprocess.run([espeak_cmd, '-w', wav_path, text], capture_output=True, check=True)
             if os.path.exists(wav_path):
                 subprocess.run([
-                    'ffmpeg', '-y', '-i', wav_path, '-b:a', '320k', out_path
+                    'ffmpeg', '-y', '-i', wav_path,
+                    '-b:a', '320k', out_path
                 ], capture_output=True, check=True)
                 os.remove(wav_path)
-            return "espeak"
+                return "espeak"
         except Exception as e:
             print(f"espeak failed: {e}")
     if FFMPEG_AVAILABLE:
@@ -1380,13 +1484,16 @@ async def synthesize_tts_smart(text, voice, out_path, rate, volume):
     Path(out_path).touch()
     return "silent"
 
+
 # ============================================================
 # MAIN GENERATION FUNCTION
 # ============================================================
-async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track, drop_type, mood,
-                             energy, city, event_name, user_stutter, station_name, slogan,
-                             crew_tag, fx_mode, vocal_gain, bg_gain, mode="ai",
-                             custom_script="", training_example=None):
+
+async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track,
+                             drop_type, mood, energy, city, event_name,
+                             user_stutter, station_name, slogan, crew_tag,
+                             fx_mode, vocal_gain, bg_gain, mode="ai", custom_script="",
+                             training_example=None):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     project_name = f"{safe_filename(dj_name)}_{timestamp}"
     out_dir = OUTPUT_DIR / project_name
@@ -1404,18 +1511,10 @@ async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track, drop_
             takes = [{"text": selected, "score": 15, "mimic": True}]
         else:
             takes = PremiumDJScriptAI.generate(
-                dj_name=dj_name,
-                genre=genre,
-                use_stutter=use_stutter,
-                drop_type=drop_type,
-                mood=mood,
-                energy=energy,
-                city=city,
-                event_name=event_name,
-                user_stutter=user_stutter,
-                station_name=station_name,
-                slogan=slogan,
-                crew_tag=crew_tag,
+                dj_name=dj_name, genre=genre, use_stutter=use_stutter,
+                drop_type=drop_type, mood=mood, energy=energy, city=city,
+                event_name=event_name, user_stutter=user_stutter,
+                station_name=station_name, slogan=slogan, crew_tag=crew_tag,
                 count=8
             )
             selected = takes[0]["text"]
@@ -1424,18 +1523,10 @@ async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track, drop_
         takes = [{"text": selected, "score": 10}]
     else:
         takes = PremiumDJScriptAI.generate(
-            dj_name=dj_name,
-            genre=genre,
-            use_stutter=use_stutter,
-            drop_type=drop_type,
-            mood=mood,
-            energy=energy,
-            city=city,
-            event_name=event_name,
-            user_stutter=user_stutter,
-            station_name=station_name,
-            slogan=slogan,
-            crew_tag=crew_tag,
+            dj_name=dj_name, genre=genre, use_stutter=use_stutter,
+            drop_type=drop_type, mood=mood, energy=energy, city=city,
+            event_name=event_name, user_stutter=user_stutter,
+            station_name=station_name, slogan=slogan, crew_tag=crew_tag,
             count=8
         )
         selected = takes[0]["text"]
@@ -1456,6 +1547,7 @@ async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track, drop_
     final_master = out_dir / f"{project_name}.mp3"
 
     preset = VOICE_PRESETS.get(genre.lower(), {"rate": "+5%", "volume": "+10%"})
+
     tts_engine = await synthesize_tts_smart(
         selected, voice, str(raw_vocal), preset["rate"], preset["volume"]
     )
@@ -1506,9 +1598,11 @@ async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track, drop_
         "ffmpeg_available": FFMPEG_AVAILABLE
     }
 
+
 # ============================================================
 # DRAFT MANAGER
 # ============================================================
+
 class DraftManager:
     DRAFT_FILE = BASE_DIR / "drafts.json"
     MAX_DRAFTS = 50
@@ -1527,9 +1621,8 @@ class DraftManager:
             "timestamp": datetime.now().isoformat()
         }
         if len(drafts) > cls.MAX_DRAFTS:
-            # remove oldest
-            oldest = min(drafts.keys(), key=lambda k: drafts[k]["timestamp"])
-            del drafts[oldest]
+            sorted_items = sorted(drafts.items(), key=lambda x: x[1].get('timestamp', ''), reverse=True)
+            drafts = dict(sorted_items[:cls.MAX_DRAFTS])
         with open(cls.DRAFT_FILE, 'w') as f:
             json.dump(drafts, f, indent=2)
 
@@ -1540,9 +1633,12 @@ class DraftManager:
         try:
             with open(cls.DRAFT_FILE, 'r') as f:
                 drafts = json.load(f)
-            return drafts.get(session_id, {}).get("data")
+            entry = drafts.get(session_id)
+            if entry:
+                return entry.get("data")
         except Exception:
-            return None
+            pass
+        return None
 
     @classmethod
     def delete(cls, session_id):
@@ -1553,23 +1649,31 @@ class DraftManager:
                 drafts = json.load(f)
             if session_id in drafts:
                 del drafts[session_id]
-            with open(cls.DRAFT_FILE, 'w') as f:
-                json.dump(drafts, f, indent=2)
+                with open(cls.DRAFT_FILE, 'w') as f:
+                    json.dump(drafts, f, indent=2)
         except Exception:
             pass
 
-# ============================================================
-# FLASK ROUTES
-# ============================================================
-store = DataStore()
 
-@app.route('/')
+# ============================================================
+# FLASK ROUTES — DJ DROP FACTORY CORE
+# ============================================================
+
+@app.route("/")
 def index():
-    return render_template('index.html')
+    return render_template("index.html")
+
+
+@app.route('/service-worker.js')
+def serve_sw():
+    return send_from_directory('static', 'service-worker.js',
+                                mimetype='application/javascript')
+
 
 @app.route('/manifest.json')
 def serve_manifest():
     return send_from_directory('static', 'manifest.json')
+
 
 @app.route("/api/status")
 def api_status():
@@ -1581,6 +1685,7 @@ def api_status():
         "message": "Full audio generation" if FFMPEG_AVAILABLE else "Script only - no audio FX"
     })
 
+
 @app.route("/api/voices")
 def get_voices():
     return jsonify({
@@ -1588,7 +1693,9 @@ def get_voices():
         "auto_map": AUTO_GENRE_VOICE
     })
 
+
 # --- Web Data Puller Routes ---
+
 @app.route("/api/trends")
 def api_trends():
     try:
@@ -1596,6 +1703,7 @@ def api_trends():
         return jsonify({"success": True, "trending": genres, "source": "wikipedia_api"})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+
 
 @app.route("/api/city_vibe")
 def api_city_vibe():
@@ -1608,6 +1716,7 @@ def api_city_vibe():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+
 @app.route("/api/suggest_names")
 def api_suggest_names():
     style = request.args.get("style", "")
@@ -1617,6 +1726,7 @@ def api_suggest_names():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+
 @app.route("/api/quote")
 def api_quote():
     try:
@@ -1625,7 +1735,9 @@ def api_quote():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+
 # --- String Wizard Routes ---
+
 @app.route("/api/string_tools", methods=["POST"])
 def api_string_tools():
     try:
@@ -1671,16 +1783,60 @@ def api_string_tools():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
-# --- Draft Routes ---
+
+# --- Wizard Step Validation ---
+
+@app.route("/api/wizard_validate", methods=["POST"])
+def api_wizard_validate():
+    try:
+        data = request.get_json()
+        step = int(data.get("step", 1))
+        errors = []
+        if step == 1:
+            dj_name = data.get("dj_name", "").strip()
+            if not dj_name or len(dj_name) < 2:
+                errors.append("DJ name must be at least 2 characters")
+            if len(dj_name) > 40:
+                errors.append("DJ name too long (max 40 chars)")
+            city = data.get("city", "").strip()
+            if city and len(city) > 30:
+                errors.append("City name too long")
+        elif step == 2:
+            genre = data.get("genre", "").strip()
+            if not genre:
+                errors.append("Please select a genre")
+            drop_type = data.get("drop_type", "").strip()
+            if not drop_type:
+                errors.append("Please select a drop type")
+        elif step == 3:
+            energy = int(data.get("energy", 0))
+            if energy < 1 or energy > 10:
+                errors.append("Energy must be between 1-10")
+            voice = data.get("voice", "").strip()
+            if not voice:
+                errors.append("Please select a voice")
+        return jsonify({
+            "success": len(errors) == 0,
+            "valid": len(errors) == 0,
+            "errors": errors,
+            "step": step
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# --- Live Draft Sync ---
+
 @app.route("/api/draft", methods=["POST"])
 def api_save_draft():
     try:
-        session_id = request.headers.get('X-Session-ID', 'default')
         data = request.get_json()
+        session_id = request.headers.get('X-Session-ID', 'default')
         DraftManager.save(session_id, data)
-        return jsonify({"success": True})
+        return jsonify({"success": True, "message": "Draft saved to server"})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+
 
 @app.route("/api/draft", methods=["GET"])
 def api_get_draft():
@@ -1691,6 +1847,7 @@ def api_get_draft():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+
 @app.route("/api/draft", methods=["DELETE"])
 def api_delete_draft():
     try:
@@ -1700,7 +1857,9 @@ def api_delete_draft():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+
 # --- Live Preview ---
+
 @app.route("/api/live_preview", methods=["POST"])
 def api_live_preview():
     try:
@@ -1714,15 +1873,9 @@ def api_live_preview():
         use_stutter = data.get("use_stutter", True)
         user_stutter = data.get("user_stutter", "")
         takes = PremiumDJScriptAI.generate(
-            dj_name=dj_name,
-            genre=genre,
-            use_stutter=use_stutter,
-            drop_type=drop_type,
-            mood=mood,
-            energy=energy,
-            city=city,
-            user_stutter=user_stutter,
-            count=3
+            dj_name=dj_name, genre=genre, use_stutter=use_stutter,
+            drop_type=drop_type, mood=mood, energy=energy, city=city,
+            user_stutter=user_stutter, count=3
         )
         for t in takes:
             t["text"] = StringWizard.auto_punctuate(t["text"])
@@ -1734,7 +1887,9 @@ def api_live_preview():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+
 # --- Heartbeat ---
+
 @app.route("/api/heartbeat")
 def api_heartbeat():
     try:
@@ -1749,7 +1904,7 @@ def api_heartbeat():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
-# --- AI Training ---
+
 @app.route("/api/train", methods=["POST"])
 def api_train():
     try:
@@ -1786,44 +1941,63 @@ def api_train():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
-# --- Generate Drop ---
+
 @app.route("/api/generate", methods=["POST"])
 def api_generate():
     try:
         data = request.get_json()
+        # --- CREDIT CHECK ---
         device_id = request.headers.get('X-Device-ID', 'anonymous')
-        dj_name = data.get("dj_name", "DJ Beshi")
+        user = store.get_or_create_user(device_id)
+        if user['subscription'] != 'premium':
+            if user['credits'] <= 0:
+                return jsonify({
+                    "success": False,
+                    "error": "insufficient_credits",
+                    "message": "You have no credits left. Please purchase credits to continue.",
+                    "credits": user['credits'],
+                    "subscription": user['subscription']
+                }), 402
+        
+        mode = data.get("mode", "ai")
+        custom_script = data.get("custom_script", "").strip()
+        training_example = data.get("training_example", "").strip()
+        dj_name = data.get("dj_name", "DJ Beshi").strip()
         genre = data.get("genre", "club_banger")
-        voice = data.get("voice", "en-US-AndrewNeural")
+        voice_choice = data.get("voice", "7")
         use_stutter = data.get("use_stutter", True)
-        bg_track = data.get("bg_track", "")
         drop_type = data.get("drop_type", "intro")
         mood = data.get("mood", "hype")
         energy = int(data.get("energy", 8))
-        city = data.get("city", "")
-        event_name = data.get("event_name", "")
-        user_stutter = data.get("user_stutter", "")
-        station_name = data.get("station_name", "")
-        slogan = data.get("slogan", "")
-        crew_tag = data.get("crew_tag", "")
+        city = data.get("city", "").strip()
+        event_name = data.get("event_name", "").strip()
+        user_stutter = data.get("user_stutter", "").strip()
+        station_name = data.get("station_name", "").strip()
+        slogan = data.get("slogan", "").strip()
+        crew_tag = data.get("crew_tag", "").strip()
         fx_mode = data.get("fx_mode", "auto")
         vocal_gain = float(data.get("vocal_gain", 1.0))
-        bg_gain = float(data.get("bg_gain", 0.25))
-        mode = data.get("mode", "ai")
-        custom_script = data.get("custom_script", "")
-        training_example = data.get("training_example", "")
+        bg_gain = data.get("bg_gain")
+        bg_gain = float(bg_gain) if bg_gain else None
+        bg_track = data.get("bg_track", "")
 
-        # Check credits
-        user = store.get_or_create_user(device_id)
-        if user['credits'] <= 0 and user['subscription'] != 'premium':
-            return jsonify({"success": False, "error": "Insufficient credits. Please purchase more."}), 402
+        if voice_choice == "7":
+            voice = AUTO_GENRE_VOICE.get(genre, "en-US-AndrewNeural")
+        else:
+            voice = VOICE_MAP.get(voice_choice, ("", "en-US-AndrewNeural"))[1]
 
-        result = await build_premium_drop(
+        full_bg_path = ""
+        if bg_track:
+            potential_path = UPLOAD_DIR / bg_track
+            if potential_path.exists():
+                full_bg_path = str(potential_path)
+
+        result = asyncio.run(build_premium_drop(
             dj_name=dj_name,
             genre=genre,
             voice=voice,
             use_stutter=use_stutter,
-            bg_track=bg_track,
+            bg_track=full_bg_path,
             drop_type=drop_type,
             mood=mood,
             energy=energy,
@@ -1839,8 +2013,8 @@ def api_generate():
             mode=mode,
             custom_script=custom_script,
             training_example=training_example
-        )
-
+        ))
+        
         # Deduct credit after successful generation
         store.deduct_credit(device_id)
 
@@ -1857,10 +2031,11 @@ def api_generate():
             "credits_remaining": store.get_or_create_user(device_id)['credits'],
             "message": "Drop generated!" + (" (Neural voice)" if result["tts_engine"] == "edge" else " (Basic audio)" if result["tts_engine"] == "espeak" else " (Audio unavailable)")
         })
+
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
-# --- Upload ---
+
 @app.route("/upload", methods=["POST"])
 def upload_file():
     if "file" not in request.files:
@@ -1873,7 +2048,7 @@ def upload_file():
     file.save(str(filepath))
     return jsonify({"success": True, "filename": filename})
 
-# --- Download ---
+
 @app.route("/download/<project>/<filename>")
 def download_file(project, filename):
     file_path = OUTPUT_DIR / project / filename
@@ -1881,7 +2056,7 @@ def download_file(project, filename):
         return send_file(str(file_path), as_attachment=True)
     return jsonify({"success": False, "error": "File not found"}), 404
 
-# --- Preview Script ---
+
 @app.route("/api/preview_script", methods=["POST"])
 def preview_script():
     data = request.get_json()
@@ -1898,19 +2073,10 @@ def preview_script():
     slogan = data.get("slogan", "")
     crew_tag = data.get("crew_tag", "")
     takes = PremiumDJScriptAI.generate(
-        dj_name=dj_name,
-        genre=genre,
-        use_stutter=use_stutter,
-        drop_type=drop_type,
-        mood=mood,
-        energy=energy,
-        city=city,
-        event_name=event_name,
-        user_stutter=user_stutter,
-        station_name=station_name,
-        slogan=slogan,
-        crew_tag=crew_tag,
-        count=3
+        dj_name=dj_name, genre=genre, use_stutter=use_stutter,
+        drop_type=drop_type, mood=mood, energy=energy, city=city,
+        event_name=event_name, user_stutter=user_stutter,
+        station_name=station_name, slogan=slogan, crew_tag=crew_tag, count=3
     )
     for t in takes:
         t["text"] = StringWizard.auto_punctuate(t["text"])
@@ -1920,15 +2086,17 @@ def preview_script():
         "best": takes[0]["text"]
     })
 
+
 # ============================================================
 # VOICE EFFECTS PROCESSOR
 # ============================================================
+
 @app.route("/api/process_voice", methods=["POST"])
 def process_voice_effect():
     try:
         if not FFMPEG_AVAILABLE:
             return jsonify({
-                "success": False,
+                "success": False, 
                 "error": "FFmpeg is not available on this server. Cannot apply voice effects."
             }), 503
         if "audio" not in request.files:
@@ -1940,8 +2108,8 @@ def process_voice_effect():
         output_path = UPLOAD_DIR / f"voice_effect_{effect}_{timestamp}.mp3"
         audio_file.save(str(input_path))
         filter_chain = None
-        if effect == "none":
-            filter_chain = "highpass=f=80,acompressor=threshold=-18dB:ratio=3,loudnorm=I=-14:TP=-1.0"
+        if effect == "helium":
+            filter_chain = "asetrate=44100*1.8,atempo=1/1.8,highpass=f=80,acompressor=threshold=-18dB:ratio=4,loudnorm=I=-14:TP=-1.0"
         elif effect == "low":
             filter_chain = "asetrate=44100*0.55,atempo=1/0.55,highpass=f=60,acompressor=threshold=-16dB:ratio=5,loudnorm=I=-14:TP=-1.0"
         elif effect == "robot":
@@ -1956,7 +2124,6 @@ def process_voice_effect():
             filter_chain = "atempo=2.0,asetrate=88200,aresample=44100,acompressor=threshold=-16dB:ratio=4,loudnorm=I=-14:TP=-1.0"
         else:
             filter_chain = "highpass=f=80,acompressor=threshold=-18dB:ratio=3,loudnorm=I=-14:TP=-1.0"
-
         cmd = [
             "ffmpeg", "-y",
             "-i", str(input_path),
@@ -1969,7 +2136,7 @@ def process_voice_effect():
             input_path.unlink()
         if result.returncode != 0:
             return jsonify({
-                "success": False,
+                "success": False, 
                 "error": f"FFmpeg processing failed: {result.stderr}"
             }), 500
         if not output_path.exists():
@@ -1986,6 +2153,7 @@ def process_voice_effect():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+
 @app.route("/uploads/<filename>")
 def serve_upload(filename):
     file_path = UPLOAD_DIR / filename
@@ -1993,9 +2161,11 @@ def serve_upload(filename):
         return send_file(str(file_path))
     return jsonify({"success": False, "error": "File not found"}), 404
 
+
 # ============================================================
 # LIBRARY API
 # ============================================================
+
 LIBRARY_FILE = BASE_DIR / "library.json"
 
 def load_library():
@@ -2045,9 +2215,11 @@ def delete_from_library(drop_id):
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+
 # ============================================================
 # DISCOVER / DATA API ROUTES
 # ============================================================
+
 @app.route("/api/all")
 def api_all():
     return jsonify({
@@ -2109,6 +2281,7 @@ def api_search():
         "results": store.search(term)
     })
 
+
 # ============================================================
 # FREE WEB SEARCH (DuckDuckGo Instant Answer API)
 # ============================================================
@@ -2117,14 +2290,20 @@ def api_web_search():
     query = request.args.get("q", "").strip()
     if not query:
         return jsonify({"success": False, "error": "No search term"}), 400
+
     if not has_internet():
-        return jsonify({"success": False, "error": "Offline - no web access"}), 503
+        return jsonify({"success": False, "error": "Offline – no web access"}), 503
+
     try:
+        # DuckDuckGo's free public API (no API key needed)
         url = f"https://api.duckduckgo.com/?q={urllib.parse.quote(query)}&format=json&no_html=1&skip_disambig=1"
         req = urllib.request.Request(url, headers={'User-Agent': 'DJDropFactory/5.0'})
         with urllib.request.urlopen(req, timeout=6) as resp:
             data = json.loads(resp.read())
+
         results = []
+
+        # Main abstract (summary + link)
         if data.get("AbstractText") and data.get("AbstractURL"):
             results.append({
                 "title": data.get("AbstractSource") or "Web Result",
@@ -2132,13 +2311,15 @@ def api_web_search():
                 "url": data.get("AbstractURL"),
                 "source": "duckduckgo"
             })
+
+        # Related topics
         for topic in data.get("RelatedTopics", []):
             if isinstance(topic, dict) and "Text" in topic and "FirstURL" in topic:
                 text = topic["Text"]
                 if " - " in text:
                     title, desc = text.split(" - ", 1)
                 else:
-                    title = text[:60] + ("..." if len(text) > 60 else "")
+                    title = text[:60] + ("…" if len(text) > 60 else "")
                     desc = text
                 results.append({
                     "title": title.strip(),
@@ -2146,16 +2327,20 @@ def api_web_search():
                     "url": topic["FirstURL"],
                     "source": "duckduckgo"
                 })
+
         return jsonify({
             "success": True,
             "results": results[:8]
         })
+
     except Exception as e:
         return jsonify({"success": False, "error": f"Web search failed: {str(e)}"}), 500
+
 
 # ============================================================
 # PAYMENT & CREDITS SYSTEM
 # ============================================================
+
 @app.route("/api/user/credits")
 def api_user_credits():
     device_id = request.headers.get('X-Device-ID', 'anonymous')
@@ -2177,7 +2362,7 @@ def api_payment_packages():
             {"id": "basic", "name": "5 Drops", "credits": 5, "price": 50, "description": "Generate 5 premium DJ drops"},
             {"id": "standard", "name": "15 Drops", "credits": 15, "price": 120, "description": "Generate 15 premium DJ drops (Save 30%)"},
             {"id": "premium", "name": "Unlimited Monthly", "credits": 9999, "price": 300, "description": "Unlimited drops for 30 days", "subscription": True, "duration_days": 30},
-            {"id": "pro", "name": "Pro Annual", "credits": 9999, "price": 2500, "description": "Unlimited drops for 365 days", "subscription": True, "duration_days": 365}
+            {"id": "pro", "name": "Pro Annual", "credits": 9999, "price": 2500, "description": "Unlimited drops for 1 year (Save 30%)", "subscription": True, "duration_days": 365}
         ]
     })
 
@@ -2189,17 +2374,21 @@ def api_payment_initiate():
         package_id = data.get("package_id", "basic")
         user_phone = data.get("phone", "").strip()
         method = data.get("method", "mpesa")
+        
         packages = {
             "basic": {"credits": 5, "price": 50},
             "standard": {"credits": 15, "price": 120},
             "premium": {"credits": 9999, "price": 300, "days": 30},
             "pro": {"credits": 9999, "price": 2500, "days": 365}
         }
+        
         pkg = packages.get(package_id)
         if not pkg:
             return jsonify({"success": False, "error": "Invalid package"}), 400
+        
         tx_ref = f"DJF-{device_id[:8]}-{int(time.time())}"
         store.create_payment(tx_ref, device_id, pkg['price'], method)
+        
         response = {
             "success": True,
             "tx_ref": tx_ref,
@@ -2209,29 +2398,36 @@ def api_payment_initiate():
             "message": "Payment initiated. Complete the prompt on your phone.",
             "instructions": {
                 "mpesa": f"Check your phone ({user_phone}) for the M-Pesa STK push. Enter PIN to complete.",
-                "manual": f"Go to M-Pesa -> Lipa na M-Pesa -> Paybill. Enter Business Number and Account Number shown in your app."
+                "manual": f"Go to M-Pesa → Lipa na M-Pesa → Paybill. Enter Business Number and Account Number shown in your app."
             },
             "verification_url": f"/api/payment/verify",
             "mock_mode": True
         }
+        
         return jsonify(response)
+        
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+
 
 @app.route("/api/payment/verify", methods=["POST"])
 def api_payment_verify():
     try:
         data = request.get_json()
         tx_ref = data.get("tx_ref")
+        device_id = request.headers.get('X-Device-ID', 'anonymous')
+        
         if not tx_ref:
             return jsonify({"success": False, "error": "No transaction reference"}), 400
+        
         payment = store.get_payment(tx_ref)
         if not payment:
             return jsonify({"success": False, "error": "Transaction not found"}), 404
+        
         mock_verify = data.get("mock_verify", False)
         if mock_verify or payment['status'] == 'pending':
             store.verify_payment(tx_ref)
-            device_id = payment['device_id']
+            
             amount = payment['amount']
             if amount <= 50:
                 credits, days = 5, 0
@@ -2241,13 +2437,15 @@ def api_payment_verify():
                 credits, days = 9999, 30
             else:
                 credits, days = 9999, 365
+            
             user = store.get_or_create_user(device_id)
+            
             if days > 0:
                 expires = datetime.now() + timedelta(days=days)
                 conn = sqlite3.connect(store.db_path)
                 cursor = conn.cursor()
                 cursor.execute(
-                    "UPDATE users SET subscription='premium', subscription_expires=?, credits=?, total_paid=total_paid+? WHERE device_id=?",
+                    "UPDATE users SET subscription = 'premium', subscription_expires = ?, credits = ?, total_paid = total_paid + ? WHERE device_id = ?",
                     (expires.isoformat(), credits, amount, device_id)
                 )
                 conn.commit()
@@ -2257,11 +2455,12 @@ def api_payment_verify():
                 conn = sqlite3.connect(store.db_path)
                 cursor = conn.cursor()
                 cursor.execute(
-                    "UPDATE users SET total_paid=total_paid+? WHERE device_id=?",
+                    "UPDATE users SET total_paid = total_paid + ? WHERE device_id = ?",
                     (amount, device_id)
                 )
                 conn.commit()
                 conn.close()
+            
             return jsonify({
                 "success": True,
                 "status": "success",
@@ -2270,14 +2469,16 @@ def api_payment_verify():
                 "subscription_days": days,
                 "message": "Payment verified! Credits added to your account."
             })
-        else:
-            return jsonify({
-                "success": True,
-                "status": payment['status'],
-                "message": "Payment status checked."
-            })
+        
+        return jsonify({
+            "success": True,
+            "status": payment['status'],
+            "message": "Payment status checked."
+        })
+        
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+
 
 @app.route("/api/payment/callback", methods=["POST", "GET"])
 def api_payment_callback():
@@ -2285,15 +2486,19 @@ def api_payment_callback():
         data = request.get_json() or request.args.to_dict()
         tx_ref = data.get("txRef") or data.get("tx_ref")
         status = data.get("status", "unknown")
+        
         if tx_ref and status == "successful":
             store.verify_payment(tx_ref)
+        
         return jsonify({"success": True}), 200
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+
 # ============================================================
 # HEALTH CHECK
 # ============================================================
+
 @app.route("/health")
 def health_check():
     return jsonify({
@@ -2304,20 +2509,22 @@ def health_check():
         "ffmpeg": FFMPEG_AVAILABLE
     })
 
+
 # ============================================================
 # APP STARTUP
 # ============================================================
+
 if __name__ == "__main__":
     print("=" * 60)
-    print(" DJ DROP FACTORY PRO v5.0 - LIVE EDITION")
-    print(" Created by Macdonald Barasa")
-    print(" Email: simiyumacdonald1@gmail.com")
+    print("   DJ DROP FACTORY PRO v5.0 — LIVE EDITION")
+    print("   Created by Macdonald Barasa")
+    print("   Email: simiyumacdonal1@gmail.com")
     print("=" * 60)
     print("Features: AI Training | Loud Audio | Voice Effects | Library | PWA")
-    print(" Web Data Puller | String Wizard | Wizard Validation")
-    print(" LIVE Draft Sync | Live Preview | Heartbeat")
-    print(" DJ Directory | Streaming Guide | Festival Guide")
-    print(" Theater Streaming | Payment & Credits System")
-    print(" Advanced Tokenized Search | Free Web Search (DuckDuckGo)")
+    print("          Web Data Puller | String Wizard | Wizard Validation")
+    print("          LIVE Draft Sync | Live Preview | Heartbeat")
+    print("          DJ Directory | Streaming Guide | Festival Guide")
+    print("          Theater Streaming | Payment & Credits System")
+    print("          Advanced Tokenized Search | Free Web Search (DuckDuckGo)")
     print("=" * 60)
     app.run(host="0.0.0.0", port=5000, debug=True)
