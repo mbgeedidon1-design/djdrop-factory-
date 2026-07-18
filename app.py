@@ -1178,32 +1178,28 @@ class PremiumAudioStudio:
             "space": "",
             "phaser": "",
             "stereo": "",
-            # increased loudness target for extra volume
             "loudness": "loudnorm=I=-9:TP=-0.5:LRA=5",
             "limiter": "alimiter=limit=0.95:level=1",
-            "duck_threshold": "0.02",
+            "duck_threshold": "-34dB",
             "duck_release": "200",
-            # boosted defaults for all genres
             "bg_gain": 0.25,
-            "vocal_gain": 1.8
+            "vocal_gain": 1.5
         }
         if style == "amapiano":
             profile.update({
                 "highpass": 90,
                 "presence_eq": "equalizer=f=2800:width_type=q:width=1.0:g=3.5",
-                "echo": "aecho=0.85:0.60:220|440:0.25|0.15",
-                "space": "aecho=0.80:0.50:700|900:0.12|0.08",
-                "phaser": "aphaser=speed=0.25:decay=0.40",
+                "echo": "aecho=0.85:0.60:220:0.25",
+                "space": "aecho=0.80:0.50:700:0.12",
                 "stereo": cls.safe_stereo(0.03),
-                "vocal_gain": 2.0,   # even louder for amapiano
+                "vocal_gain": 1.6,
                 "bg_gain": 0.28,
-                "duck_threshold": "0.025",
-                "duck_release": "400",
-                "limiter": "alimiter=limit=0.95:level=1"
+                "duck_threshold": "-32dB",
+                "duck_release": "400"
             })
             if energy >= 8:
-                profile["space"] = "aecho=0.82:0.55:650|850:0.16|0.10"
-                profile["phaser"] = "aphaser=speed=0.30:decay=0.45"
+                profile["echo"] = "aecho=0.87:0.68:160:0.26"
+                profile["space"] = "aecho=0.82:0.55:650:0.16"
         elif style == "dancehall":
             profile.update({
                 "highpass": 105,
@@ -1211,63 +1207,60 @@ class PremiumAudioStudio:
                 "slap": "aecho=0.88:0.60:110:0.22",
                 "echo": "aecho=0.82:0.55:220:0.12",
                 "stereo": cls.safe_stereo(0.03),
-                "duck_threshold": "0.03",
+                "duck_threshold": "-30dB",
                 "duck_release": "150",
                 "bg_gain": 0.25,
-                "vocal_gain": 1.9
+                "vocal_gain": 1.6
             })
             if energy >= 8:
-                profile["echo"] = "aecho=0.85:0.58:180|260:0.16|0.10"
+                profile["echo"] = "aecho=0.85:0.58:180:0.16"
         elif style == "radio":
             profile.update({
                 "highpass": 95,
                 "compressor": "acompressor=threshold=-16dB:ratio=4:attack=8:release=120",
                 "presence_eq": "equalizer=f=3000:width_type=q:width=1.1:g=4.5",
                 "slap": "aecho=0.72:0.38:95:0.10",
-                "duck_threshold": "0.03",
+                "duck_threshold": "-30dB",
                 "duck_release": "160",
                 "bg_gain": 0.20,
-                "vocal_gain": 1.7
+                "vocal_gain": 1.5
             })
         elif style == "afrobeat":
             profile.update({
                 "highpass": 95,
                 "presence_eq": "equalizer=f=3000:width_type=q:width=1.1:g=4.0",
-                "echo": "aecho=0.82:0.55:240|360:0.16|0.10",
-                "space": "aecho=0.78:0.45:650|820:0.10|0.06",
+                "echo": "aecho=0.82:0.55:240:0.16",
+                "space": "aecho=0.78:0.45:650:0.10",
                 "stereo": cls.safe_stereo(0.03),
-                "duck_threshold": "0.028",
+                "duck_threshold": "-31dB",
                 "duck_release": "300",
                 "bg_gain": 0.25,
-                "vocal_gain": 1.85
+                "vocal_gain": 1.55
             })
         elif style == "trap":
             profile.update({
                 "highpass": 100,
                 "presence_eq": "equalizer=f=3400:width_type=q:width=1.0:g=4.5",
-                "echo": "aecho=0.85:0.65:160|320:0.22|0.12",
-                "phaser": "aphaser=speed=0.40:decay=0.35",
+                "echo": "aecho=0.85:0.65:160:0.22",
                 "stereo": cls.safe_stereo(0.04),
-                "duck_threshold": "0.025",
+                "duck_threshold": "-32dB",
                 "duck_release": "250",
                 "bg_gain": 0.25,
-                "vocal_gain": 1.9
+                "vocal_gain": 1.6
             })
-        else:
+        else:  # club_banger and default
             profile.update({
                 "highpass": 100,
                 "presence_eq": "equalizer=f=3400:width_type=q:width=1.0:g=4.5",
-                "echo": "aecho=0.85:0.65:180|360:0.22|0.12",
-                "phaser": "aphaser=speed=0.40:decay=0.35",
+                "echo": "aecho=0.85:0.65:180:0.22",
                 "stereo": cls.safe_stereo(0.04),
-                "duck_threshold": "0.025",
+                "duck_threshold": "-32dB",
                 "duck_release": "280",
                 "bg_gain": 0.25,
-                "vocal_gain": 1.85
+                "vocal_gain": 1.55
             })
             if energy >= 8:
-                profile["echo"] = "aecho=0.87:0.68:160|320:0.26|0.14"
-                profile["phaser"] = "aphaser=speed=0.50:decay=0.40"
+                profile["echo"] = "aecho=0.87:0.68:160:0.26"
         return profile
 
     @classmethod
@@ -1280,13 +1273,10 @@ class PremiumAudioStudio:
         chain.append(p["deesser_eq"])
         style_key = style.lower().strip()
         if fx_mode == "dry":
-            # no additional effects
             pass
         elif fx_mode == "clean":
-            # very light processing: just a touch of stereo and maybe a soft reverb for polish
             if p["stereo"]:
                 chain.append(p["stereo"])
-            # subtle space for clean presence
             chain.append("aecho=0.6:0.3:1200:0.04")
         elif fx_mode == "light":
             if p["slap"]:
@@ -1297,16 +1287,14 @@ class PremiumAudioStudio:
             if p["slap"]: chain.append(p["slap"])
             if p["echo"]: chain.append(p["echo"])
             if p["space"]: chain.append(p["space"])
-            if p["phaser"]: chain.append(p["phaser"])
             if p["stereo"]: chain.append(p["stereo"])
         elif fx_mode == "insane":
             if p["slap"]: chain.append(p["slap"])
             if p["echo"]: chain.append(p["echo"])
             if p["space"]: chain.append(p["space"])
-            if p["phaser"]: chain.append(p["phaser"])
             if p["stereo"]: chain.append(p["stereo"])
             chain.append("acompressor=threshold=-12dB:ratio=4:attack=2:release=80")
-        else:  # auto: original logic
+        else:  # auto
             if style_key == "radio":
                 if p["slap"]: chain.append(p["slap"])
             elif style_key == "dancehall":
@@ -1315,7 +1303,6 @@ class PremiumAudioStudio:
             elif style_key == "amapiano":
                 if p["echo"]: chain.append(p["echo"])
                 if p["space"]: chain.append(p["space"])
-                if energy >= 6 and p["phaser"]: chain.append(p["phaser"])
                 if p["stereo"]: chain.append(p["stereo"])
             elif style_key == "afrobeat":
                 if p["echo"]: chain.append(p["echo"])
@@ -1323,27 +1310,26 @@ class PremiumAudioStudio:
                 if p["stereo"]: chain.append(p["stereo"])
             elif style_key == "trap":
                 if p["echo"]: chain.append(p["echo"])
-                if p["phaser"] and energy >= 7: chain.append(p["phaser"])
                 if p["stereo"]: chain.append(p["stereo"])
-            else:
+            else:  # club_banger and default
                 if p["echo"]: chain.append(p["echo"])
-                if energy >= 7 and p["phaser"]: chain.append(p["phaser"])
                 if p["stereo"]: chain.append(p["stereo"])
-        chain.append(p["loudness"])
         chain.append(p["limiter"])
+        chain.append(p["loudness"])
         return ",".join([x for x in chain if x]), p
 
     @classmethod
     def run_ffmpeg(cls, cmd):
         result = subprocess.run(cmd, capture_output=True, text=True)
         if result.returncode != 0:
-            raise RuntimeError("FFmpeg mastering failed:\n" + result.stderr)
+            raise RuntimeError(f"FFmpeg failed (rc={result.returncode}):\n{result.stderr}")
 
     @classmethod
     def render_wet_vocal(cls, vocal_path, wet_output_path, style_preset, energy=8,
                          fx_mode="auto", vocal_gain=1.0):
         vocal_fx, p = cls.build_vocal_fx_chain(style_preset, energy, fx_mode)
-        final_gain = vocal_gain * p["vocal_gain"]
+        raw_gain = vocal_gain * p["vocal_gain"]
+        final_gain = min(raw_gain, 1.8)
         if abs(final_gain - 1.0) > 0.0001:
             vocal_fx = f"volume={final_gain:.2f},{vocal_fx}"
         cmd = [
@@ -1358,23 +1344,6 @@ class PremiumAudioStudio:
     @classmethod
     def render_final_master(cls, wet_vocal_path, bg_path, final_output_path,
                             style_preset, energy=8, bg_gain=None):
-        # ------------------------------------------------------------------
-        # FIX: ffmpeg's `amix` filter defaults to normalize=1, which silently
-        # divides the combined output by the number of inputs (here /2, i.e.
-        # roughly -6dB) EVEN THOUGH the background has already been ducked
-        # to near-silence under the vocal. That auto-halving was applied on
-        # top of a vocal that was never re-normalized after mixing, so any
-        # drop rendered with a background track came out much quieter than
-        # one rendered without a background track (the "no bg" branch below
-        # just copies the already loudnorm'd wet vocal straight through).
-        # This had nothing to do with genre — it happened for any genre
-        # whenever a bg_path was supplied.
-        #
-        # Fix: set normalize=0 on amix (so it stops auto-attenuating), then
-        # re-apply loudnorm + limiter on the final mixed signal so the
-        # output level is consistent and controlled, whether or not a
-        # background track was used.
-        # ------------------------------------------------------------------
         profile = cls.get_fx_profile(style_preset, energy)
         if bg_gain is None:
             bg_gain = profile["bg_gain"]
@@ -1384,7 +1353,7 @@ class PremiumAudioStudio:
                 f"[bgquiet][0:a]sidechaincompress="
                 f"threshold={profile['duck_threshold']}:ratio=15:attack=3:release={profile['duck_release']}[bgduck];"
                 f"[0:a][bgduck]amix=inputs=2:duration=first:dropout_transition=2:normalize=0[mixed];"
-                f"[mixed]{profile['loudness']},{profile['limiter']}[out]"
+                f"[mixed]{profile['limiter']},{profile['loudness']}[out]"
             )
             cmd = [
                 "ffmpeg", "-y",
@@ -1399,7 +1368,7 @@ class PremiumAudioStudio:
             cmd = [
                 "ffmpeg", "-y",
                 "-i", wet_vocal_path,
-                "-c:a", "libmp3lame",
+                "-af", f"{profile['limiter']},{profile['loudness']}",
                 "-b:a", "320k",
                 final_output_path
             ]
@@ -1423,17 +1392,17 @@ VOICE_MAP = {
     "1": ("Deep Studio Heavy Voice (Male - US)", "en-US-AndrewNeural"),
     "2": ("Crisp Energetic Host (Male - UK)", "en-GB-RyanNeural"),
     "3": ("Smooth High-End Female Vibe (Female - US)", "en-US-EmmaNeural"),
-    "4": ("Natural Afro-Vibe Hype Host (Male - NG)", "en-NG-AbeoNeural"),
+    "4": ("Natural Afro-Vibe Hype Host (Male - US)", "en-US-GuyNeural"),
     "5": ("Bright Female Radio Host (UK)", "en-GB-SoniaNeural"),
-    "6": ("Warm Female Afro Voice (NG)", "en-NG-EzinneNeural"),
+    "6": ("Warm Female Afro Voice (US)", "en-US-AriaNeural"),
 }
 
 AUTO_GENRE_VOICE = {
-    "amapiano": "en-NG-AbeoNeural",
+    "amapiano": "en-US-GuyNeural",
     "dancehall": "en-US-AndrewNeural",
     "radio": "en-GB-SoniaNeural",
     "club_banger": "en-GB-RyanNeural",
-    "afrobeat": "en-NG-EzinneNeural",
+    "afrobeat": "en-US-AriaNeural",
     "trap": "en-US-AndrewNeural"
 }
 
@@ -1563,7 +1532,7 @@ async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track,
                 vocal_gain=vocal_gain
             )
         except Exception as e:
-            print(f"Wet FX failed: {e}")
+            print(f"[AUDIO FIX] Wet FX failed for genre={genre}, fx_mode={fx_mode}: {e}")
             shutil.copy(str(raw_vocal), str(wet_vocal))
     else:
         shutil.copy(str(raw_vocal), str(wet_vocal))
@@ -1579,7 +1548,7 @@ async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track,
                 bg_gain=bg_gain
             )
         except Exception as e:
-            print(f"Final master failed: {e}")
+            print(f"[AUDIO FIX] Final master failed for genre={genre}: {e}")
             shutil.copy(str(wet_vocal), str(final_master))
     else:
         shutil.copy(str(wet_vocal), str(final_master))
