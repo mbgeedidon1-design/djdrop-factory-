@@ -1,23 +1,16 @@
 # ============================================================
-# DJ DROP FACTORY PRO v5.0 — LIVE EDITION (AUDIO BUG FIXED)
-# Created by: Macdonald Barasa
-# Email: simiyumacdonal1@gmail.com
-#
+# DJ DROP FACTORY PRO v5.0 — LIVE EDITION (IMAGE GEN + FREE)
+# ============================================================
 # FIX APPLIED (see render_final_master): ffmpeg's `amix` filter
 # defaults to normalize=1, which auto-halves (~-6dB) the mixed
-# output whenever a background track is present, and the mix was
-# never re-normalized/limited afterward. That's why any drop
-# rendered WITH a background track came out much quieter than one
-# rendered WITHOUT one (unrelated to genre) — dancehall/radio tests
-# that skipped the bg track just copied the already loudnorm'd wet
-# vocal straight through, so they sounded loud by comparison.
+# output whenever a background track is present. This fix sets
+# normalize=0 and re-applies loudnorm after mixing, so all drops
+# (AI / Script / custom) are equally loud.
 #
-# Features: AI Training, Loud Audio, Voice Effects, Library API,
-#           Web Data Puller, String Wizard, Wizard Validation,
-#           LIVE Draft Sync, Live Preview, Heartbeat,
-#           DJ Directory, Streaming Apps, Festival Guide,
-#           Theater Streaming, Payment & Credits System,
-#           Tokenized Internal Search, Free Web Search (DuckDuckGo)
+# NEW: Image generation engine – fire overlay, genre colours,
+# DJ name in glow, automatically created with every drop.
+#
+# Payment system removed – the app is now completely free.
 # ============================================================
 
 import os
@@ -40,6 +33,10 @@ from io import BytesIO
 from flask import Flask, render_template, request, jsonify, send_file, send_from_directory, make_response
 import edge_tts
 
+# --- Image generation imports ---
+from PIL import Image, ImageDraw, ImageFont, ImageEnhance
+import numpy as np
+
 app = Flask(__name__)
 BASE_DIR = Path(__file__).parent.resolve()
 OUTPUT_DIR = BASE_DIR / "generated_drops"
@@ -50,12 +47,9 @@ TRAINING_DIR = BASE_DIR / "training_data"
 TRAINING_DIR.mkdir(exist_ok=True)
 
 # ============================================================
-# CONFIG & SECRETS
+# CONFIG (payment removed)
 # ============================================================
-MERCHANT_PHONE = os.environ.get("MERCHANT_PHONE", "254748322641")  # Server-side only
-FLUTTERWAVE_SECRET = os.environ.get("FLUTTERWAVE_SECRET", "")      # Get from dashboard
-PAYMENT_CALLBACK = os.environ.get("PAYMENT_CALLBACK", "https://yourapp.onrender.com/api/payment/callback")
-CURRENCY = os.environ.get("CURRENCY", "KES")
+# No payment secrets needed anymore.
 
 # ============================================================
 # PERFORMANCE: Response compression & caching headers
@@ -172,26 +166,8 @@ class DataStore:
                 region TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY,
-                device_id TEXT UNIQUE,
-                credits INTEGER DEFAULT 0,
-                subscription TEXT DEFAULT 'free',
-                subscription_expires TEXT,
-                total_paid REAL DEFAULT 0.0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-            CREATE TABLE IF NOT EXISTS payments (
-                id INTEGER PRIMARY KEY,
-                tx_ref TEXT UNIQUE,
-                device_id TEXT,
-                amount REAL,
-                status TEXT DEFAULT 'pending',
-                method TEXT,
-                verified INTEGER DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
         """)
+        # Payment tables removed completely
         conn.commit()
         conn.close()
     
@@ -421,84 +397,6 @@ class DataStore:
             
         conn.close()
         return results
-    
-    # ── USER & PAYMENT SYSTEM ──
-    
-    def get_or_create_user(self, device_id):
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM users WHERE device_id = ?", (device_id,))
-        row = cursor.fetchone()
-        if not row:
-            cursor.execute("INSERT INTO users (device_id) VALUES (?)", (device_id,))
-            conn.commit()
-            cursor.execute("SELECT * FROM users WHERE device_id = ?", (device_id,))
-            row = cursor.fetchone()
-        conn.close()
-        return dict(row) if hasattr(row, 'keys') else {
-            'id': row[0], 'device_id': row[1], 'credits': row[2],
-            'subscription': row[3], 'subscription_expires': row[4],
-            'total_paid': row[5], 'created_at': row[6]
-        }
-    
-    def add_credits(self, device_id, amount):
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute("UPDATE users SET credits = credits + ? WHERE device_id = ?", (amount, device_id))
-        conn.commit()
-        conn.close()
-    
-    def deduct_credit(self, device_id):
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute("SELECT credits, subscription, subscription_expires FROM users WHERE device_id = ?", (device_id,))
-        row = cursor.fetchone()
-        if not row:
-            conn.close()
-            return False
-        credits, sub, sub_exp = row[0], row[1], row[2]
-        # Check active subscription
-        if sub == 'premium' and sub_exp:
-            if datetime.fromisoformat(sub_exp) > datetime.now():
-                conn.close()
-                return True
-        if credits > 0:
-            cursor.execute("UPDATE users SET credits = credits - 1 WHERE device_id = ?", (device_id,))
-            conn.commit()
-            conn.close()
-            return True
-        conn.close()
-        return False
-    
-    def create_payment(self, tx_ref, device_id, amount, method="mpesa"):
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute(
-            "INSERT INTO payments (tx_ref, device_id, amount, method) VALUES (?,?,?,?)",
-            (tx_ref, device_id, amount, method)
-        )
-        conn.commit()
-        conn.close()
-    
-    def verify_payment(self, tx_ref):
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM payments WHERE tx_ref = ?", (tx_ref,))
-        row = cursor.fetchone()
-        if row:
-            cursor.execute("UPDATE payments SET status = 'success', verified = 1 WHERE tx_ref = ?", (tx_ref,))
-            conn.commit()
-        conn.close()
-        return row is not None
-    
-    def get_payment(self, tx_ref):
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM payments WHERE tx_ref = ?", (tx_ref,))
-        row = cursor.fetchone()
-        conn.close()
-        return dict(row) if row else None
 
 
 store = DataStore()
@@ -1156,7 +1054,117 @@ class PremiumDJScriptAI:
 
 
 # ============================================================
-# AUDIO / FX ENGINE - LOUD VERSION (with louder amapiano and clean mode)
+# IMAGE GENERATION ENGINE
+# ============================================================
+
+class ImageGenerator:
+    """Creates fire‑style drop artwork using Pillow."""
+
+    @classmethod
+    def _get_font(cls, size):
+        try:
+            # Common paths for Termux, Linux, macOS
+            for path in [
+                "/data/data/com.termux/files/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+                "/System/Library/Fonts/Helvetica.ttc",
+            ]:
+                if os.path.isfile(path):
+                    return ImageFont.truetype(path, size)
+        except:
+            pass
+        return ImageFont.load_default()
+
+    @classmethod
+    def _build_fire_array(cls, width, height, intensity):
+        factor = max(0.1, min(1.0, intensity / 10.0))
+        fire = np.zeros((height, width, 4), dtype=np.uint8)
+        for y in range(height):
+            norm_y = 1.0 - (y / height)
+            for x in range(width):
+                noise = random.uniform(-0.15, 0.15) * factor
+                flame = norm_y + noise
+                if flame > 0.25:
+                    r = min(255, int(255 * flame))
+                    g = min(255, int(180 * flame * (1 - norm_y * 0.4)))
+                    b = int(40 * (1 - norm_y))
+                    alpha = int(200 * factor * norm_y * 0.5)
+                    if alpha > 15:
+                        fire[y, x] = [r, g, b, alpha]
+        return fire
+
+    @classmethod
+    def _genre_palette(cls, genre):
+        genre = genre.lower().replace(" ", "_")
+        palettes = {
+            "amapiano":  (255, 180, 0, 255),
+            "dancehall": (255, 60, 0, 255),
+            "radio":     (0, 180, 255, 255),
+            "club_banger": (255, 0, 100, 255),
+            "afrobeat":  (0, 200, 100, 255),
+            "trap":      (140, 0, 255, 255),
+        }
+        return palettes.get(genre, (255, 100, 0, 255))
+
+    @classmethod
+    def _draw_text_glow(cls, img, text, y_pos, font_size_fraction=0.12,
+                        accent=(255, 100, 0, 255), glow_alpha=120):
+        draw = ImageDraw.Draw(img)
+        font_size = max(30, int(img.height * font_size_fraction))
+        font = cls._get_font(font_size)
+        bbox = draw.textbbox((0, 0), text, font=font)
+        tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
+        x = (img.width - tw) // 2
+        if y_pos == "center":
+            y = (img.height - th) // 2
+        elif y_pos == "top":
+            y = int(img.height * 0.08)
+        else:
+            y = img.height - th - int(img.height * 0.12)
+
+        for offset in range(5, 0, -1):
+            alpha = glow_alpha if offset > 2 else 180
+            color = (accent[0], accent[1], accent[2], alpha)
+            for dx, dy in [(-offset, 0), (offset, 0), (0, -offset), (0, offset),
+                           (-offset, -offset), (offset, offset)]:
+                draw.text((x + dx, y + dy), text, font=font, fill=color)
+        draw.text((x, y), text, font=font, fill=(255, 255, 255, 255))
+
+    @classmethod
+    def generate_drop_image(cls, base_image_path, dj_name, genre="club_banger",
+                            energy=5, output_path=None):
+        if base_image_path and os.path.isfile(base_image_path):
+            base = Image.open(base_image_path).convert('RGBA')
+        else:
+            base = Image.new('RGBA', (800, 800), (0, 0, 0, 255))
+
+        target_size = (800, 800)
+        base.thumbnail(target_size, Image.LANCZOS)
+        canvas = Image.new('RGBA', target_size, (0, 0, 0, 255))
+        offset = ((target_size[0] - base.width) // 2, (target_size[1] - base.height) // 2)
+        canvas.paste(base, offset, base if base.mode == 'RGBA' else None)
+
+        enhancer = ImageEnhance.Contrast(canvas)
+        canvas = enhancer.enhance(1.2 + energy / 20)
+
+        fire_arr = cls._build_fire_array(canvas.width, canvas.height, energy)
+        fire_layer = Image.fromarray(fire_arr, 'RGBA')
+        canvas = Image.alpha_composite(canvas, fire_layer)
+
+        accent = cls._genre_palette(genre)
+        cls._draw_text_glow(canvas, f"DJ {dj_name}", "center",
+                            font_size_fraction=0.14, accent=accent)
+        cls._draw_text_glow(canvas, "🔥 FIRE 🔥", "bottom",
+                            font_size_fraction=0.10, accent=accent)
+
+        if output_path is None:
+            output_path = OUTPUT_DIR / f"{safe_filename(dj_name)}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+        canvas.save(output_path, "PNG")
+        return str(output_path)
+
+
+# ============================================================
+# AUDIO / FX ENGINE - LOUD VERSION
 # ============================================================
 
 class PremiumAudioStudio:
@@ -1180,26 +1188,28 @@ class PremiumAudioStudio:
             "stereo": "",
             "loudness": "loudnorm=I=-9:TP=-0.5:LRA=5",
             "limiter": "alimiter=limit=0.95:level=1",
-            "duck_threshold": "-34dB",
+            "duck_threshold": "0.02",
             "duck_release": "200",
             "bg_gain": 0.25,
-            "vocal_gain": 1.5
+            "vocal_gain": 1.8
         }
         if style == "amapiano":
             profile.update({
                 "highpass": 90,
                 "presence_eq": "equalizer=f=2800:width_type=q:width=1.0:g=3.5",
-                "echo": "aecho=0.85:0.60:220:0.25",
-                "space": "aecho=0.80:0.50:700:0.12",
+                "echo": "aecho=0.85:0.60:220|440:0.25|0.15",
+                "space": "aecho=0.80:0.50:700|900:0.12|0.08",
+                "phaser": "aphaser=speed=0.25:decay=0.40",
                 "stereo": cls.safe_stereo(0.03),
-                "vocal_gain": 1.6,
+                "vocal_gain": 2.0,
                 "bg_gain": 0.28,
-                "duck_threshold": "-32dB",
-                "duck_release": "400"
+                "duck_threshold": "0.025",
+                "duck_release": "400",
+                "limiter": "alimiter=limit=0.95:level=1"
             })
             if energy >= 8:
-                profile["echo"] = "aecho=0.87:0.68:160:0.26"
-                profile["space"] = "aecho=0.82:0.55:650:0.16"
+                profile["space"] = "aecho=0.82:0.55:650|850:0.16|0.10"
+                profile["phaser"] = "aphaser=speed=0.30:decay=0.45"
         elif style == "dancehall":
             profile.update({
                 "highpass": 105,
@@ -1207,60 +1217,63 @@ class PremiumAudioStudio:
                 "slap": "aecho=0.88:0.60:110:0.22",
                 "echo": "aecho=0.82:0.55:220:0.12",
                 "stereo": cls.safe_stereo(0.03),
-                "duck_threshold": "-30dB",
+                "duck_threshold": "0.03",
                 "duck_release": "150",
                 "bg_gain": 0.25,
-                "vocal_gain": 1.6
+                "vocal_gain": 1.9
             })
             if energy >= 8:
-                profile["echo"] = "aecho=0.85:0.58:180:0.16"
+                profile["echo"] = "aecho=0.85:0.58:180|260:0.16|0.10"
         elif style == "radio":
             profile.update({
                 "highpass": 95,
                 "compressor": "acompressor=threshold=-16dB:ratio=4:attack=8:release=120",
                 "presence_eq": "equalizer=f=3000:width_type=q:width=1.1:g=4.5",
                 "slap": "aecho=0.72:0.38:95:0.10",
-                "duck_threshold": "-30dB",
+                "duck_threshold": "0.03",
                 "duck_release": "160",
                 "bg_gain": 0.20,
-                "vocal_gain": 1.5
+                "vocal_gain": 1.7
             })
         elif style == "afrobeat":
             profile.update({
                 "highpass": 95,
                 "presence_eq": "equalizer=f=3000:width_type=q:width=1.1:g=4.0",
-                "echo": "aecho=0.82:0.55:240:0.16",
-                "space": "aecho=0.78:0.45:650:0.10",
+                "echo": "aecho=0.82:0.55:240|360:0.16|0.10",
+                "space": "aecho=0.78:0.45:650|820:0.10|0.06",
                 "stereo": cls.safe_stereo(0.03),
-                "duck_threshold": "-31dB",
+                "duck_threshold": "0.028",
                 "duck_release": "300",
                 "bg_gain": 0.25,
-                "vocal_gain": 1.55
+                "vocal_gain": 1.85
             })
         elif style == "trap":
             profile.update({
                 "highpass": 100,
                 "presence_eq": "equalizer=f=3400:width_type=q:width=1.0:g=4.5",
-                "echo": "aecho=0.85:0.65:160:0.22",
+                "echo": "aecho=0.85:0.65:160|320:0.22|0.12",
+                "phaser": "aphaser=speed=0.40:decay=0.35",
                 "stereo": cls.safe_stereo(0.04),
-                "duck_threshold": "-32dB",
+                "duck_threshold": "0.025",
                 "duck_release": "250",
                 "bg_gain": 0.25,
-                "vocal_gain": 1.6
+                "vocal_gain": 1.9
             })
-        else:  # club_banger and default
+        else:
             profile.update({
                 "highpass": 100,
                 "presence_eq": "equalizer=f=3400:width_type=q:width=1.0:g=4.5",
-                "echo": "aecho=0.85:0.65:180:0.22",
+                "echo": "aecho=0.85:0.65:180|360:0.22|0.12",
+                "phaser": "aphaser=speed=0.40:decay=0.35",
                 "stereo": cls.safe_stereo(0.04),
-                "duck_threshold": "-32dB",
+                "duck_threshold": "0.025",
                 "duck_release": "280",
                 "bg_gain": 0.25,
-                "vocal_gain": 1.55
+                "vocal_gain": 1.85
             })
             if energy >= 8:
-                profile["echo"] = "aecho=0.87:0.68:160:0.26"
+                profile["echo"] = "aecho=0.87:0.68:160|320:0.26|0.14"
+                profile["phaser"] = "aphaser=speed=0.50:decay=0.40"
         return profile
 
     @classmethod
@@ -1287,11 +1300,13 @@ class PremiumAudioStudio:
             if p["slap"]: chain.append(p["slap"])
             if p["echo"]: chain.append(p["echo"])
             if p["space"]: chain.append(p["space"])
+            if p["phaser"]: chain.append(p["phaser"])
             if p["stereo"]: chain.append(p["stereo"])
         elif fx_mode == "insane":
             if p["slap"]: chain.append(p["slap"])
             if p["echo"]: chain.append(p["echo"])
             if p["space"]: chain.append(p["space"])
+            if p["phaser"]: chain.append(p["phaser"])
             if p["stereo"]: chain.append(p["stereo"])
             chain.append("acompressor=threshold=-12dB:ratio=4:attack=2:release=80")
         else:  # auto
@@ -1303,6 +1318,7 @@ class PremiumAudioStudio:
             elif style_key == "amapiano":
                 if p["echo"]: chain.append(p["echo"])
                 if p["space"]: chain.append(p["space"])
+                if energy >= 6 and p["phaser"]: chain.append(p["phaser"])
                 if p["stereo"]: chain.append(p["stereo"])
             elif style_key == "afrobeat":
                 if p["echo"]: chain.append(p["echo"])
@@ -1310,26 +1326,27 @@ class PremiumAudioStudio:
                 if p["stereo"]: chain.append(p["stereo"])
             elif style_key == "trap":
                 if p["echo"]: chain.append(p["echo"])
+                if p["phaser"] and energy >= 7: chain.append(p["phaser"])
                 if p["stereo"]: chain.append(p["stereo"])
-            else:  # club_banger and default
+            else:
                 if p["echo"]: chain.append(p["echo"])
+                if energy >= 7 and p["phaser"]: chain.append(p["phaser"])
                 if p["stereo"]: chain.append(p["stereo"])
-        chain.append(p["limiter"])
         chain.append(p["loudness"])
+        chain.append(p["limiter"])
         return ",".join([x for x in chain if x]), p
 
     @classmethod
     def run_ffmpeg(cls, cmd):
         result = subprocess.run(cmd, capture_output=True, text=True)
         if result.returncode != 0:
-            raise RuntimeError(f"FFmpeg failed (rc={result.returncode}):\n{result.stderr}")
+            raise RuntimeError("FFmpeg mastering failed:\n" + result.stderr)
 
     @classmethod
     def render_wet_vocal(cls, vocal_path, wet_output_path, style_preset, energy=8,
                          fx_mode="auto", vocal_gain=1.0):
         vocal_fx, p = cls.build_vocal_fx_chain(style_preset, energy, fx_mode)
-        raw_gain = vocal_gain * p["vocal_gain"]
-        final_gain = min(raw_gain, 1.8)
+        final_gain = vocal_gain * p["vocal_gain"]
         if abs(final_gain - 1.0) > 0.0001:
             vocal_fx = f"volume={final_gain:.2f},{vocal_fx}"
         cmd = [
@@ -1344,6 +1361,10 @@ class PremiumAudioStudio:
     @classmethod
     def render_final_master(cls, wet_vocal_path, bg_path, final_output_path,
                             style_preset, energy=8, bg_gain=None):
+        """
+        FIXED: normalize=0 on amix, then loudnorm+limiter so all outputs (AI / Script / custom)
+        are equally loud, with or without a background track.
+        """
         profile = cls.get_fx_profile(style_preset, energy)
         if bg_gain is None:
             bg_gain = profile["bg_gain"]
@@ -1353,7 +1374,7 @@ class PremiumAudioStudio:
                 f"[bgquiet][0:a]sidechaincompress="
                 f"threshold={profile['duck_threshold']}:ratio=15:attack=3:release={profile['duck_release']}[bgduck];"
                 f"[0:a][bgduck]amix=inputs=2:duration=first:dropout_transition=2:normalize=0[mixed];"
-                f"[mixed]{profile['limiter']},{profile['loudness']}[out]"
+                f"[mixed]{profile['loudness']},{profile['limiter']}[out]"
             )
             cmd = [
                 "ffmpeg", "-y",
@@ -1368,7 +1389,7 @@ class PremiumAudioStudio:
             cmd = [
                 "ffmpeg", "-y",
                 "-i", wet_vocal_path,
-                "-af", f"{profile['limiter']},{profile['loudness']}",
+                "-c:a", "libmp3lame",
                 "-b:a", "320k",
                 final_output_path
             ]
@@ -1392,17 +1413,17 @@ VOICE_MAP = {
     "1": ("Deep Studio Heavy Voice (Male - US)", "en-US-AndrewNeural"),
     "2": ("Crisp Energetic Host (Male - UK)", "en-GB-RyanNeural"),
     "3": ("Smooth High-End Female Vibe (Female - US)", "en-US-EmmaNeural"),
-    "4": ("Natural Afro-Vibe Hype Host (Male - US)", "en-US-GuyNeural"),
+    "4": ("Natural Afro-Vibe Hype Host (Male - NG)", "en-NG-AbeoNeural"),
     "5": ("Bright Female Radio Host (UK)", "en-GB-SoniaNeural"),
-    "6": ("Warm Female Afro Voice (US)", "en-US-AriaNeural"),
+    "6": ("Warm Female Afro Voice (NG)", "en-NG-EzinneNeural"),
 }
 
 AUTO_GENRE_VOICE = {
-    "amapiano": "en-US-GuyNeural",
+    "amapiano": "en-NG-AbeoNeural",
     "dancehall": "en-US-AndrewNeural",
     "radio": "en-GB-SoniaNeural",
     "club_banger": "en-GB-RyanNeural",
-    "afrobeat": "en-US-AriaNeural",
+    "afrobeat": "en-NG-EzinneNeural",
     "trap": "en-US-AndrewNeural"
 }
 
@@ -1455,14 +1476,14 @@ async def synthesize_tts_smart(text, voice, out_path, rate, volume):
 
 
 # ============================================================
-# MAIN GENERATION FUNCTION
+# MAIN GENERATION FUNCTION (with image generation)
 # ============================================================
 
 async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track,
                              drop_type, mood, energy, city, event_name,
                              user_stutter, station_name, slogan, crew_tag,
                              fx_mode, vocal_gain, bg_gain, mode="ai", custom_script="",
-                             training_example=None):
+                             training_example=None, image_path=None):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     project_name = f"{safe_filename(dj_name)}_{timestamp}"
     out_dir = OUTPUT_DIR / project_name
@@ -1532,7 +1553,7 @@ async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track,
                 vocal_gain=vocal_gain
             )
         except Exception as e:
-            print(f"[AUDIO FIX] Wet FX failed for genre={genre}, fx_mode={fx_mode}: {e}")
+            print(f"Wet FX failed: {e}")
             shutil.copy(str(raw_vocal), str(wet_vocal))
     else:
         shutil.copy(str(raw_vocal), str(wet_vocal))
@@ -1548,10 +1569,27 @@ async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track,
                 bg_gain=bg_gain
             )
         except Exception as e:
-            print(f"[AUDIO FIX] Final master failed for genre={genre}: {e}")
+            print(f"Final master failed: {e}")
             shutil.copy(str(wet_vocal), str(final_master))
     else:
         shutil.copy(str(wet_vocal), str(final_master))
+
+    # --- IMAGE GENERATION ---
+    image_result = None
+    image_url = None
+    try:
+        img_out_path = out_dir / f"{project_name}.png"
+        ImageGenerator.generate_drop_image(
+            base_image_path=image_path,
+            dj_name=dj_name,
+            genre=genre,
+            energy=energy,
+            output_path=str(img_out_path)
+        )
+        image_result = str(img_out_path)
+        image_url = f"/download/{project_name}/{os.path.basename(img_out_path)}"
+    except Exception as e:
+        print(f"Image generation failed: {e}")
 
     return {
         "project_name": project_name,
@@ -1564,7 +1602,9 @@ async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track,
         "mode": mode,
         "tts_engine": tts_engine,
         "offline": tts_engine == "espeak" or tts_engine == "silent",
-        "ffmpeg_available": FFMPEG_AVAILABLE
+        "ffmpeg_available": FFMPEG_AVAILABLE,
+        "image": image_result,
+        "image_url": image_url
     }
 
 
@@ -1911,23 +1951,14 @@ def api_train():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+# ============================================================
+# GENERATE DROP (FREE, NO CREDITS NEEDED)
+# ============================================================
+
 @app.route("/api/generate", methods=["POST"])
 def api_generate():
     try:
         data = request.get_json()
-        # --- CREDIT CHECK ---
-        device_id = request.headers.get('X-Device-ID', 'anonymous')
-        user = store.get_or_create_user(device_id)
-        if user['subscription'] != 'premium':
-            if user['credits'] <= 0:
-                return jsonify({
-                    "success": False,
-                    "error": "insufficient_credits",
-                    "message": "You have no credits left. Please purchase credits to continue.",
-                    "credits": user['credits'],
-                    "subscription": user['subscription']
-                }), 402
-        
         mode = data.get("mode", "ai")
         custom_script = data.get("custom_script", "").strip()
         training_example = data.get("training_example", "").strip()
@@ -1949,6 +1980,7 @@ def api_generate():
         bg_gain = data.get("bg_gain")
         bg_gain = float(bg_gain) if bg_gain else None
         bg_track = data.get("bg_track", "")
+        image_file = data.get("image", "")  # user-uploaded image filename
 
         if voice_choice == "7":
             voice = AUTO_GENRE_VOICE.get(genre, "en-US-AndrewNeural")
@@ -1960,6 +1992,13 @@ def api_generate():
             potential_path = UPLOAD_DIR / bg_track
             if potential_path.exists():
                 full_bg_path = str(potential_path)
+
+        # Determine image base path if an uploaded image is given
+        image_base_path = None
+        if image_file:
+            img_candidate = UPLOAD_DIR / image_file
+            if img_candidate.exists():
+                image_base_path = str(img_candidate)
 
         result = asyncio.run(build_premium_drop(
             dj_name=dj_name,
@@ -1981,11 +2020,9 @@ def api_generate():
             bg_gain=bg_gain,
             mode=mode,
             custom_script=custom_script,
-            training_example=training_example
+            training_example=training_example,
+            image_path=image_base_path
         ))
-        
-        # Deduct credit after successful generation
-        store.deduct_credit(device_id)
 
         return jsonify({
             "success": True,
@@ -1997,13 +2034,54 @@ def api_generate():
             "offline": result["offline"],
             "ffmpeg_available": result["ffmpeg_available"],
             "download_url": f"/download/{result['project_name']}/{result['final_master'].split('/')[-1]}",
-            "credits_remaining": store.get_or_create_user(device_id)['credits'],
+            "image_url": result.get("image_url"),
+            "image_error": None if result.get("image_url") else "Image generation failed, check logs",
             "message": "Drop generated!" + (" (Neural voice)" if result["tts_engine"] == "edge" else " (Basic audio)" if result["tts_engine"] == "espeak" else " (Audio unavailable)")
         })
 
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+
+# ============================================================
+# STANDALONE IMAGE GENERATION (OPTIONAL)
+# ============================================================
+
+@app.route("/api/generate-image", methods=["POST"])
+def api_generate_image():
+    try:
+        data = request.get_json()
+        dj_name = data.get("dj_name", "DJ Beshi").strip()
+        genre = data.get("genre", "club_banger")
+        energy = int(data.get("energy", 8))
+        image_file = data.get("image", "")
+        base_img_path = None
+        if image_file:
+            candidate = UPLOAD_DIR / image_file
+            if candidate.exists():
+                base_img_path = str(candidate)
+        project_name = f"img_{safe_filename(dj_name)}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        out_dir = OUTPUT_DIR / project_name
+        out_dir.mkdir(parents=True, exist_ok=True)
+        output_path = str(out_dir / f"{project_name}.png")
+        img_path = ImageGenerator.generate_drop_image(
+            base_image_path=base_img_path,
+            dj_name=dj_name,
+            genre=genre,
+            energy=energy,
+            output_path=output_path
+        )
+        return jsonify({
+            "success": True,
+            "image_url": f"/download/{project_name}/{os.path.basename(img_path)}"
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ============================================================
+# FILE UPLOAD & DOWNLOAD
+# ============================================================
 
 @app.route("/upload", methods=["POST"])
 def upload_file():
@@ -2252,27 +2330,22 @@ def api_search():
 
 
 # ============================================================
-# FREE WEB SEARCH (DuckDuckGo Instant Answer API)
+# FREE WEB SEARCH (DuckDuckGo)
 # ============================================================
+
 @app.route("/api/web_search")
 def api_web_search():
     query = request.args.get("q", "").strip()
     if not query:
         return jsonify({"success": False, "error": "No search term"}), 400
-
     if not has_internet():
         return jsonify({"success": False, "error": "Offline – no web access"}), 503
-
     try:
-        # DuckDuckGo's free public API (no API key needed)
         url = f"https://api.duckduckgo.com/?q={urllib.parse.quote(query)}&format=json&no_html=1&skip_disambig=1"
         req = urllib.request.Request(url, headers={'User-Agent': 'DJDropFactory/5.0'})
         with urllib.request.urlopen(req, timeout=6) as resp:
             data = json.loads(resp.read())
-
         results = []
-
-        # Main abstract (summary + link)
         if data.get("AbstractText") and data.get("AbstractURL"):
             results.append({
                 "title": data.get("AbstractSource") or "Web Result",
@@ -2280,8 +2353,6 @@ def api_web_search():
                 "url": data.get("AbstractURL"),
                 "source": "duckduckgo"
             })
-
-        # Related topics
         for topic in data.get("RelatedTopics", []):
             if isinstance(topic, dict) and "Text" in topic and "FirstURL" in topic:
                 text = topic["Text"]
@@ -2296,172 +2367,12 @@ def api_web_search():
                     "url": topic["FirstURL"],
                     "source": "duckduckgo"
                 })
-
         return jsonify({
             "success": True,
             "results": results[:8]
         })
-
     except Exception as e:
         return jsonify({"success": False, "error": f"Web search failed: {str(e)}"}), 500
-
-
-# ============================================================
-# PAYMENT & CREDITS SYSTEM
-# ============================================================
-
-@app.route("/api/user/credits")
-def api_user_credits():
-    device_id = request.headers.get('X-Device-ID', 'anonymous')
-    user = store.get_or_create_user(device_id)
-    return jsonify({
-        "success": True,
-        "credits": user['credits'],
-        "subscription": user['subscription'],
-        "subscription_expires": user['subscription_expires'],
-        "total_paid": user['total_paid']
-    })
-
-@app.route("/api/payment/packages")
-def api_payment_packages():
-    return jsonify({
-        "success": True,
-        "currency": CURRENCY,
-        "packages": [
-            {"id": "basic", "name": "5 Drops", "credits": 5, "price": 50, "description": "Generate 5 premium DJ drops"},
-            {"id": "standard", "name": "15 Drops", "credits": 15, "price": 120, "description": "Generate 15 premium DJ drops (Save 30%)"},
-            {"id": "premium", "name": "Unlimited Monthly", "credits": 9999, "price": 300, "description": "Unlimited drops for 30 days", "subscription": True, "duration_days": 30},
-            {"id": "pro", "name": "Pro Annual", "credits": 9999, "price": 2500, "description": "Unlimited drops for 1 year (Save 30%)", "subscription": True, "duration_days": 365}
-        ]
-    })
-
-@app.route("/api/payment/initiate", methods=["POST"])
-def api_payment_initiate():
-    try:
-        data = request.get_json()
-        device_id = request.headers.get('X-Device-ID', 'anonymous')
-        package_id = data.get("package_id", "basic")
-        user_phone = data.get("phone", "").strip()
-        method = data.get("method", "mpesa")
-        
-        packages = {
-            "basic": {"credits": 5, "price": 50},
-            "standard": {"credits": 15, "price": 120},
-            "premium": {"credits": 9999, "price": 300, "days": 30},
-            "pro": {"credits": 9999, "price": 2500, "days": 365}
-        }
-        
-        pkg = packages.get(package_id)
-        if not pkg:
-            return jsonify({"success": False, "error": "Invalid package"}), 400
-        
-        tx_ref = f"DJF-{device_id[:8]}-{int(time.time())}"
-        store.create_payment(tx_ref, device_id, pkg['price'], method)
-        
-        response = {
-            "success": True,
-            "tx_ref": tx_ref,
-            "status": "pending",
-            "amount": pkg['price'],
-            "currency": CURRENCY,
-            "message": "Payment initiated. Complete the prompt on your phone.",
-            "instructions": {
-                "mpesa": f"Check your phone ({user_phone}) for the M-Pesa STK push. Enter PIN to complete.",
-                "manual": f"Go to M-Pesa → Lipa na M-Pesa → Paybill. Enter Business Number and Account Number shown in your app."
-            },
-            "verification_url": f"/api/payment/verify",
-            "mock_mode": True
-        }
-        
-        return jsonify(response)
-        
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
-
-
-@app.route("/api/payment/verify", methods=["POST"])
-def api_payment_verify():
-    try:
-        data = request.get_json()
-        tx_ref = data.get("tx_ref")
-        device_id = request.headers.get('X-Device-ID', 'anonymous')
-        
-        if not tx_ref:
-            return jsonify({"success": False, "error": "No transaction reference"}), 400
-        
-        payment = store.get_payment(tx_ref)
-        if not payment:
-            return jsonify({"success": False, "error": "Transaction not found"}), 404
-        
-        mock_verify = data.get("mock_verify", False)
-        if mock_verify or payment['status'] == 'pending':
-            store.verify_payment(tx_ref)
-            
-            amount = payment['amount']
-            if amount <= 50:
-                credits, days = 5, 0
-            elif amount <= 120:
-                credits, days = 15, 0
-            elif amount <= 300:
-                credits, days = 9999, 30
-            else:
-                credits, days = 9999, 365
-            
-            user = store.get_or_create_user(device_id)
-            
-            if days > 0:
-                expires = datetime.now() + timedelta(days=days)
-                conn = sqlite3.connect(store.db_path)
-                cursor = conn.cursor()
-                cursor.execute(
-                    "UPDATE users SET subscription = 'premium', subscription_expires = ?, credits = ?, total_paid = total_paid + ? WHERE device_id = ?",
-                    (expires.isoformat(), credits, amount, device_id)
-                )
-                conn.commit()
-                conn.close()
-            else:
-                store.add_credits(device_id, credits)
-                conn = sqlite3.connect(store.db_path)
-                cursor = conn.cursor()
-                cursor.execute(
-                    "UPDATE users SET total_paid = total_paid + ? WHERE device_id = ?",
-                    (amount, device_id)
-                )
-                conn.commit()
-                conn.close()
-            
-            return jsonify({
-                "success": True,
-                "status": "success",
-                "tx_ref": tx_ref,
-                "credits_added": credits,
-                "subscription_days": days,
-                "message": "Payment verified! Credits added to your account."
-            })
-        
-        return jsonify({
-            "success": True,
-            "status": payment['status'],
-            "message": "Payment status checked."
-        })
-        
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
-
-
-@app.route("/api/payment/callback", methods=["POST", "GET"])
-def api_payment_callback():
-    try:
-        data = request.get_json() or request.args.to_dict()
-        tx_ref = data.get("txRef") or data.get("tx_ref")
-        status = data.get("status", "unknown")
-        
-        if tx_ref and status == "successful":
-            store.verify_payment(tx_ref)
-        
-        return jsonify({"success": True}), 200
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
 
 
 # ============================================================
@@ -2485,7 +2396,7 @@ def health_check():
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("   DJ DROP FACTORY PRO v5.0 — LIVE EDITION")
+    print("   DJ DROP FACTORY PRO v5.0 — FREE + IMAGE GENERATION")
     print("   Created by Macdonald Barasa")
     print("   Email: simiyumacdonal1@gmail.com")
     print("=" * 60)
@@ -2493,7 +2404,7 @@ if __name__ == "__main__":
     print("          Web Data Puller | String Wizard | Wizard Validation")
     print("          LIVE Draft Sync | Live Preview | Heartbeat")
     print("          DJ Directory | Streaming Guide | Festival Guide")
-    print("          Theater Streaming | Payment & Credits System")
-    print("          Advanced Tokenized Search | Free Web Search (DuckDuckGo)")
+    print("          Theater Streaming | Advanced Tokenized Search | DuckDuckGo Search")
+    print("          Image Generation (fire + glow)")
     print("=" * 60)
     app.run(host="0.0.0.0", port=5000, debug=True)

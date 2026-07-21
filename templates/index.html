@@ -720,153 +720,6 @@
             margin-top: 6px;
             margin-right: 4px;
         }
-
-        /* ==================== PAYMENT / PREMIUM ==================== */
-        .premium-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: linear-gradient(135deg, var(--accent), var(--purple));
-            color: #fff;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 700;
-            margin-bottom: 16px;
-        }
-        .credit-pill {
-            position: fixed;
-            top: 50px;
-            right: 20px;
-            z-index: 99;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 700;
-            color: var(--accent);
-            backdrop-filter: blur(10px);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .package-card {
-            background: var(--bg-card);
-            border-radius: 18px;
-            padding: 20px;
-            margin: 0 20px 12px;
-            border: 2px solid var(--border);
-            cursor: pointer;
-            transition: all 0.2s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        .package-card:hover {
-            border-color: var(--accent);
-        }
-        .package-card.selected {
-            border-color: var(--accent);
-            background: linear-gradient(135deg, var(--accent-soft), rgba(155,89,182,0.05));
-            box-shadow: 0 4px 20px var(--accent-glow);
-        }
-        .package-card.popular::before {
-            content: 'POPULAR';
-            position: absolute;
-            top: 10px;
-            right: -28px;
-            background: var(--accent);
-            color: #fff;
-            font-size: 9px;
-            font-weight: 800;
-            padding: 4px 30px;
-            transform: rotate(45deg);
-        }
-        .package-name {
-            font-size: 18px;
-            font-weight: 800;
-            margin-bottom: 4px;
-        }
-        .package-price {
-            font-size: 28px;
-            font-weight: 900;
-            color: var(--accent);
-            margin-bottom: 4px;
-        }
-        .package-price span {
-            font-size: 14px;
-            color: var(--text-muted);
-            font-weight: 500;
-        }
-        .package-desc {
-            font-size: 13px;
-            color: var(--text-secondary);
-        }
-        .pay-btn {
-            width: calc(100% - 40px);
-            margin: 0 20px 20px;
-            padding: 18px;
-            border-radius: 16px;
-            border: none;
-            background: linear-gradient(135deg, var(--success), #2ecc71);
-            color: #fff;
-            font-size: 17px;
-            font-weight: 700;
-            cursor: pointer;
-            box-shadow: 0 8px 30px rgba(0, 208, 132, 0.3);
-        }
-        .pay-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        .modal-overlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(5,5,8,0.85);
-            backdrop-filter: blur(10px);
-            z-index: 400;
-            display: none;
-            align-items: flex-end;
-            justify-content: center;
-        }
-        .modal-overlay.show { display: flex; }
-        .modal-sheet {
-            background: var(--bg-elevated);
-            border-radius: 28px 28px 0 0;
-            width: 100%;
-            max-width: 430px;
-            max-height: 85vh;
-            overflow-y: auto;
-            padding: 24px 0 40px;
-            border-top: 1px solid var(--border);
-            animation: slideUp 0.3s ease;
-        }
-        @keyframes slideUp {
-            from { transform: translateY(100%); }
-            to { transform: translateY(0); }
-        }
-        .modal-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 20px 20px;
-        }
-        .modal-title {
-            font-size: 22px;
-            font-weight: 800;
-        }
-        .modal-close {
-            width: 36px; height: 36px;
-            border-radius: 50%;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            color: var(--text);
-            font-size: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-        }
         .search-bar {
             margin: 0 20px 16px;
             position: relative;
@@ -894,8 +747,6 @@
             color: var(--text-muted);
         }
     </style>
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1834139958190322"
-     crossorigin="anonymous"></script>
 </head>
 <body>
     <div class="bg-glow"></div>
@@ -907,12 +758,6 @@
             <button style="background:rgba(255,255,255,0.2);border:none;border-radius:8px;padding:6px 14px;color:#fff;font-weight:600;cursor:pointer;" onclick="liveEngine.restoreDraft();document.getElementById('recoveryBanner').style.display='none';">Restore</button>
             <button style="background:rgba(255,255,255,0.2);border:none;border-radius:8px;padding:6px 14px;color:#fff;font-weight:600;cursor:pointer;" onclick="localStorage.removeItem('df_draft');document.getElementById('recoveryBanner').style.display='none';">Discard</button>
         </div>
-    </div>
-
-    <!-- Credit Pill -->
-    <div class="credit-pill" id="creditPill" onclick="showPaymentModal()" style="display:none;">
-        <span>⚡</span>
-        <span id="creditText">0 drops</span>
     </div>
 
     <div class="app-container">
@@ -945,7 +790,7 @@
             <!-- Hero Card -->
             <div class="hero-card">
                 <div class="hero-title">🔥 DJ Drop Factory v5.0</div>
-                <div class="hero-text">AI + Web Data + String Wizard + Live Sync + Payments</div>
+                <div class="hero-text">AI + Web Data + String Wizard + Live Sync</div>
                 <div class="hero-badge">
                     <span class="hero-dot"></span>
                     <span id="statusText">Checking status…</span>
@@ -1302,6 +1147,9 @@
                     <div class="result-badge" id="resultBadge">✅ Neural Voice + LOUD FX</div>
                     <div class="result-script" id="resultScript"></div>
                     <div class="audio-wrap"><audio id="resultAudio" controls></audio></div>
+                    <div style="padding: 0 20px 10px;" id="resultImageContainer">
+                        <img id="resultImage" style="width:100%;border-radius:12px;margin-bottom:10px;" src="">
+                    </div>
                     <button class="btn-secondary" onclick="saveToLibrary()">💾 Save to Library</button>
                     <button class="btn-secondary" onclick="copyScript()">📋 Copy Script</button>
                 </div>
@@ -1339,7 +1187,6 @@
                     <div class="nav-title">Discover</div>
                     <div class="nav-subtitle">DJ world at your fingertips</div>
                 </div>
-                <button class="nav-btn" onclick="showPaymentModal()" aria-label="Credits" style="font-size:14px;">⚡</button>
             </div>
 
             <div class="discover-grid">
@@ -1409,18 +1256,6 @@
                 </div>
             </div>
 
-            <!-- Credits & Subscription -->
-            <div class="section-card" onclick="showPaymentModal()" style="cursor:pointer;">
-                <div class="section-header">⚡ Credits & Plan</div>
-                <div class="toggle-row">
-                    <div class="toggle-info">
-                        <div class="toggle-title" id="settingsPlanTitle">Free Plan</div>
-                        <div class="toggle-desc" id="settingsCreditsDesc">0 drops remaining</div>
-                    </div>
-                    <span style="color: var(--accent); font-size: 14px; font-weight: 700;">Upgrade ›</span>
-                </div>
-            </div>
-
             <div class="section-card">
                 <div class="section-header">⚙️ Preferences</div>
                 <div class="toggle-row">
@@ -1474,9 +1309,9 @@
             </div>
 
             <div class="credits">
-                <strong>Premium AI DJ Drop Factory v5.0 — Live Edition</strong><br>
+                <strong>Premium AI DJ Drop Factory v5.0 — Free Edition</strong><br>
                 Created by Macdonald Barasa<br>
-                AI Training | Loud Audio | Voice Effects | Library | Web Data | String Wizard | Live Sync | Payments
+                AI Training | Loud Audio | Voice Effects | Library | Web Data | String Wizard | Live Sync
             </div>
         </div>
 
@@ -1512,33 +1347,6 @@
 
         <!-- Toast -->
         <div class="toast" id="toast" role="status" aria-live="polite"></div>
-
-        <!-- ==================== PAYMENT MODAL ==================== -->
-        <div class="modal-overlay" id="paymentModal" onclick="if(event.target===this)closePaymentModal()">
-            <div class="modal-sheet">
-                <div class="modal-header">
-                    <div class="modal-title">⚡ Get Credits</div>
-                    <button class="modal-close" onclick="closePaymentModal()">✕</button>
-                </div>
-                <div style="padding: 0 20px 20px; text-align: center;">
-                    <div class="premium-badge">🔥 Premium Drops</div>
-                    <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 20px;">
-                        Purchase credits to generate unlimited premium DJ drops with neural voices and loud FX.
-                    </p>
-                </div>
-                <div id="packagesContainer"></div>
-                <div style="padding: 0 20px;">
-                    <label class="form-label" style="margin-top: 8px;">Phone Number (M-Pesa)</label>
-                    <input type="tel" class="form-input" id="paymentPhone" placeholder="e.g. 254712345678">
-                </div>
-                <button class="pay-btn" id="payBtn" onclick="initiatePayment()" style="margin-top: 16px;">
-                    Pay & Unlock
-                </button>
-                <div style="text-align: center; padding: 12px 20px; color: var(--text-muted); font-size: 12px;">
-                    Secure payment powered by Flutterwave. Your number is encrypted.
-                </div>
-            </div>
-        </div>
     </div>
 
     <script>
@@ -1561,9 +1369,6 @@
         let debounceTimer = null;
         let livePreviewDebounce = null;
         let liveEngine = null;
-        let userCredits = 0;
-        let userSubscription = 'free';
-        let selectedPackage = null;
         let deviceId = localStorage.getItem('df_device_id') || 'dev_' + Math.random().toString(36).substr(2, 9);
         localStorage.setItem('df_device_id', deviceId);
 
@@ -1587,7 +1392,6 @@
             currentScreen = screenId;
             if (screenId === 'screenLibrary') renderLibrary();
             if (screenId === 'screenDiscover') loadDiscoverAll();
-            if (screenId === 'screenSettings') loadUserCredits();
         }
 
         function goBack() { showScreen('screenHome'); }
@@ -2037,6 +1841,15 @@
                     lastGeneratedDrop = result;
                     document.getElementById('resultScript').textContent = result.script;
                     document.getElementById('resultAudio').src = result.download_url;
+                    
+                    // Display the generated image
+                    const imgEl = document.getElementById('resultImage');
+                    if (result.image_url) {
+                        imgEl.src = result.image_url;
+                        imgEl.style.display = 'block';
+                    } else {
+                        imgEl.style.display = 'none';
+                    }
                     document.getElementById('resultsArea').style.display = 'block';
                     
                     const badge = document.getElementById('resultBadge');
@@ -2053,13 +1866,6 @@
                     showToast('🔥 Drop generated successfully!');
                     localStorage.removeItem('df_draft');
                     if (liveEngine) liveEngine.clearServerDraft();
-                    if (result.credits_remaining !== undefined) {
-                        userCredits = result.credits_remaining;
-                        updateCreditDisplay();
-                    }
-                } else if (result.error === 'insufficient_credits') {
-                    showToast('❌ ' + (result.message || 'No credits left'));
-                    showPaymentModal();
                 } else {
                     showToast('❌ Generation failed: ' + (result.error || 'unknown'));
                 }
@@ -2468,7 +2274,6 @@
                         this.heartbeat();
                         checkStatus();
                         if (currentScreen === 'screenLibrary') renderLibrary();
-                        loadUserCredits();
                     }
                 });
             }
@@ -2513,7 +2318,6 @@
                         fetchNameSuggestions();
                         this.heartbeat();
                         if (currentScreen === 'screenLibrary') renderLibrary();
-                        loadUserCredits();
                     }
                     isPulling = false;
                 }, {passive: true});
@@ -2626,14 +2430,12 @@
                 const webContainer = document.getElementById('webResults');
                 const listContainer = document.getElementById('discoverList');
 
-                // Always search internal database
                 if (!trimmed) {
                     loadDiscoverAll();
                     if (webContainer) webContainer.style.display = 'none';
                     return;
                 }
 
-                // Internal search (uses the advanced tokenized search on backend)
                 fetch(`/api/search?q=${encodeURIComponent(trimmed)}`)
                     .then(r => r.json())
                     .then(data => {
@@ -2649,7 +2451,6 @@
                         listContainer.innerHTML = '<div style="text-align:center;padding:20px;color:var(--error);">Search failed</div>';
                     });
 
-                // Web search (only if online)
                 fetch('/api/status')
                     .then(r => r.json())
                     .then(status => {
@@ -2673,143 +2474,6 @@
             }, 400);
         }
 
-        // ==================== PAYMENT SYSTEM ====================
-        async function loadUserCredits() {
-            try {
-                const res = await fetch('/api/user/credits', {
-                    headers: {'X-Device-ID': deviceId}
-                });
-                const data = await res.json();
-                if (data.success) {
-                    userCredits = data.credits;
-                    userSubscription = data.subscription;
-                    updateCreditDisplay();
-                }
-            } catch (e) { console.log('Credits load failed'); }
-        }
-
-        function updateCreditDisplay() {
-            const pill = document.getElementById('creditPill');
-            const text = document.getElementById('creditText');
-            const settingsTitle = document.getElementById('settingsPlanTitle');
-            const settingsDesc = document.getElementById('settingsCreditsDesc');
-            
-            pill.style.display = 'flex';
-            
-            if (userSubscription === 'premium') {
-                text.textContent = '∞ Premium';
-                settingsTitle.textContent = 'Premium Plan';
-                settingsDesc.textContent = 'Unlimited drops active';
-            } else {
-                text.textContent = `${userCredits} drops`;
-                settingsTitle.textContent = userCredits > 0 ? 'Free Plan' : 'Free Plan (No Credits)';
-                settingsDesc.textContent = `${userCredits} drops remaining — Tap to buy more`;
-            }
-        }
-
-        async function showPaymentModal() {
-            document.getElementById('paymentModal').classList.add('show');
-            try {
-                const res = await fetch('/api/payment/packages');
-                const data = await res.json();
-                if (data.success) {
-                    const container = document.getElementById('packagesContainer');
-                    container.innerHTML = data.packages.map((pkg, idx) => `
-                        <div class="package-card ${pkg.id === 'standard' ? 'popular' : ''} ${idx === 1 ? 'selected' : ''}" 
-                             onclick="selectPackage('${pkg.id}', this)" 
-                             data-id="${pkg.id}" data-credits="${pkg.credits}" data-price="${pkg.price}" data-days="${pkg.duration_days || 0}">
-                            <div class="package-name">${pkg.name}</div>
-                            <div class="package-price">${data.currency} ${pkg.price}<span> / ${pkg.subscription ? (pkg.duration_days > 30 ? 'year' : 'month') : 'one-time'}</span></div>
-                            <div class="package-desc">${pkg.description}</div>
-                        </div>
-                    `).join('');
-                    selectedPackage = data.packages[1];
-                }
-            } catch (e) { showToast('❌ Failed to load packages'); }
-        }
-
-        function closePaymentModal() {
-            document.getElementById('paymentModal').classList.remove('show');
-        }
-
-        function selectPackage(id, el) {
-            document.querySelectorAll('.package-card').forEach(c => c.classList.remove('selected'));
-            el.classList.add('selected');
-            selectedPackage = {
-                id: id,
-                credits: parseInt(el.dataset.credits),
-                price: parseInt(el.dataset.price),
-                days: parseInt(el.dataset.days) || 0
-            };
-        }
-
-        async function initiatePayment() {
-            const phone = document.getElementById('paymentPhone').value.trim();
-            if (!phone || phone.length < 10) {
-                showToast('⚠️ Enter a valid phone number');
-                return;
-            }
-            if (!selectedPackage) {
-                showToast('⚠️ Select a package first');
-                return;
-            }
-            
-            const btn = document.getElementById('payBtn');
-            btn.disabled = true;
-            btn.textContent = 'Processing...';
-            
-            try {
-                const res = await fetch('/api/payment/initiate', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Device-ID': deviceId
-                    },
-                    body: JSON.stringify({
-                        package_id: selectedPackage.id,
-                        phone: phone,
-                        method: 'mpesa'
-                    })
-                });
-                const data = await res.json();
-                
-                if (data.success) {
-                    showToast('📱 Check your phone for payment prompt');
-                    setTimeout(() => verifyPayment(data.tx_ref), 3000);
-                } else {
-                    showToast('❌ ' + (data.error || 'Payment failed'));
-                }
-            } catch (e) {
-                showToast('❌ Network error');
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Pay & Unlock';
-            }
-        }
-
-        async function verifyPayment(tx_ref) {
-            try {
-                const res = await fetch('/api/payment/verify', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Device-ID': deviceId
-                    },
-                    body: JSON.stringify({tx_ref: tx_ref, mock_verify: true})
-                });
-                const data = await res.json();
-                if (data.success && data.status === 'success') {
-                    showToast(`✅ ${data.credits_added > 9000 ? 'Premium activated' : data.credits_added + ' credits added'}!`);
-                    closePaymentModal();
-                    loadUserCredits();
-                } else {
-                    showToast('⏳ Payment pending... Check again soon');
-                }
-            } catch (e) {
-                showToast('❌ Verification failed');
-            }
-        }
-
         // ==================== PWA ====================
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/service-worker.js').catch(() => {});
@@ -2824,7 +2488,6 @@
         fetchTrendingGenres();
         fetchNameSuggestions();
         liveEngine = new LiveEngine();
-        loadUserCredits();
     </script>
 </body>
 </html>
