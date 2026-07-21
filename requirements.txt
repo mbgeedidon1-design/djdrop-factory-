@@ -3,4 +3,5 @@ flask-cors
 edge-tts
 requests
 gunicorn
-Pillow         
+Pillow
+numpy          # <-- add this
