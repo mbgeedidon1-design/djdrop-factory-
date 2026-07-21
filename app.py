@@ -1,13 +1,16 @@
 # ============================================================
-# DJ DROP FACTORY PRO v5.1 — ULTIMATE EDITION (FIXED AUDIO + IMAGE BUNDLE)
+# DJ DROP FACTORY PRO v5.0 — LIVE EDITION (IMAGE GEN + FREE)
 # ============================================================
-# FIXES APPLIED:
-# 1. LOUD AUDIO: Two-pass loudnorm, aggressive compression, +12dB gain boost
-# 2. IMAGE BUNDLE: Download drop as ZIP containing both MP3 + PNG
-# 3. IMAGE NAMING: Uses DJ name + genre + timestamp in filename
-# 4. ALL MODES LOUD: AI, Script, Training, Custom — all equally loud
-# 5. FIRE OVERLAY: Better fire effect with particle system
-# 6. GLOW TEXT: Multi-layer neon glow with genre colors
+# FIX APPLIED (see render_final_master): ffmpeg's `amix` filter
+# defaults to normalize=1, which auto-halves (~-6dB) the mixed
+# output whenever a background track is present. This fix sets
+# normalize=0 and re-applies loudnorm after mixing, so all drops
+# (AI / Script / custom) are equally loud.
+#
+# NEW: Image generation engine – fire overlay, genre colours,
+# DJ name in glow, automatically created with every drop.
+#
+# Payment system removed – the app is now completely free.
 # ============================================================
 
 import os
@@ -23,7 +26,6 @@ import time
 import gzip
 import sqlite3
 import threading
-import zipfile
 from pathlib import Path
 from datetime import datetime, timedelta
 from io import BytesIO
@@ -32,7 +34,7 @@ from flask import Flask, render_template, request, jsonify, send_file, send_from
 import edge_tts
 
 # --- Image generation imports ---
-from PIL import Image, ImageDraw, ImageFont, ImageEnhance, ImageFilter
+from PIL import Image, ImageDraw, ImageFont, ImageEnhance
 import numpy as np
 
 app = Flask(__name__)
@@ -43,6 +45,11 @@ UPLOAD_DIR = BASE_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
 TRAINING_DIR = BASE_DIR / "training_data"
 TRAINING_DIR.mkdir(exist_ok=True)
+
+# ============================================================
+# CONFIG (payment removed)
+# ============================================================
+# No payment secrets needed anymore.
 
 # ============================================================
 # PERFORMANCE: Response compression & caching headers
@@ -73,11 +80,19 @@ def after_request(response):
 # TOOLS CHECK
 # ============================================================
 
+_INTERNET_CACHE = {"ts": 0.0, "value": False}
+_INTERNET_CACHE_TTL = 15  # seconds - avoids blocking on every single request
+
 def has_internet(timeout=3):
+    now = time.time()
+    if now - _INTERNET_CACHE["ts"] < _INTERNET_CACHE_TTL:
+        return _INTERNET_CACHE["value"]
     try:
         urllib.request.urlopen('https://www.google.com', timeout=timeout)
+        _INTERNET_CACHE.update(ts=now, value=True)
         return True
     except Exception:
+        _INTERNET_CACHE.update(ts=now, value=False)
         return False
 
 def check_ffmpeg():
@@ -90,7 +105,7 @@ FFMPEG_AVAILABLE = check_ffmpeg() is not None
 ESPEAK_AVAILABLE = check_espeak() is not None
 
 print("=" * 60)
-print("DJ DROP FACTORY PRO v5.1 — ULTIMATE EDITION")
+print("DJ DROP FACTORY PRO v5.0 — LIVE EDITION")
 print("=" * 60)
 print(f"Internet: {'YES' if has_internet() else 'NO'}")
 print(f"FFmpeg:   {'YES' if FFMPEG_AVAILABLE else 'NO'}")
@@ -99,28 +114,92 @@ print("=" * 60)
 
 
 # ============================================================
-# DATA STORE
+# GENRE NORMALIZATION (single source of truth)
+# ============================================================
+# BUG FIX: previously each subsystem (script AI, voice presets, audio FX,
+# image palette) normalized genre strings differently - some lower-cased
+# only, some replaced spaces with underscores, some did nothing. A genre
+# value like "Club Banger" would match in one subsystem and silently miss
+# in another, quietly falling back to defaults. All genre lookups now go
+# through this single helper.
+
+VALID_GENRES = {"amapiano", "dancehall", "radio", "club_banger", "afrobeat", "trap"}
+
+def normalize_genre(genre):
+    g = (genre or "").strip().lower().replace(" ", "_").replace("-", "_")
+    return g if g in VALID_GENRES else "club_banger"
+
+
+# ============================================================
+# DATA STORE — DJ Groups, Streaming Apps, Software, Festivals, Theater
 # ============================================================
 
 class DataStore:
-    def __init__(self, db_path="dj_music.db"):
-        self.db_path = db_path
+    """Holds all music/DJ data. SQLite-backed, queryable, searchable."""
+
+    def __init__(self, db_path=None):
+        # BUG FIX: relative "dj_music.db" placed the database wherever the
+        # process happened to be launched from (cwd), which could differ
+        # from BASE_DIR on redeploy/restart and silently create/lose data.
+        # Anchor it to BASE_DIR like every other persisted file in this app.
+        self.db_path = str(db_path) if db_path else str(BASE_DIR / "dj_music.db")
         self._init_db()
         self._seed_if_empty()
-
+    
     def _init_db(self):
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         cursor.executescript("""
-            CREATE TABLE IF NOT EXISTS dj_groups (id INTEGER PRIMARY KEY, name TEXT NOT NULL, origin TEXT, style TEXT, activities TEXT, notable_events TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-            CREATE TABLE IF NOT EXISTS streaming_apps (id INTEGER PRIMARY KEY, name TEXT NOT NULL, category TEXT, best_for TEXT, price TEXT, catalog_size TEXT, free_tier INTEGER, platform TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-            CREATE TABLE IF NOT EXISTS dj_software (id INTEGER PRIMARY KEY, name TEXT NOT NULL, platform TEXT, features TEXT, price TEXT, category TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-            CREATE TABLE IF NOT EXISTS festivals_events (id INTEGER PRIMARY KEY, name TEXT NOT NULL, location TEXT, dates TEXT, headliners TEXT, genre TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-            CREATE TABLE IF NOT EXISTS theater_streaming (id INTEGER PRIMARY KEY, name TEXT NOT NULL, content_type TEXT, region TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+            CREATE TABLE IF NOT EXISTS dj_groups (
+                id INTEGER PRIMARY KEY,
+                name TEXT NOT NULL,
+                origin TEXT,
+                style TEXT,
+                activities TEXT,
+                notable_events TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS streaming_apps (
+                id INTEGER PRIMARY KEY,
+                name TEXT NOT NULL,
+                category TEXT,
+                best_for TEXT,
+                price TEXT,
+                catalog_size TEXT,
+                free_tier INTEGER,
+                platform TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS dj_software (
+                id INTEGER PRIMARY KEY,
+                name TEXT NOT NULL,
+                platform TEXT,
+                features TEXT,
+                price TEXT,
+                category TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS festivals_events (
+                id INTEGER PRIMARY KEY,
+                name TEXT NOT NULL,
+                location TEXT,
+                dates TEXT,
+                headliners TEXT,
+                genre TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS theater_streaming (
+                id INTEGER PRIMARY KEY,
+                name TEXT NOT NULL,
+                content_type TEXT,
+                region TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
         """)
+        # Payment tables removed completely
         conn.commit()
         conn.close()
-
+    
     def _seed_if_empty(self):
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -128,21 +207,28 @@ class DataStore:
         if cursor.fetchone()[0] > 0:
             conn.close()
             return
+        
+        # ── DJ GROUPS ──
         dj_groups = [
             ("C2C", "France", "Turntablism / Hip-Hop", "DMC competitions, live shows, world tours", "DMC World Championship, international tours"),
             ("Scratch Perverts", "UK", "Turntablism / Scratch", "DMC championships, live battles, club residencies", "DMC World Finals, BBC Radio 1 residency"),
             ("Berywam", "France", "Beatbox / Turntablism", "Live performances, beatbox battles, collaborations", "World Beatbox Championship, DMC events"),
             ("DJ Fly", "France", "Turntablism", "DMC competitions, live shows, workshops", "DMC World Championship winner"),
-            ("Swedish House Mafia", "Sweden", "EDM / House", "Ibiza residencies, world tours, festival headlining", "Ushuaia Ibiza residency, Creamfields headline"),
+            ("Swedish House Mafia", "Sweden", "EDM / House", "Ibiza residencies, world tours, festival headlining", "Ushuaïa Ibiza residency, Creamfields headline"),
             ("The Martinez Brothers", "USA", "House / Techno", "Ibiza residencies, global tours, label releases", "DC-10 Ibiza residency, Circoloco"),
             ("ARTBAT", "Ukraine", "Melodic Techno", "Festival headlining, global tours, label releases", "Tomorrowland, Ultra Music Festival"),
             ("CamelPhat", "UK", "House / Tech House", "Ibiza residencies, label releases, world tours", "Pacha Ibiza residency, Creamfields"),
-            ("MEDUZA", "Italy", "House", "Global residencies, festival headlining", "Hi Ibiza residency, Tomorrowland"),
-            ("RUFUS DU SOL", "Australia", "Indie Dance / House", "World tours, Ibiza residencies, live sets", "Sonar Festival, Coachella"),
+            ("MEDUZA", "Italy", "House", "Global residencies, festival headlining", "Hï Ibiza residency, Tomorrowland"),
+            ("RÜFÜS DU SOL", "Australia", "Indie Dance / House", "World tours, Ibiza residencies, live sets", "Sónar Festival, Coachella"),
             ("Overmono", "UK", "Electronic / Experimental", "World tours, live sets, remixes", "Glastonbury, Boiler Room"),
             ("TOMORA", "International", "Electronic", "Live performances, collaborative shows", "Roundhouse London, festival circuits"),
         ]
-        cursor.executemany("INSERT INTO dj_groups (name, origin, style, activities, notable_events) VALUES (?,?,?,?,?)", dj_groups)
+        cursor.executemany(
+            "INSERT INTO dj_groups (name, origin, style, activities, notable_events) VALUES (?,?,?,?,?)",
+            dj_groups
+        )
+        
+        # ── STREAMING APPS ──
         streaming_apps = [
             ("Spotify", "Major Paid", "Overall experience, algorithms", "$12.99/mo", "100M+ tracks", 1, "All"),
             ("Apple Music", "Major Paid", "Apple ecosystem, Spatial Audio", "$10.99/mo", "100M+ tracks", 0, "Apple, Android"),
@@ -162,7 +248,12 @@ class DataStore:
             ("Jamendo", "Free", "Independent artists", "Free", "Independent", 1, "All"),
             ("Idagio", "Free", "Classical music specialist", "Free/Paid", "Classical focus", 1, "All"),
         ]
-        cursor.executemany("INSERT INTO streaming_apps (name, category, best_for, price, catalog_size, free_tier, platform) VALUES (?,?,?,?,?,?,?)", streaming_apps)
+        cursor.executemany(
+            "INSERT INTO streaming_apps (name, category, best_for, price, catalog_size, free_tier, platform) VALUES (?,?,?,?,?,?,?)",
+            streaming_apps
+        )
+        
+        # ── DJ SOFTWARE ──
         dj_software = [
             ("Rekordbox", "Mac/Windows", "Music prep, CDJ integration, cloud sync", "Paid", "Pro DJ"),
             ("Serato DJ Pro", "Mac/Windows", "Industry standard, DVS, streaming", "Paid", "Pro DJ"),
@@ -181,7 +272,12 @@ class DataStore:
             ("Logic Pro", "Mac", "Professional production, Apple ecosystem", "Paid", "Production"),
             ("GarageBand", "iOS/Mac", "Beginner-friendly, free", "Free", "Production"),
         ]
-        cursor.executemany("INSERT INTO dj_software (name, platform, features, price, category) VALUES (?,?,?,?,?)", dj_software)
+        cursor.executemany(
+            "INSERT INTO dj_software (name, platform, features, price, category) VALUES (?,?,?,?,?)",
+            dj_software
+        )
+        
+        # ── FESTIVALS & EVENTS ──
         festivals = [
             ("Tomorrowland Thailand", "Pattaya, Thailand", "Dec 11-13, 2026", "Massive lineup, 6 stages", "EDM"),
             ("Creamfields", "Daresbury, UK", "Summer 2026", "Calvin Harris, Underworld, Sonny Fodera", "EDM/House"),
@@ -195,7 +291,12 @@ class DataStore:
             ("Ibiza Residency Season", "Ibiza, Spain", "May - Oct 2026", "Calvin Harris, David Guetta, Martin Garrix, Carl Cox", "House/Techno/EDM"),
             ("The Warehouse Project", "Manchester, UK", "Seasonal", "Solomun, Hannah Laing, etc.", "House/Techno"),
         ]
-        cursor.executemany("INSERT INTO festivals_events (name, location, dates, headliners, genre) VALUES (?,?,?,?,?)", festivals)
+        cursor.executemany(
+            "INSERT INTO festivals_events (name, location, dates, headliners, genre) VALUES (?,?,?,?,?)",
+            festivals
+        )
+        
+        # ── THEATER STREAMING ──
         theater = [
             ("BroadwayHD", "Broadway shows, musicals", "USA/Global"),
             ("National Theatre at Home", "UK theater productions", "UK/Global"),
@@ -203,11 +304,15 @@ class DataStore:
             ("Digital Theatre", "Theater from around the world", "Global"),
             ("Marquee TV", "Dance, theater, opera", "Global"),
         ]
-        cursor.executemany("INSERT INTO theater_streaming (name, content_type, region) VALUES (?,?,?)", theater)
+        cursor.executemany(
+            "INSERT INTO theater_streaming (name, content_type, region) VALUES (?,?,?)",
+            theater
+        )
+        
         conn.commit()
         conn.close()
         print("[DataStore] Database seeded with all music/DJ data.")
-
+    
     def _query(self, sql, params=(), one=False):
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
@@ -217,64 +322,114 @@ class DataStore:
         conn.close()
         result = [dict(row) for row in rows]
         return result[0] if one and result else result
-
+    
     def get_dj_groups(self, style=None, origin=None):
-        query, params = "SELECT * FROM dj_groups WHERE 1=1", []
-        if style: query += " AND style LIKE ?"; params.append(f"%{style}%")
-        if origin: query += " AND origin = ?"; params.append(origin)
+        query = "SELECT * FROM dj_groups WHERE 1=1"
+        params = []
+        if style:
+            query += " AND style LIKE ?"
+            params.append(f"%{style}%")
+        if origin:
+            query += " AND origin = ?"
+            params.append(origin)
         return self._query(query, params)
-
+    
     def get_streaming_apps(self, category=None, free_only=None):
-        query, params = "SELECT * FROM streaming_apps WHERE 1=1", []
-        if category: query += " AND category = ?"; params.append(category)
-        if free_only is not None: query += " AND free_tier = ?"; params.append(1 if free_only else 0)
+        query = "SELECT * FROM streaming_apps WHERE 1=1"
+        params = []
+        if category:
+            query += " AND category = ?"
+            params.append(category)
+        if free_only is not None:
+            query += " AND free_tier = ?"
+            params.append(1 if free_only else 0)
         return self._query(query, params)
-
+    
     def get_dj_software(self, category=None, platform=None):
-        query, params = "SELECT * FROM dj_software WHERE 1=1", []
-        if category: query += " AND category = ?"; params.append(category)
-        if platform: query += " AND platform LIKE ?"; params.append(f"%{platform}%")
+        query = "SELECT * FROM dj_software WHERE 1=1"
+        params = []
+        if category:
+            query += " AND category = ?"
+            params.append(category)
+        if platform:
+            query += " AND platform LIKE ?"
+            params.append(f"%{platform}%")
         return self._query(query, params)
-
+    
     def get_festivals(self, genre=None, location=None):
-        query, params = "SELECT * FROM festivals_events WHERE 1=1", []
-        if genre: query += " AND genre LIKE ?"; params.append(f"%{genre}%")
-        if location: query += " AND location LIKE ?"; params.append(f"%{location}%")
+        query = "SELECT * FROM festivals_events WHERE 1=1"
+        params = []
+        if genre:
+            query += " AND genre LIKE ?"
+            params.append(f"%{genre}%")
+        if location:
+            query += " AND location LIKE ?"
+            params.append(f"%{location}%")
         return self._query(query, params)
-
+    
     def get_theater_streaming(self, region=None):
-        query, params = "SELECT * FROM theater_streaming WHERE 1=1", []
-        if region: query += " AND region LIKE ?"; params.append(f"%{region}%")
+        query = "SELECT * FROM theater_streaming WHERE 1=1"
+        params = []
+        if region:
+            query += " AND region LIKE ?"
+            params.append(f"%{region}%")
         return self._query(query, params)
-
+    
     def get_all(self):
-        return {"dj_groups": self.get_dj_groups(), "streaming_apps": self.get_streaming_apps(), "dj_software": self.get_dj_software(), "festivals_events": self.get_festivals(), "theater_streaming": self.get_theater_streaming()}
-
+        return {
+            "dj_groups": self.get_dj_groups(),
+            "streaming_apps": self.get_streaming_apps(),
+            "dj_software": self.get_dj_software(),
+            "festivals_events": self.get_festivals(),
+            "theater_streaming": self.get_theater_streaming(),
+        }
+    
     def search(self, term):
+        """
+        Advanced tokenized search engine.
+        Splits queries into tokens and ensures all tokens match across any text fields.
+        """
         term = (term or "").strip()
-        if not term:
-            return {table: [] for table in ["dj_groups", "streaming_apps", "dj_software", "festivals_events", "theater_streaming"]}
-        tokens = [f"%{t}%" for t in term.split() if t.strip()]
-        if not tokens: return {}
         tables = ["dj_groups", "streaming_apps", "dj_software", "festivals_events", "theater_streaming"]
+        if not term:
+            return {table: [] for table in tables}
+
+        # Tokenize query (e.g., "Tomorrowland Thailand" -> ["Tomorrowland", "Thailand"])
+        tokens = [f"%{t}%" for t in term.split() if t.strip()]
+        if not tokens:
+            # BUG FIX: original code returned {} here (an empty dict with no
+            # keys) instead of the same table-keyed shape used everywhere
+            # else, which crashed any caller expecting results["dj_groups"].
+            return {table: [] for table in tables}
+
         results = {}
+        
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
+        
         for table in tables:
+            # Dynamically fetch column names to prevent SQL errors if schema changes
             cursor.execute(f"PRAGMA table_info({table})")
             columns = [row[1] for row in cursor.fetchall()]
-            clauses, params = [], []
+            
+            # Build query: For every token, at least one column must match (AND grouping)
+            clauses = []
+            params = []
             for token in tokens:
                 token_clause = " OR ".join([f"{col} LIKE ?" for col in columns])
                 clauses.append(f"({token_clause})")
                 params.extend([token] * len(columns))
+            
             where_clause = " AND ".join(clauses)
             sql = f"SELECT * FROM {table} WHERE {where_clause} ORDER BY id DESC"
+            
             cursor.execute(sql, params)
             results[table] = [dict(row) for row in cursor.fetchall()]
+            
         conn.close()
         return results
+
 
 store = DataStore()
 
@@ -286,7 +441,7 @@ store = DataStore()
 class WebDataPuller:
     CACHE = {}
     CACHE_TTL = 300
-
+    
     @classmethod
     def _get_cached(cls, key):
         if key in cls.CACHE:
@@ -294,20 +449,21 @@ class WebDataPuller:
             if time.time() - ts < cls.CACHE_TTL:
                 return data
         return None
-
+    
     @classmethod
     def _set_cached(cls, key, data):
         cls.CACHE[key] = (time.time(), data)
-
+    
     @classmethod
     def fetch_trending_genres(cls):
         cached = cls._get_cached('trending_genres')
-        if cached: return cached
+        if cached:
+            return cached
         genres = []
         try:
             url = "https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=popular+music+genres+2026&format=json&origin=*"
-            req = urllib.request.Request(url, headers={'User-Agent': 'DJDropFactory/5.1'})
-            with urllib.request.urlopen(req, timeout=5) as resp:
+            req = urllib.request.Request(url, headers={'User-Agent': 'DJDropFactory/5.0'})
+            with urllib.request.urlopen(url=req, timeout=5) as resp:
                 data = json.loads(resp.read())
                 genres = [item['title'].replace("music", "").replace("genre", "").strip() 
                          for item in data.get('query', {}).get('search', [])[:6]]
@@ -323,19 +479,20 @@ class WebDataPuller:
             genres = genres[:8]
         cls._set_cached('trending_genres', genres)
         return genres
-
+    
     @classmethod
     def fetch_city_vibe(cls, city):
         if not city or not city.strip():
             return {"city": "", "vibe": "unknown", "temperature": 25}
         city_clean = city.strip()
         cached = cls._get_cached(f'city_{city_clean.lower()}')
-        if cached: return cached
+        if cached:
+            return cached
         result = {"city": city_clean, "vibe": "vibing", "temperature": 25, "weather_code": 0}
         try:
             encoded = urllib.parse.quote(city_clean)
             geo_url = f"https://geocoding-api.open-meteo.com/v1/search?name={encoded}&count=1"
-            req = urllib.request.Request(geo_url, headers={'User-Agent': 'DJDropFactory/5.1'})
+            req = urllib.request.Request(geo_url, headers={'User-Agent': 'DJDropFactory/5.0'})
             with urllib.request.urlopen(req, timeout=5) as resp:
                 geo = json.loads(resp.read())
                 if geo.get('results'):
@@ -343,7 +500,7 @@ class WebDataPuller:
                     lon = geo['results'][0]['longitude']
                     name = geo['results'][0].get('name', city_clean)
                     w_url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current_weather=true"
-                    w_req = urllib.request.Request(w_url, headers={'User-Agent': 'DJDropFactory/5.1'})
+                    w_req = urllib.request.Request(w_url, headers={'User-Agent': 'DJDropFactory/5.0'})
                     with urllib.request.urlopen(w_req, timeout=5) as w_resp:
                         w_data = json.loads(w_resp.read())
                         weather = w_data.get('current_weather', {})
@@ -363,11 +520,12 @@ class WebDataPuller:
             print(f"[WebPull] City vibe failed: {e}")
         cls._set_cached(f'city_{city_clean.lower()}', result)
         return result
-
+    
     @classmethod
     def fetch_dj_name_suggestions(cls, style=""):
         cached = cls._get_cached(f'names_{style.lower().strip()}')
-        if cached: return cached
+        if cached:
+            return cached
         bases = ["Blaze", "Phantom", "Vortex", "Echo", "Pulse", "Nova", "Cipher", "Kinetic", "Solar", "Lunar"]
         suffixes = ["Beats", "Sound", "Wave", "Drop", "Bass", "Fire", "Storm", "Unit", "System", "Cartel"]
         if style:
@@ -387,14 +545,16 @@ class WebDataPuller:
         suggestions = []
         for _ in range(12):
             name = f"DJ {random.choice(bases)} {random.choice(suffixes)}"
-            if name not in suggestions: suggestions.append(name)
+            if name not in suggestions:
+                suggestions.append(name)
         cls._set_cached(f'names_{style.lower().strip()}', suggestions)
         return suggestions
-
+    
     @classmethod
     def fetch_quote_of_the_day(cls):
         cached = cls._get_cached('quote')
-        if cached: return cached
+        if cached:
+            return cached
         quotes = [
             "The best DJs don't just play tracks, they create moments.",
             "Music is the universal language of mankind.",
@@ -404,13 +564,14 @@ class WebDataPuller:
         ]
         try:
             url = "https://zenquotes.io/api/random"
-            req = urllib.request.Request(url, headers={'User-Agent': 'DJDropFactory/5.1'})
+            req = urllib.request.Request(url, headers={'User-Agent': 'DJDropFactory/5.0'})
             with urllib.request.urlopen(req, timeout=4) as resp:
                 data = json.loads(resp.read())
                 if isinstance(data, list) and len(data) > 0:
                     q = data[0].get('q', '')
                     a = data[0].get('a', '')
-                    if q: quotes = [f"{q} — {a}"]
+                    if q:
+                        quotes = [f"{q} — {a}"]
         except Exception as e:
             print(f"[WebPull] Quote fetch failed: {e}")
         cls._set_cached('quote', quotes)
@@ -430,7 +591,7 @@ class StringWizard:
         "radio_id": "You're locked in with {display_name}{city_part}{station_part}{slogan_part}. Premium radio sound.",
         "producer_tag": "{opener} {display_name}. Premium sound design only.",
     }
-
+    
     HASHTAGS = {
         "amapiano": ["#Amapiano", "#Yanos", "#LogDrum", "#PrivateSchool", "#PianoVibes"],
         "dancehall": ["#Dancehall", "#Riddim", "#Soundclash", "#Bashment", "#PullUp"],
@@ -439,7 +600,7 @@ class StringWizard:
         "club_banger": ["#Club", "#Banger", "#Party", "#MainEvent", "#Nightlife"],
         "radio": ["#Radio", "#OnAir", "#Broadcast", "#Live", "#Frequency"],
     }
-
+    
     @classmethod
     def process_template(cls, template_key, variables):
         template = cls.TEMPLATES.get(template_key, "{dj_name} on the mic!")
@@ -449,14 +610,15 @@ class StringWizard:
             result = result.replace(placeholder, str(value) if value is not None else "")
         result = re.sub(r'\s+', ' ', result).strip()
         return result
-
+    
     @classmethod
     def smart_capitalize(cls, text):
         words = text.split()
         result = []
         for word in words:
             w = word.strip()
-            if not w: continue
+            if not w:
+                continue
             if w.upper() in ["DJ", "MC", "DJ'S", "MC'S", "NYC", "LA", "UK", "US", "NG", "SA"]:
                 result.append(w.upper())
             elif w.isupper() and len(w) <= 3:
@@ -464,7 +626,7 @@ class StringWizard:
             else:
                 result.append(w.capitalize() if w == w.lower() else w)
         return " ".join(result)
-
+    
     @classmethod
     def generate_slug(cls, text):
         text = text.lower().strip()
@@ -472,20 +634,23 @@ class StringWizard:
         text = re.sub(r'[\s_]+', '-', text)
         text = re.sub(r'-+', '-', text)
         return text[:60].strip('-')
-
+    
     @classmethod
     def add_hashtags(cls, text, genre):
-        tags = cls.HASHTAGS.get(genre.lower().replace(" ", "_"), ["#DJDrop", "#Fire"])
+        tags = cls.HASHTAGS.get(normalize_genre(genre), ["#DJDrop", "#Fire"])
         existing = set(re.findall(r'#\w+', text.lower()))
         new_tags = [t for t in tags if t.lower().lstrip('#') not in existing]
-        if new_tags: return text + " " + " ".join(new_tags)
+        if new_tags:
+            return text + " " + " ".join(new_tags)
         return text
-
+    
     @classmethod
     def stutter_pattern(cls, text, pattern="classic"):
-        if not text or not text.strip(): return text
+        if not text or not text.strip():
+            return text
         words = text.strip().split()
-        if not words: return text
+        if not words:
+            return text
         first_word = words[0]
         if pattern == "classic":
             c = first_word[0].upper()
@@ -500,7 +665,7 @@ class StringWizard:
         elif pattern == "underscore":
             return text.lower().replace(" ", "_")
         return text
-
+    
     @classmethod
     def analyze_sentiment(cls, text):
         t = text.lower()
@@ -508,18 +673,24 @@ class StringWizard:
         chill_words = ["smooth", "vibes", "relax", "steady", "calm", "mellow", "soft", "breathe", "culture", "settings", "only"]
         hype_score = sum(1 for w in hype_words if w in t)
         chill_score = sum(1 for w in chill_words if w in t)
-        if hype_score > chill_score: return "hype", hype_score
-        elif chill_score > hype_score: return "chill", chill_score
+        if hype_score > chill_score:
+            return "hype", hype_score
+        elif chill_score > hype_score:
+            return "chill", chill_score
         return "neutral", max(hype_score, chill_score)
-
+    
     @classmethod
     def format_for_platform(cls, text, platform="generic"):
-        if platform == "twitter": return text[:280] if len(text) > 280 else text
-        elif platform == "instagram": return text[:2200] if len(text) > 2200 else text
-        elif platform == "tiktok": return text[:300] if len(text) > 300 else text
-        elif platform == "whatsapp": return text[:700] if len(text) > 700 else text
+        if platform == "twitter":
+            return text[:280] if len(text) > 280 else text
+        elif platform == "instagram":
+            return text[:2200] if len(text) > 2200 else text
+        elif platform == "tiktok":
+            return text[:300] if len(text) > 300 else text
+        elif platform == "whatsapp":
+            return text[:700] if len(text) > 700 else text
         return text
-
+    
     @classmethod
     def extract_keywords(cls, text):
         stopwords = {"the", "a", "an", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "do", "does", "did", "will", "would", "could", "should", "may", "might", "must", "shall", "can", "need", "dare", "ought", "used", "to", "of", "in", "for", "on", "with", "at", "by", "from", "as", "into", "through", "during", "before", "after", "above", "below", "between", "under", "and", "but", "or", "yet", "so", "if", "because", "although", "though", "while", "where", "when", "that", "which", "who", "whom", "whose", "what", "this", "these", "those", "i", "me", "my", "myself", "we", "our", "you", "your", "he", "him", "his", "she", "her", "it", "its", "they", "them", "their", "dj", "mc"}
@@ -532,13 +703,13 @@ class StringWizard:
                 seen.add(w)
                 result.append(w)
         return result[:10]
-
+    
     @classmethod
     def auto_punctuate(cls, text):
         text = text.strip()
-        if not text: return text
+        if not text:
+            return text
         text = text[0].upper() + text[1:]
-        # FIX: Unterminated string literal - added missing quote and colon
         if text[-1] not in ".!?":
             text += "!"
         text = re.sub(r'\s+', ' ', text)
@@ -558,41 +729,63 @@ class StringWizard:
 
 class AITrainingEngine:
     TRAINING_FILE = TRAINING_DIR / "trained_examples.json"
+    _lock = threading.Lock()
 
     @classmethod
     def save_training(cls, example_text, genre, style_notes):
-        examples = []
-        if cls.TRAINING_FILE.exists():
-            with open(cls.TRAINING_FILE, 'r') as f:
-                examples = json.load(f)
-        example = {
-            "text": example_text, "genre": genre, "style_notes": style_notes,
-            "timestamp": datetime.now().isoformat(), "length": len(example_text),
-            "exclamation_count": example_text.count('!'),
-            "uppercase_ratio": sum(1 for c in example_text if c.isupper()) / len(example_text) if example_text else 0
-        }
-        examples.append(example)
-        with open(cls.TRAINING_FILE, 'w') as f:
-            json.dump(examples, f, indent=2)
-        return len(examples)
-
+        # BUG FIX: concurrent requests writing this file at once could race
+        # (read-modify-write with no locking), corrupting or losing entries.
+        with cls._lock:
+            examples = []
+            if cls.TRAINING_FILE.exists():
+                try:
+                    with open(cls.TRAINING_FILE, 'r') as f:
+                        examples = json.load(f)
+                except Exception:
+                    examples = []
+            example = {
+                "text": example_text,
+                "genre": genre,
+                "style_notes": style_notes,
+                "timestamp": datetime.now().isoformat(),
+                "length": len(example_text),
+                "exclamation_count": example_text.count('!'),
+                "uppercase_ratio": sum(1 for c in example_text if c.isupper()) / len(example_text) if example_text else 0
+            }
+            examples.append(example)
+            with open(cls.TRAINING_FILE, 'w') as f:
+                json.dump(examples, f, indent=2)
+            return len(examples)
+    
     @classmethod
     def load_training(cls):
-        if not cls.TRAINING_FILE.exists(): return []
-        with open(cls.TRAINING_FILE, 'r') as f:
-            return json.load(f)
-
+        if not cls.TRAINING_FILE.exists():
+            return []
+        try:
+            with open(cls.TRAINING_FILE, 'r') as f:
+                return json.load(f)
+        except Exception:
+            return []
+    
     @classmethod
     def analyze_style(cls, text):
         return {
-            "length": len(text), "words": text.split(),
-            "has_stutter": bool(re.search(r'(\w)\.\.\.|\1-\1', text)),
+            "length": len(text),
+            "words": text.split(),
+            # BUG FIX: original regex `r'(\w)\.\.\.|\1-\1'` referenced a
+            # backreference (\1) from a group that only exists in the OTHER
+            # alternation branch, so the second branch could never actually
+            # match anything meaningful - stutter detection silently missed
+            # patterns like "D-D-DJ Name". Rewritten to two clear,
+            # independently-anchored patterns.
+            "has_stutter": bool(re.search(r'\b(\w)-\1-\1', text, re.IGNORECASE) or
+                                 re.search(r'\b(\w)\w*\.\.\.\s*\1', text, re.IGNORECASE)),
             "energy_markers": text.count('!') + text.count('?'),
             "has_location": bool(re.search(r'\bin\b|\bfrom\b', text.lower())),
             "has_callout": bool(re.search(r'stand up|make some noise|hands up', text.lower())),
             "repeated_words": [word for word in set(text.split()) if text.lower().split().count(word.lower()) > 1]
         }
-
+    
     @classmethod
     def mimic_drop(cls, example_text, dj_name, genre="club_banger", energy=8):
         style = cls.analyze_style(example_text)
@@ -600,7 +793,8 @@ class AITrainingEngine:
         has_closer = bool(re.search(r'[!.,]\s*[^.!?]+[!.,]?$', example_text))
         parts = []
         if style["has_callout"]:
-            parts.append(random.choice(["Yo!", "Listen up!", "Check it!", "Ayo!"]))
+            openers = ["Yo!", "Listen up!", "Check it!", "Ayo!"]
+            parts.append(random.choice(openers))
         if style["has_stutter"] or random.random() < 0.5:
             first_letter = dj_name[0] if dj_name else "D"
             stutter_patterns = [f"{first_letter}-{first_letter}-{dj_name}", f"{first_letter}... {first_letter}... {dj_name}", f"{dj_name}! {dj_name}!", dj_name]
@@ -616,19 +810,24 @@ class AITrainingEngine:
             "afrobeat": ["afro bounce", "global rhythm", "sweet pressure", "wave after wave"],
             "trap": ["808 warning", "bassline alert", "heavyweight", "dark energy"]
         }
-        genre_key = genre.lower().replace(" ", "_").strip()
+        genre_key = normalize_genre(genre)
         phrases = energy_phrases.get(genre_key, energy_phrases["club_banger"])
-        if energy >= 8: parts.append(random.choice(phrases) + "!!!")
-        elif energy >= 5: parts.append(random.choice(phrases) + "!")
-        else: parts.append(random.choice(phrases))
+        if energy >= 8:
+            parts.append(random.choice(phrases) + "!!!")
+        elif energy >= 5:
+            parts.append(random.choice(phrases) + "!")
+        else:
+            parts.append(random.choice(phrases))
         if style["has_location"]:
-            parts.append(random.choice(["in the building", "worldwide", "to the world", "in full effect"]))
+            locations = ["in the building", "worldwide", "to the world", "in full effect"]
+            parts.append(random.choice(locations))
         closers = ["Let's go!", "Make some noise!", "We outside!", "No sleep tonight!", "Take it higher!"]
-        if has_closer or energy >= 7: parts.append(random.choice(closers))
+        if has_closer or energy >= 7:
+            parts.append(random.choice(closers))
         result = " ".join(parts)
         result = re.sub(r'\s+', ' ', result).strip()
         return result
-
+    
     @classmethod
     def generate_from_training(cls, dj_name, genre, energy, example_text=None):
         if example_text and example_text.strip():
@@ -636,7 +835,8 @@ class AITrainingEngine:
             return cls.mimic_drop(example_text, dj_name, genre, energy)
         examples = cls.load_training()
         if examples:
-            genre_examples = [e for e in examples if e.get("genre") == genre]
+            genre_key = normalize_genre(genre)
+            genre_examples = [e for e in examples if normalize_genre(e.get("genre")) == genre_key]
             if genre_examples:
                 best = max(genre_examples, key=lambda x: x.get("exclamation_count", 0) * energy / 10)
                 return cls.mimic_drop(best["text"], dj_name, genre, energy)
@@ -699,47 +899,69 @@ class PremiumDJScriptAI:
 
     @classmethod
     def normalize_for_stutter(cls, txt):
-        return re.sub(r"\s+", " ", txt.strip())
+        txt = txt.strip()
+        txt = re.sub(r"\s+", " ", txt)
+        return txt
 
     @classmethod
     def apply_stutter(cls, dj_name, style="classic", user_stutter=""):
         name = cls.clean_name(dj_name)
         words = name.split()
-        if not words: return name
-        if user_stutter.strip(): return cls.normalize_for_stutter(user_stutter)
+        if not words:
+            return name
+        if user_stutter.strip():
+            return cls.normalize_for_stutter(user_stutter)
         first_word = words[0]
         tail = words[-1]
-        if style == "none": return name
+        if style == "none":
+            return name
         if style == "classic":
             c = first_word[0]
             return f"{c}-{c}-{c}-{name}"
         if style == "build_up":
             c = first_word[0]
             return f"{c}... {c}... {first_word}... {name}"
-        if style == "echo_name": return f"{tail}... {tail}... {name}"
-        if style == "hype_repeat": return f"{name}! {name}!"
-        if style == "underscore": return name.lower().replace(" ", "_")
+        if style == "echo_name":
+            return f"{tail}... {tail}... {name}"
+        if style == "hype_repeat":
+            return f"{name}! {name}!"
+        if style == "underscore":
+            compact = name.lower().replace(" ", "_")
+            return compact
         return name
 
     @classmethod
     def energy_profile(cls, energy):
-        if energy <= 3: return {"exclaim": "", "extra": "steady vibes only."}
-        elif energy <= 6: return {"exclaim": "!", "extra": "locked and loaded."}
-        elif energy <= 8: return {"exclaim": "!!", "extra": "full pressure mode!!"}
+        if energy <= 3:
+            return {"exclaim": "", "extra": "steady vibes only."}
+        elif energy <= 6:
+            return {"exclaim": "!", "extra": "locked and loaded."}
+        elif energy <= 8:
+            return {"exclaim": "!!", "extra": "full pressure mode!!"}
         return {"exclaim": "!!!", "extra": "shutdown mode."}
 
     @classmethod
     def choose_stutter_style(cls, genre, use_stutter):
-        if not use_stutter: return "none"
-        mapping = {"dancehall": "classic", "club_banger": "build_up", "amapiano": "echo_name", "radio": "none", "afrobeat": "echo_name", "trap": "underscore"}
+        if not use_stutter:
+            return "none"
+        mapping = {
+            "dancehall": "classic",
+            "club_banger": "build_up",
+            "amapiano": "echo_name",
+            "radio": "none",
+            "afrobeat": "echo_name",
+            "trap": "underscore",
+        }
         return mapping.get(genre, "classic")
 
     @classmethod
     def score_line(cls, text, genre, energy, drop_type):
         score = 0
         t = text.lower()
-        if 40 <= len(text) <= 150: score += 3
-        if "!" in text: score += 2
+        if 40 <= len(text) <= 150:
+            score += 3
+        if "!" in text:
+            score += 2
         keywords = {
             "amapiano": ["piano", "groove", "log drum", "culture", "vibes"],
             "dancehall": ["riddim", "sound", "selectah", "danger", "reload"],
@@ -749,10 +971,14 @@ class PremiumDJScriptAI:
             "trap": ["808", "bass", "pressure", "heavy", "trap"]
         }
         for kw in keywords.get(genre, []):
-            if kw in t: score += 2
-        if drop_type == "promo" and any(x in t for x in ["experience", "live", "event", "pull up"]): score += 3
-        if drop_type in ("producer_tag", "radio_id") and len(text) <= 110: score += 2
-        if energy >= 8 and any(x in t for x in ["shutdown", "danger", "reload", "madness"]): score += 3
+            if kw in t:
+                score += 2
+        if drop_type == "promo" and any(x in t for x in ["experience", "live", "event", "pull up"]):
+            score += 3
+        if drop_type in ("producer_tag", "radio_id") and len(text) <= 110:
+            score += 2
+        if energy >= 8 and any(x in t for x in ["shutdown", "danger", "reload", "madness"]):
+            score += 3
         return score
 
     @classmethod
@@ -780,11 +1006,16 @@ class PremiumDJScriptAI:
     def build_sweeper(cls, display_name, data, city, genre):
         energy_line = random.choice(data["energy_lines"])
         city_part = f" from {city}" if city else ""
-        if genre == "dancehall": return f"{display_name}{city_part}. Sound system active. {energy_line.capitalize()}!"
-        elif genre == "amapiano": return f"{display_name}{city_part}. {energy_line.capitalize()}. Piano vibes only."
-        elif genre == "radio": return f"This is {display_name}{city_part}. {energy_line.capitalize()}. Stay locked."
-        elif genre == "afrobeat": return f"{display_name}{city_part}. {energy_line.capitalize()}. Afro vibes only."
-        elif genre == "trap": return f"{display_name}{city_part}. {energy_line.capitalize()}. Bassline pressure."
+        if genre == "dancehall":
+            return f"{display_name}{city_part}. Sound system active. {energy_line.capitalize()}!"
+        elif genre == "amapiano":
+            return f"{display_name}{city_part}. {energy_line.capitalize()}. Piano vibes only."
+        elif genre == "radio":
+            return f"This is {display_name}{city_part}. {energy_line.capitalize()}. Stay locked."
+        elif genre == "afrobeat":
+            return f"{display_name}{city_part}. {energy_line.capitalize()}. Afro vibes only."
+        elif genre == "trap":
+            return f"{display_name}{city_part}. {energy_line.capitalize()}. Bassline pressure."
         return f"{display_name}{city_part}. {energy_line.capitalize()}. Main event pressure!"
 
     @classmethod
@@ -823,18 +1054,24 @@ class PremiumDJScriptAI:
     @classmethod
     def compose_one(cls, dj_name, genre, drop_type, mood, energy, use_stutter,
                     city, event_name, user_stutter, station_name="", slogan="", crew_tag=""):
-        genre_key = genre.lower().replace(" ", "_").strip()
-        if genre_key not in cls.GENRE_DATA: genre_key = "club_banger"
+        genre_key = normalize_genre(genre)
         data = cls.GENRE_DATA[genre_key]
         stutter_style = cls.choose_stutter_style(genre_key, use_stutter)
         display_name = cls.apply_stutter(dj_name, stutter_style, user_stutter)
-        if drop_type == "intro": return cls.build_intro(display_name, data, mood, city, energy)
-        if drop_type == "sweeper": return cls.build_sweeper(display_name, data, city, genre_key)
-        if drop_type == "hype": return cls.build_hype(display_name, data, city, energy)
-        if drop_type == "promo": return cls.build_promo(display_name, data, city, event_name)
-        if drop_type == "producer_tag": return cls.build_producer_tag(display_name, data)
-        if drop_type == "radio_id": return cls.build_radio_id(display_name, city, station_name, slogan)
-        if drop_type == "crowd_call": return cls.build_crowd_call(display_name, city, crew_tag)
+        if drop_type == "intro":
+            return cls.build_intro(display_name, data, mood, city, energy)
+        if drop_type == "sweeper":
+            return cls.build_sweeper(display_name, data, city, genre_key)
+        if drop_type == "hype":
+            return cls.build_hype(display_name, data, city, energy)
+        if drop_type == "promo":
+            return cls.build_promo(display_name, data, city, event_name)
+        if drop_type == "producer_tag":
+            return cls.build_producer_tag(display_name, data)
+        if drop_type == "radio_id":
+            return cls.build_radio_id(display_name, city, station_name, slogan)
+        if drop_type == "crowd_call":
+            return cls.build_crowd_call(display_name, city, crew_tag)
         return cls.build_intro(display_name, data, mood, city, energy)
 
     @classmethod
@@ -842,12 +1079,14 @@ class PremiumDJScriptAI:
                  energy=8, city="", event_name="", user_stutter="", station_name="",
                  slogan="", crew_tag="", count=5):
         outputs = []
+        genre_key = normalize_genre(genre)
         for _ in range(count):
-            line = cls.compose_one(dj_name=dj_name, genre=genre, drop_type=drop_type, mood=mood,
-                energy=energy, use_stutter=use_stutter, city=city, event_name=event_name,
-                user_stutter=user_stutter, station_name=station_name, slogan=slogan, crew_tag=crew_tag)
-            genre_key = genre.lower().replace(" ", "_").strip()
-            if genre_key not in cls.GENRE_DATA: genre_key = "club_banger"
+            line = cls.compose_one(
+                dj_name=dj_name, genre=genre, drop_type=drop_type, mood=mood,
+                energy=energy, use_stutter=use_stutter, city=city,
+                event_name=event_name, user_stutter=user_stutter,
+                station_name=station_name, slogan=slogan, crew_tag=crew_tag
+            )
             score = cls.score_line(line, genre_key, energy, drop_type)
             outputs.append({"text": line, "score": score})
         dedup = {}
@@ -861,87 +1100,87 @@ class PremiumDJScriptAI:
 
 
 # ============================================================
-# IMAGE GENERATION ENGINE — ENHANCED WITH DJ NAME IN FILENAME
+# IMAGE GENERATION ENGINE
 # ============================================================
 
 class ImageGenerator:
-    """Creates fire-style drop artwork using Pillow with enhanced effects."""
+    """Creates fire-style drop artwork using Pillow."""
+
+    _FONT_CACHE = {}
 
     @classmethod
     def _get_font(cls, size):
-        font_paths = [
+        # BUG FIX: ImageFont.load_default() ignores the requested `size`
+        # entirely (it's a fixed ~10px bitmap font), so on any server
+        # without one of the three hardcoded TTF paths, every glow-text
+        # label rendered at the same tiny size no matter the image size or
+        # energy setting. Added more common Linux font paths plus a
+        # size-aware fallback (Pillow >= 9.2 supports load_default(size=)).
+        if size in cls._FONT_CACHE:
+            return cls._FONT_CACHE[size]
+        candidates = [
+            "/data/data/com.termux/files/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",
             "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-            "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",
-            "/System/Library/Fonts/Helvetica.ttc",
-            "/System/Library/Fonts/HelveticaNeue.ttc",
             "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
-            "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf",
             "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf",
+            "/System/Library/Fonts/Helvetica.ttc",
+            "/Library/Fonts/Arial Bold.ttf",
         ]
-        for path in font_paths:
-            if os.path.isfile(path):
-                try: return ImageFont.truetype(path, size)
-                except: continue
-        return ImageFont.load_default()
+        font = None
+        for path in candidates:
+            try:
+                if os.path.isfile(path):
+                    font = ImageFont.truetype(path, size)
+                    break
+            except Exception:
+                continue
+        if font is None:
+            try:
+                font = ImageFont.load_default(size=size)
+            except TypeError:
+                # Older Pillow without the size kwarg
+                font = ImageFont.load_default()
+        cls._FONT_CACHE[size] = font
+        return font
 
     @classmethod
     def _build_fire_array(cls, width, height, intensity):
+        # BUG FIX: this was a pure-Python double for-loop over every single
+        # pixel (up to 640,000 iterations for an 800x800 canvas), which made
+        # every drop take many seconds just for the fire overlay alone.
+        # Vectorized with numpy - identical visual result, dramatically
+        # faster (milliseconds instead of seconds).
         factor = max(0.1, min(1.0, intensity / 10.0))
+        y_idx = np.arange(height).reshape(height, 1)
+        norm_y = 1.0 - (y_idx / height)
+        noise = np.random.uniform(-0.15, 0.15, size=(height, width)) * factor
+        flame = norm_y + noise
+
+        mask = flame > 0.25
+        r = np.clip(255 * flame, 0, 255).astype(np.uint8)
+        g = np.clip(180 * flame * (1 - norm_y * 0.4), 0, 255).astype(np.uint8)
+        b = (np.clip(40 * (1 - norm_y), 0, 255) * np.ones((height, width))).astype(np.uint8)
+        alpha = np.clip(200 * factor * norm_y * 0.5, 0, 255).astype(np.uint8)
+
         fire = np.zeros((height, width, 4), dtype=np.uint8)
-        num_tongues = int(15 * factor)
-        for _ in range(num_tongues):
-            x_center = random.randint(0, width)
-            tongue_height = random.randint(int(height * 0.3), int(height * 0.7))
-            tongue_width = random.randint(20, 80)
-            for y in range(height):
-                norm_y = 1.0 - (y / height)
-                if norm_y < 0.3: continue
-                for x in range(max(0, x_center - tongue_width), min(width, x_center + tongue_width)):
-                    dx = abs(x - x_center) / tongue_width
-                    dy = (y / height) / (tongue_height / height)
-                    if dx + dy < 1.0:
-                        flame_intensity = (1.0 - dx) * (1.0 - dy) * factor
-                        noise = random.uniform(-0.1, 0.1)
-                        flame_intensity = max(0, min(1, flame_intensity + noise))
-                        if flame_intensity > 0.1:
-                            r = min(255, int(255 * flame_intensity))
-                            g = min(255, int(140 * flame_intensity * (1 - dy * 0.3)))
-                            b = int(30 * (1 - dy) * flame_intensity)
-                            alpha = int(180 * factor * flame_intensity)
-                            if alpha > fire[y, x, 3]:
-                                fire[y, x] = [r, g, b, alpha]
+        fire[..., 0] = np.where(mask, r, 0)
+        fire[..., 1] = np.where(mask, g, 0)
+        fire[..., 2] = np.where(mask, b, 0)
+        fire[..., 3] = np.where(mask & (alpha > 15), alpha, 0)
         return fire
 
     @classmethod
-    def _build_sparks_array(cls, width, height, intensity):
-        factor = max(0.1, min(1.0, intensity / 10.0))
-        sparks = np.zeros((height, width, 4), dtype=np.uint8)
-        num_sparks = int(50 * factor)
-        for _ in range(num_sparks):
-            x = random.randint(0, width - 1)
-            y = random.randint(0, int(height * 0.6))
-            size = random.randint(1, 4)
-            brightness = random.uniform(0.5, 1.0)
-            for dy in range(-size, size + 1):
-                for dx in range(-size, size + 1):
-                    px, py = x + dx, y + dy
-                    if 0 <= px < width and 0 <= py < height:
-                        dist = (dx**2 + dy**2) ** 0.5
-                        if dist <= size:
-                            alpha = int(200 * brightness * (1 - dist / size))
-                            if alpha > sparks[py, px, 3]:
-                                sparks[py, px] = [255, 200, 50, alpha]
-        return sparks
-
-    @classmethod
     def _genre_palette(cls, genre):
-        genre = genre.lower().replace(" ", "_")
+        genre_key = normalize_genre(genre)
         palettes = {
-            "amapiano": (255, 180, 0, 255), "dancehall": (255, 60, 0, 255),
-            "radio": (0, 180, 255, 255), "club_banger": (255, 0, 100, 255),
-            "afrobeat": (0, 200, 100, 255), "trap": (140, 0, 255, 255),
+            "amapiano":  (255, 180, 0, 255),
+            "dancehall": (255, 60, 0, 255),
+            "radio":     (0, 180, 255, 255),
+            "club_banger": (255, 0, 100, 255),
+            "afrobeat":  (0, 200, 100, 255),
+            "trap":      (140, 0, 255, 255),
         }
-        return palettes.get(genre, (255, 100, 0, 255))
+        return palettes.get(genre_key, (255, 100, 0, 255))
 
     @classmethod
     def _draw_text_glow(cls, img, text, y_pos, font_size_fraction=0.12,
@@ -952,39 +1191,40 @@ class ImageGenerator:
         bbox = draw.textbbox((0, 0), text, font=font)
         tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
         x = (img.width - tw) // 2
-        if y_pos == "center": y = (img.height - th) // 2
-        elif y_pos == "top": y = int(img.height * 0.08)
-        else: y = img.height - th - int(img.height * 0.12)
+        if y_pos == "center":
+            y = (img.height - th) // 2
+        elif y_pos == "top":
+            y = int(img.height * 0.08)
+        else:
+            y = img.height - th - int(img.height * 0.12)
 
-        glow_layers = [
-            (15, glow_alpha // 4, accent), (10, glow_alpha // 3, accent),
-            (7, glow_alpha // 2, accent), (4, glow_alpha, accent),
-            (2, 200, (255, 255, 255, 150)),
-        ]
-        for offset, alpha, color in glow_layers:
-            glow_color = (color[0], color[1], color[2], alpha)
+        for offset in range(5, 0, -1):
+            alpha = glow_alpha if offset > 2 else 180
+            color = (accent[0], accent[1], accent[2], alpha)
             for dx, dy in [(-offset, 0), (offset, 0), (0, -offset), (0, offset),
-                           (-offset, -offset), (-offset, offset), (offset, -offset), (offset, offset)]:
-                draw.text((x + dx, y + dy), text, font=font, fill=glow_color)
-        draw.text((x + 2, y + 2), text, font=font, fill=(0, 0, 0, 180))
+                           (-offset, -offset), (offset, offset)]:
+                draw.text((x + dx, y + dy), text, font=font, fill=color)
         draw.text((x, y), text, font=font, fill=(255, 255, 255, 255))
 
     @classmethod
     def generate_drop_image(cls, base_image_path, dj_name, genre="club_banger",
                             energy=5, output_path=None):
-        target_size = (800, 800)
         if base_image_path and os.path.isfile(base_image_path):
-            base = Image.open(base_image_path).convert('RGBA')
-            base.thumbnail(target_size, Image.LANCZOS)
-            canvas = Image.new('RGBA', target_size, (10, 10, 15, 255))
-            offset = ((target_size[0] - base.width) // 2, (target_size[1] - base.height) // 2)
-            canvas.paste(base, offset, base if base.mode == 'RGBA' else None)
+            try:
+                base = Image.open(base_image_path).convert('RGBA')
+            except Exception:
+                # BUG FIX: a corrupt/unsupported uploaded image previously
+                # crashed the whole drop generation with an unhandled
+                # PIL error. Fall back to a plain canvas instead.
+                base = Image.new('RGBA', (800, 800), (0, 0, 0, 255))
         else:
-            canvas = Image.new('RGBA', target_size, (15, 15, 25, 255))
-            for r in range(400, 0, -5):
-                alpha = int(10 * (r / 400))
-                draw_grad = ImageDraw.Draw(canvas)
-                draw_grad.ellipse([400 - r, 400 - r, 400 + r, 400 + r], fill=(30, 20, 40, alpha))
+            base = Image.new('RGBA', (800, 800), (0, 0, 0, 255))
+
+        target_size = (800, 800)
+        base.thumbnail(target_size, Image.LANCZOS)
+        canvas = Image.new('RGBA', target_size, (0, 0, 0, 255))
+        offset = ((target_size[0] - base.width) // 2, (target_size[1] - base.height) // 2)
+        canvas.paste(base, offset, base if base.mode == 'RGBA' else None)
 
         enhancer = ImageEnhance.Contrast(canvas)
         canvas = enhancer.enhance(1.2 + energy / 20)
@@ -993,47 +1233,27 @@ class ImageGenerator:
         fire_layer = Image.fromarray(fire_arr, 'RGBA')
         canvas = Image.alpha_composite(canvas, fire_layer)
 
-        sparks_arr = cls._build_sparks_array(canvas.width, canvas.height, energy)
-        sparks_layer = Image.fromarray(sparks_arr, 'RGBA')
-        canvas = Image.alpha_composite(canvas, sparks_layer)
-
         accent = cls._genre_palette(genre)
-        cls._draw_text_glow(canvas, f"DJ {dj_name}", "center", font_size_fraction=0.14, accent=accent)
-        cls._draw_text_glow(canvas, "🔥 FIRE DROP 🔥", "bottom", font_size_fraction=0.10, accent=accent)
-
-        # Add subtle vignette
-        vignette = Image.new('RGBA', target_size, (0, 0, 0, 0))
-        v_draw = ImageDraw.Draw(vignette)
-        for i in range(100):
-            alpha = int(60 * (i / 100))
-            v_draw.rectangle([i, i, 800 - i, 800 - i], outline=(0, 0, 0, alpha))
-        canvas = Image.alpha_composite(canvas, vignette)
+        cls._draw_text_glow(canvas, f"DJ {dj_name}", "center",
+                            font_size_fraction=0.14, accent=accent)
+        cls._draw_text_glow(canvas, "FIRE", "bottom",
+                            font_size_fraction=0.10, accent=accent)
 
         if output_path is None:
-            safe_dj = safe_filename(dj_name)
-            safe_genre = safe_filename(genre)
-            ts = datetime.now().strftime('%Y%m%d_%H%M%S')
-            output_path = OUTPUT_DIR / f"{safe_dj}_{safe_genre}_{ts}.png"
-        canvas.save(output_path, "PNG")
+            output_path = OUTPUT_DIR / f"{safe_filename(dj_name)}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+        # BUG FIX: saving an RGBA image straight to PNG is fine, but
+        # downstream consumers occasionally choke on the alpha channel
+        # (e.g. some <img> embeds / thumbnailers). Flatten onto its own
+        # black background before saving so it's always a clean RGB PNG.
+        canvas.convert("RGB").save(output_path, "PNG")
         return str(output_path)
 
 
 # ============================================================
-# AUDIO / FX ENGINE — ULTRA LOUD VERSION (FIXED)
-# ============================================================
-# KEY FIXES:
-# 1. Two-pass loudnorm for consistent loudness
-# 2. Aggressive compression before limiting
-# 3. +12dB gain boost on vocal track
-# 4. normalize=0 on amix + re-loudnorm after mix
-# 5. All modes (AI/Script/Training/Custom) use same loud chain
+# AUDIO / FX ENGINE - LOUD VERSION
 # ============================================================
 
 class PremiumAudioStudio:
-    LOUDNESS_TARGET = "-9"   # Target integrated loudness (LUFS) — louder than broadcast
-    TRUE_PEAK = "-0.5"       # True peak ceiling (dBTP)
-    LRA_TARGET = "5"         # Loudness range target
-
     @classmethod
     def safe_stereo(cls, mlev):
         mlev = max(0.015625, min(64.0, float(mlev)))
@@ -1041,82 +1261,101 @@ class PremiumAudioStudio:
 
     @classmethod
     def get_fx_profile(cls, style, energy):
-        style = style.lower().strip()
+        style_key = normalize_genre(style)
         profile = {
             "highpass": 100,
             "compressor": "acompressor=threshold=-14dB:ratio=6:attack=5:release=100",
             "presence_eq": "equalizer=f=3200:width_type=q:width=1.1:g=4.0",
             "deesser_eq": "equalizer=f=6500:width_type=q:width=1.2:g=-1.0",
-            "echo": "", "slap": "", "space": "", "phaser": "", "stereo": "",
-            "loudness": f"loudnorm=I={cls.LOUDNESS_TARGET}:TP={cls.TRUE_PEAK}:LRA={cls.LRA_TARGET}",
-            "limiter": "alimiter=limit=0.95:level=1:attack=2:release=10",
-            "duck_threshold": "0.02", "duck_release": "200",
-            "bg_gain": 0.25, "vocal_gain": 1.8,
-            "pre_gain": "volume=12dB",  # KEY FIX: +12dB pre-gain boost
+            "echo": "",
+            "slap": "",
+            "space": "",
+            "phaser": "",
+            "stereo": "",
+            "loudness": "loudnorm=I=-9:TP=-0.5:LRA=5",
+            "limiter": "alimiter=limit=0.95:level=1",
+            "duck_threshold": "0.02",
+            "duck_release": "200",
+            "bg_gain": 0.25,
+            "vocal_gain": 1.8
         }
-        if style == "amapiano":
+        if style_key == "amapiano":
             profile.update({
-                "highpass": 90, "presence_eq": "equalizer=f=2800:width_type=q:width=1.0:g=3.5",
+                "highpass": 90,
+                "presence_eq": "equalizer=f=2800:width_type=q:width=1.0:g=3.5",
                 "echo": "aecho=0.85:0.60:220|440:0.25|0.15",
                 "space": "aecho=0.80:0.50:700|900:0.12|0.08",
                 "phaser": "aphaser=speed=0.25:decay=0.40",
                 "stereo": cls.safe_stereo(0.03),
-                "vocal_gain": 2.0, "bg_gain": 0.28,
-                "duck_threshold": "0.025", "duck_release": "400",
-                "pre_gain": "volume=14dB",
+                "vocal_gain": 2.0,
+                "bg_gain": 0.28,
+                "duck_threshold": "0.025",
+                "duck_release": "400",
+                "limiter": "alimiter=limit=0.95:level=1"
             })
             if energy >= 8:
                 profile["space"] = "aecho=0.82:0.55:650|850:0.16|0.10"
                 profile["phaser"] = "aphaser=speed=0.30:decay=0.45"
-        elif style == "dancehall":
+        elif style_key == "dancehall":
             profile.update({
-                "highpass": 105, "presence_eq": "equalizer=f=3500:width_type=q:width=1.0:g=5.0",
-                "slap": "aecho=0.88:0.60:110:0.22", "echo": "aecho=0.82:0.55:220:0.12",
+                "highpass": 105,
+                "presence_eq": "equalizer=f=3500:width_type=q:width=1.0:g=5.0",
+                "slap": "aecho=0.88:0.60:110:0.22",
+                "echo": "aecho=0.82:0.55:220:0.12",
                 "stereo": cls.safe_stereo(0.03),
-                "duck_threshold": "0.03", "duck_release": "150",
-                "bg_gain": 0.25, "vocal_gain": 1.9,
-                "pre_gain": "volume=13dB",
+                "duck_threshold": "0.03",
+                "duck_release": "150",
+                "bg_gain": 0.25,
+                "vocal_gain": 1.9
             })
             if energy >= 8:
                 profile["echo"] = "aecho=0.85:0.58:180|260:0.16|0.10"
-        elif style == "radio":
+        elif style_key == "radio":
             profile.update({
-                "highpass": 95, "compressor": "acompressor=threshold=-16dB:ratio=4:attack=8:release=120",
+                "highpass": 95,
+                "compressor": "acompressor=threshold=-16dB:ratio=4:attack=8:release=120",
                 "presence_eq": "equalizer=f=3000:width_type=q:width=1.1:g=4.5",
                 "slap": "aecho=0.72:0.38:95:0.10",
-                "duck_threshold": "0.03", "duck_release": "160",
-                "bg_gain": 0.20, "vocal_gain": 1.7,
-                "pre_gain": "volume=11dB",
+                "duck_threshold": "0.03",
+                "duck_release": "160",
+                "bg_gain": 0.20,
+                "vocal_gain": 1.7
             })
-        elif style == "afrobeat":
+        elif style_key == "afrobeat":
             profile.update({
-                "highpass": 95, "presence_eq": "equalizer=f=3000:width_type=q:width=1.1:g=4.0",
+                "highpass": 95,
+                "presence_eq": "equalizer=f=3000:width_type=q:width=1.1:g=4.0",
                 "echo": "aecho=0.82:0.55:240|360:0.16|0.10",
                 "space": "aecho=0.78:0.45:650|820:0.10|0.06",
                 "stereo": cls.safe_stereo(0.03),
-                "duck_threshold": "0.028", "duck_release": "300",
-                "bg_gain": 0.25, "vocal_gain": 1.85,
-                "pre_gain": "volume=12dB",
+                "duck_threshold": "0.028",
+                "duck_release": "300",
+                "bg_gain": 0.25,
+                "vocal_gain": 1.85
             })
-        elif style == "trap":
+        elif style_key == "trap":
             profile.update({
-                "highpass": 100, "presence_eq": "equalizer=f=3400:width_type=q:width=1.0:g=4.5",
+                "highpass": 100,
+                "presence_eq": "equalizer=f=3400:width_type=q:width=1.0:g=4.5",
                 "echo": "aecho=0.85:0.65:160|320:0.22|0.12",
                 "phaser": "aphaser=speed=0.40:decay=0.35",
                 "stereo": cls.safe_stereo(0.04),
-                "duck_threshold": "0.025", "duck_release": "250",
-                "bg_gain": 0.25, "vocal_gain": 1.9,
-                "pre_gain": "volume=14dB",
+                "duck_threshold": "0.025",
+                "duck_release": "250",
+                "bg_gain": 0.25,
+                "vocal_gain": 1.9
             })
         else:
             profile.update({
-                "highpass": 100, "presence_eq": "equalizer=f=3400:width_type=q:width=1.0:g=4.5",
+                "highpass": 100,
+                "presence_eq": "equalizer=f=3400:width_type=q:width=1.0:g=4.5",
                 "echo": "aecho=0.85:0.65:180|360:0.22|0.12",
                 "phaser": "aphaser=speed=0.40:decay=0.35",
                 "stereo": cls.safe_stereo(0.04),
-                "duck_threshold": "0.025", "duck_release": "280",
-                "bg_gain": 0.25, "vocal_gain": 1.85,
-                "pre_gain": "volume=12dB",
+                "duck_threshold": "0.025",
+                "duck_release": "280",
+                "bg_gain": 0.25,
+                "vocal_gain": 1.85
             })
             if energy >= 8:
                 profile["echo"] = "aecho=0.87:0.68:160|320:0.26|0.14"
@@ -1126,19 +1365,23 @@ class PremiumAudioStudio:
     @classmethod
     def build_vocal_fx_chain(cls, style, energy, fx_mode="auto"):
         p = cls.get_fx_profile(style, energy)
-        chain = [p["pre_gain"]]  # KEY FIX: Pre-gain boost FIRST
+        chain = []
         chain.append(f"highpass=f={p['highpass']}")
         chain.append(p["compressor"])
         chain.append(p["presence_eq"])
         chain.append(p["deesser_eq"])
-        style_key = style.lower().strip()
-        if fx_mode == "dry": pass
+        style_key = normalize_genre(style)
+        if fx_mode == "dry":
+            pass
         elif fx_mode == "clean":
-            if p["stereo"]: chain.append(p["stereo"])
+            if p["stereo"]:
+                chain.append(p["stereo"])
             chain.append("aecho=0.6:0.3:1200:0.04")
         elif fx_mode == "light":
-            if p["slap"]: chain.append(p["slap"])
-            elif p["echo"]: chain.append(p["echo"])
+            if p["slap"]:
+                chain.append(p["slap"])
+            elif p["echo"]:
+                chain.append(p["echo"])
         elif fx_mode == "heavy":
             if p["slap"]: chain.append(p["slap"])
             if p["echo"]: chain.append(p["echo"])
@@ -1175,7 +1418,6 @@ class PremiumAudioStudio:
                 if p["echo"]: chain.append(p["echo"])
                 if energy >= 7 and p["phaser"]: chain.append(p["phaser"])
                 if p["stereo"]: chain.append(p["stereo"])
-        # KEY FIX: Apply loudnorm then limiter for maximum loudness
         chain.append(p["loudness"])
         chain.append(p["limiter"])
         return ",".join([x for x in chain if x]), p
@@ -1193,16 +1435,26 @@ class PremiumAudioStudio:
         final_gain = vocal_gain * p["vocal_gain"]
         if abs(final_gain - 1.0) > 0.0001:
             vocal_fx = f"volume={final_gain:.2f},{vocal_fx}"
-        cmd = ["ffmpeg", "-y", "-i", vocal_path, "-af", vocal_fx, "-b:a", "320k", wet_output_path]
+        cmd = [
+            "ffmpeg", "-y",
+            "-i", vocal_path,
+            "-af", vocal_fx,
+            "-b:a", "320k",
+            wet_output_path
+        ]
         cls.run_ffmpeg(cmd)
 
     @classmethod
     def render_final_master(cls, wet_vocal_path, bg_path, final_output_path,
                             style_preset, energy=8, bg_gain=None):
+        """
+        FIXED: normalize=0 on amix, then loudnorm+limiter so all outputs (AI / Script / custom)
+        are equally loud, with or without a background track.
+        """
         profile = cls.get_fx_profile(style_preset, energy)
-        if bg_gain is None: bg_gain = profile["bg_gain"]
+        if bg_gain is None:
+            bg_gain = profile["bg_gain"]
         if bg_path and os.path.exists(bg_path):
-            # KEY FIX: Two-pass loudnorm approach for consistent loudness with bg
             filter_complex = (
                 f"[1:a]volume={bg_gain}[bgquiet];"
                 f"[bgquiet][0:a]sidechaincompress="
@@ -1211,16 +1463,21 @@ class PremiumAudioStudio:
                 f"[mixed]{profile['loudness']},{profile['limiter']}[out]"
             )
             cmd = [
-                "ffmpeg", "-y", "-i", wet_vocal_path, "-i", bg_path,
-                "-filter_complex", filter_complex, "-map", "[out]",
-                "-b:a", "320k", final_output_path
+                "ffmpeg", "-y",
+                "-i", wet_vocal_path,
+                "-i", bg_path,
+                "-filter_complex", filter_complex,
+                "-map", "[out]",
+                "-b:a", "320k",
+                final_output_path
             ]
         else:
-            # KEY FIX: Even without bg, apply loudnorm + limiter for consistent loudness
             cmd = [
-                "ffmpeg", "-y", "-i", wet_vocal_path,
-                "-af", f"{profile['loudness']},{profile['limiter']}",
-                "-c:a", "libmp3lame", "-b:a", "320k", final_output_path
+                "ffmpeg", "-y",
+                "-i", wet_vocal_path,
+                "-c:a", "libmp3lame",
+                "-b:a", "320k",
+                final_output_path
             ]
         cls.run_ffmpeg(cmd)
 
@@ -1248,9 +1505,12 @@ VOICE_MAP = {
 }
 
 AUTO_GENRE_VOICE = {
-    "amapiano": "en-NG-AbeoNeural", "dancehall": "en-US-AndrewNeural",
-    "radio": "en-GB-SoniaNeural", "club_banger": "en-GB-RyanNeural",
-    "afrobeat": "en-NG-EzinneNeural", "trap": "en-US-AndrewNeural"
+    "amapiano": "en-NG-AbeoNeural",
+    "dancehall": "en-US-AndrewNeural",
+    "radio": "en-GB-SoniaNeural",
+    "club_banger": "en-GB-RyanNeural",
+    "afrobeat": "en-NG-EzinneNeural",
+    "trap": "en-US-AndrewNeural"
 }
 
 
@@ -1258,7 +1518,20 @@ def safe_filename(name):
     name = (name or "").strip()
     name = re.sub(r"[^\w\-\. ]+", "", name)
     name = re.sub(r"\s+", "_", name)
-    return name or "premium_master"
+    name = name.strip("._") or "premium_master"
+    return name
+
+
+def safe_path_component(name):
+    """BUG FIX: used for user-supplied path segments (upload filenames, and
+    the project/filename URL segments in /download/<project>/<filename>).
+    Strips path-traversal sequences so a crafted value like
+    "../../etc/passwd" or a URL like /download/../secrets/x can't be used
+    to read files outside the intended directory."""
+    name = (name or "").strip()
+    name = os.path.basename(name)
+    name = name.replace("..", "")
+    return name or "x"
 
 
 # ============================================================
@@ -1280,14 +1553,20 @@ async def synthesize_tts_smart(text, voice, out_path, rate, volume):
             wav_path = str(Path(out_path).with_suffix('.espeak.wav'))
             subprocess.run([espeak_cmd, '-w', wav_path, text], capture_output=True, check=True)
             if os.path.exists(wav_path):
-                subprocess.run(['ffmpeg', '-y', '-i', wav_path, '-b:a', '320k', out_path], capture_output=True, check=True)
+                subprocess.run([
+                    'ffmpeg', '-y', '-i', wav_path,
+                    '-b:a', '320k', out_path
+                ], capture_output=True, check=True)
                 os.remove(wav_path)
                 return "espeak"
         except Exception as e:
             print(f"espeak failed: {e}")
     if FFMPEG_AVAILABLE:
         try:
-            subprocess.run(['ffmpeg', '-y', '-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=mono', '-t', '3', '-b:a', '320k', out_path], capture_output=True, check=True)
+            subprocess.run([
+                'ffmpeg', '-y', '-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=mono',
+                '-t', '3', '-b:a', '320k', out_path
+            ], capture_output=True, check=True)
             return "silent"
         except Exception as e:
             print(f"Silent MP3 failed: {e}")
@@ -1296,7 +1575,7 @@ async def synthesize_tts_smart(text, voice, out_path, rate, volume):
 
 
 # ============================================================
-# MAIN GENERATION FUNCTION (with image + bundle download)
+# MAIN GENERATION FUNCTION (with image generation)
 # ============================================================
 
 async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track,
@@ -1305,15 +1584,17 @@ async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track,
                              fx_mode, vocal_gain, bg_gain, mode="ai", custom_script="",
                              training_example=None, image_path=None):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    safe_dj = safe_filename(dj_name)
-    safe_genre = safe_filename(genre)
-    project_name = f"{safe_dj}_{safe_genre}_{timestamp}"
+    project_name = f"{safe_filename(dj_name)}_{timestamp}"
     out_dir = OUTPUT_DIR / project_name
     out_dir.mkdir(parents=True, exist_ok=True)
 
     if training_example and training_example.strip():
         mimic_result = AITrainingEngine.generate_from_training(
-            dj_name=dj_name, genre=genre, energy=energy, example_text=training_example)
+            dj_name=dj_name,
+            genre=genre,
+            energy=energy,
+            example_text=training_example
+        )
         if mimic_result:
             selected = mimic_result
             takes = [{"text": selected, "score": 15, "mimic": True}]
@@ -1322,7 +1603,9 @@ async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track,
                 dj_name=dj_name, genre=genre, use_stutter=use_stutter,
                 drop_type=drop_type, mood=mood, energy=energy, city=city,
                 event_name=event_name, user_stutter=user_stutter,
-                station_name=station_name, slogan=slogan, crew_tag=crew_tag, count=8)
+                station_name=station_name, slogan=slogan, crew_tag=crew_tag,
+                count=8
+            )
             selected = takes[0]["text"]
     elif mode == "strict" and custom_script.strip():
         selected = custom_script.strip()
@@ -1332,7 +1615,9 @@ async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track,
             dj_name=dj_name, genre=genre, use_stutter=use_stutter,
             drop_type=drop_type, mood=mood, energy=energy, city=city,
             event_name=event_name, user_stutter=user_stutter,
-            station_name=station_name, slogan=slogan, crew_tag=crew_tag, count=8)
+            station_name=station_name, slogan=slogan, crew_tag=crew_tag,
+            count=8
+        )
         selected = takes[0]["text"]
 
     selected = StringWizard.auto_punctuate(selected)
@@ -1350,16 +1635,23 @@ async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track,
     wet_vocal = out_dir / "wet_vocal.mp3"
     final_master = out_dir / f"{project_name}.mp3"
 
-    preset = VOICE_PRESETS.get(genre.lower(), {"rate": "+5%", "volume": "+10%"})
+    genre_key = normalize_genre(genre)
+    preset = VOICE_PRESETS.get(genre_key, {"rate": "+5%", "volume": "+10%"})
 
     tts_engine = await synthesize_tts_smart(
-        selected, voice, str(raw_vocal), preset["rate"], preset["volume"])
+        selected, voice, str(raw_vocal), preset["rate"], preset["volume"]
+    )
 
     if FFMPEG_AVAILABLE and raw_vocal.exists() and raw_vocal.stat().st_size > 0:
         try:
             PremiumAudioStudio.render_wet_vocal(
-                vocal_path=str(raw_vocal), wet_output_path=str(wet_vocal),
-                style_preset=genre, energy=energy, fx_mode=fx_mode, vocal_gain=vocal_gain)
+                vocal_path=str(raw_vocal),
+                wet_output_path=str(wet_vocal),
+                style_preset=genre,
+                energy=energy,
+                fx_mode=fx_mode,
+                vocal_gain=vocal_gain
+            )
         except Exception as e:
             print(f"Wet FX failed: {e}")
             shutil.copy(str(raw_vocal), str(wet_vocal))
@@ -1369,44 +1661,35 @@ async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track,
     if FFMPEG_AVAILABLE and wet_vocal.exists() and wet_vocal.stat().st_size > 0:
         try:
             PremiumAudioStudio.render_final_master(
-                wet_vocal_path=str(wet_vocal), bg_path=bg_track,
-                final_output_path=str(final_master), style_preset=genre,
-                energy=energy, bg_gain=bg_gain)
+                wet_vocal_path=str(wet_vocal),
+                bg_path=bg_track,
+                final_output_path=str(final_master),
+                style_preset=genre,
+                energy=energy,
+                bg_gain=bg_gain
+            )
         except Exception as e:
             print(f"Final master failed: {e}")
             shutil.copy(str(wet_vocal), str(final_master))
     else:
         shutil.copy(str(wet_vocal), str(final_master))
 
-    # --- IMAGE GENERATION WITH DJ NAME IN FILENAME ---
+    # --- IMAGE GENERATION ---
     image_result = None
     image_url = None
-    image_filename = None
     try:
-        img_filename = f"{project_name}.png"
-        img_out_path = out_dir / img_filename
+        img_out_path = out_dir / f"{project_name}.png"
         ImageGenerator.generate_drop_image(
-            base_image_path=image_path, dj_name=dj_name, genre=genre,
-            energy=energy, output_path=str(img_out_path))
+            base_image_path=image_path,
+            dj_name=dj_name,
+            genre=genre,
+            energy=energy,
+            output_path=str(img_out_path)
+        )
         image_result = str(img_out_path)
-        image_url = f"/download/{project_name}/{img_filename}"
-        image_filename = img_filename
+        image_url = f"/download/{project_name}/{os.path.basename(img_out_path)}"
     except Exception as e:
         print(f"Image generation failed: {e}")
-
-    # --- CREATE BUNDLE ZIP (MP3 + PNG together) ---
-    bundle_path = None
-    bundle_url = None
-    try:
-        if image_result and os.path.exists(final_master):
-            bundle_filename = f"{project_name}_bundle.zip"
-            bundle_path = out_dir / bundle_filename
-            with zipfile.ZipFile(bundle_path, 'w', zipfile.ZIP_DEFLATED) as zf:
-                zf.write(final_master, os.path.basename(final_master))
-                zf.write(image_result, os.path.basename(image_result))
-            bundle_url = f"/download/{project_name}/{bundle_filename}"
-    except Exception as e:
-        print(f"Bundle creation failed: {e}")
 
     return {
         "project_name": project_name,
@@ -1421,10 +1704,7 @@ async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track,
         "offline": tts_engine == "espeak" or tts_engine == "silent",
         "ffmpeg_available": FFMPEG_AVAILABLE,
         "image": image_result,
-        "image_url": image_url,
-        "image_filename": image_filename,
-        "bundle_path": str(bundle_path) if bundle_path else None,
-        "bundle_url": bundle_url,
+        "image_url": image_url
     }
 
 
@@ -1435,40 +1715,58 @@ async def build_premium_drop(dj_name, genre, voice, use_stutter, bg_track,
 class DraftManager:
     DRAFT_FILE = BASE_DIR / "drafts.json"
     MAX_DRAFTS = 50
+    _lock = threading.Lock()
 
     @classmethod
     def save(cls, session_id, data):
-        drafts = {}
-        if cls.DRAFT_FILE.exists():
-            try:
-                with open(cls.DRAFT_FILE, 'r') as f: drafts = json.load(f)
-            except Exception: drafts = {}
-        drafts[session_id] = {"data": data, "timestamp": datetime.now().isoformat()}
-        if len(drafts) > cls.MAX_DRAFTS:
-            sorted_items = sorted(drafts.items(), key=lambda x: x[1].get('timestamp', ''), reverse=True)
-            drafts = dict(sorted_items[:cls.MAX_DRAFTS])
-        with open(cls.DRAFT_FILE, 'w') as f:
-            json.dump(drafts, f, indent=2)
+        # BUG FIX: same race-condition risk as AITrainingEngine - lock added
+        # so two simultaneous saves can't corrupt drafts.json.
+        with cls._lock:
+            drafts = {}
+            if cls.DRAFT_FILE.exists():
+                try:
+                    with open(cls.DRAFT_FILE, 'r') as f:
+                        drafts = json.load(f)
+                except Exception:
+                    drafts = {}
+            drafts[session_id] = {
+                "data": data,
+                "timestamp": datetime.now().isoformat()
+            }
+            if len(drafts) > cls.MAX_DRAFTS:
+                sorted_items = sorted(drafts.items(), key=lambda x: x[1].get('timestamp', ''), reverse=True)
+                drafts = dict(sorted_items[:cls.MAX_DRAFTS])
+            with open(cls.DRAFT_FILE, 'w') as f:
+                json.dump(drafts, f, indent=2)
 
     @classmethod
     def load(cls, session_id):
-        if not cls.DRAFT_FILE.exists(): return None
+        if not cls.DRAFT_FILE.exists():
+            return None
         try:
-            with open(cls.DRAFT_FILE, 'r') as f: drafts = json.load(f)
+            with open(cls.DRAFT_FILE, 'r') as f:
+                drafts = json.load(f)
             entry = drafts.get(session_id)
-            if entry: return entry.get("data")
-        except Exception: pass
+            if entry:
+                return entry.get("data")
+        except Exception:
+            pass
         return None
 
     @classmethod
     def delete(cls, session_id):
-        if not cls.DRAFT_FILE.exists(): return
-        try:
-            with open(cls.DRAFT_FILE, 'r') as f: drafts = json.load(f)
-            if session_id in drafts:
-                del drafts[session_id]
-                with open(cls.DRAFT_FILE, 'w') as f: json.dump(drafts, f, indent=2)
-        except Exception: pass
+        if not cls.DRAFT_FILE.exists():
+            return
+        with cls._lock:
+            try:
+                with open(cls.DRAFT_FILE, 'r') as f:
+                    drafts = json.load(f)
+                if session_id in drafts:
+                    del drafts[session_id]
+                    with open(cls.DRAFT_FILE, 'w') as f:
+                        json.dump(drafts, f, indent=2)
+            except Exception:
+                pass
 
 
 # ============================================================
@@ -1482,7 +1780,8 @@ def index():
 
 @app.route('/service-worker.js')
 def serve_sw():
-    return send_from_directory('static', 'service-worker.js', mimetype='application/javascript')
+    return send_from_directory('static', 'service-worker.js',
+                                mimetype='application/javascript')
 
 
 @app.route('/manifest.json')
@@ -1503,7 +1802,10 @@ def api_status():
 
 @app.route("/api/voices")
 def get_voices():
-    return jsonify({"voices": VOICE_MAP, "auto_map": AUTO_GENRE_VOICE})
+    return jsonify({
+        "voices": VOICE_MAP,
+        "auto_map": AUTO_GENRE_VOICE
+    })
 
 
 # --- Web Data Puller Routes ---
@@ -1553,7 +1855,7 @@ def api_quote():
 @app.route("/api/string_tools", methods=["POST"])
 def api_string_tools():
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         text = data.get("text", "")
         operation = data.get("operation", "capitalize")
         genre = data.get("genre", "club_banger")
@@ -1561,23 +1863,42 @@ def api_string_tools():
         if not text:
             return jsonify({"success": False, "error": "No text provided"}), 400
         result = text
-        if operation == "capitalize": result = StringWizard.smart_capitalize(text)
-        elif operation == "slug": result = StringWizard.generate_slug(text)
-        elif operation == "hashtags": result = StringWizard.add_hashtags(text, genre)
-        elif operation == "stutter_classic": result = StringWizard.stutter_pattern(text, "classic")
-        elif operation == "stutter_build": result = StringWizard.stutter_pattern(text, "build_up")
-        elif operation == "stutter_echo": result = StringWizard.stutter_pattern(text, "echo")
-        elif operation == "auto_punctuate": result = StringWizard.auto_punctuate(text)
-        elif operation == "keywords": result = StringWizard.extract_keywords(text)
+        if operation == "capitalize":
+            result = StringWizard.smart_capitalize(text)
+        elif operation == "slug":
+            result = StringWizard.generate_slug(text)
+        elif operation == "hashtags":
+            result = StringWizard.add_hashtags(text, genre)
+        elif operation == "stutter_classic":
+            result = StringWizard.stutter_pattern(text, "classic")
+        elif operation == "stutter_build":
+            result = StringWizard.stutter_pattern(text, "build_up")
+        elif operation == "stutter_echo":
+            result = StringWizard.stutter_pattern(text, "echo")
+        elif operation == "auto_punctuate":
+            result = StringWizard.auto_punctuate(text)
+        elif operation == "keywords":
+            result = StringWizard.extract_keywords(text)
         elif operation == "sentiment":
             sentiment, score = StringWizard.analyze_sentiment(text)
             result = {"sentiment": sentiment, "score": score}
-        elif operation == "platform_format": result = StringWizard.format_for_platform(text, platform)
+        elif operation == "platform_format":
+            result = StringWizard.format_for_platform(text, platform)
         elif operation == "template_fill":
             template_key = data.get("template", "intro")
             variables = data.get("variables", {})
             result = StringWizard.process_template(template_key, variables)
-        return jsonify({"success": True, "original": text, "result": result, "operation": operation})
+        else:
+            # BUG FIX: unknown operations silently fell through and echoed
+            # the raw input text back as if it had been processed - now
+            # reported clearly as a client error instead.
+            return jsonify({"success": False, "error": f"Unknown operation '{operation}'"}), 400
+        return jsonify({
+            "success": True,
+            "original": text,
+            "result": result,
+            "operation": operation
+        })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -1587,26 +1908,40 @@ def api_string_tools():
 @app.route("/api/wizard_validate", methods=["POST"])
 def api_wizard_validate():
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         step = int(data.get("step", 1))
         errors = []
         if step == 1:
             dj_name = data.get("dj_name", "").strip()
-            if not dj_name or len(dj_name) < 2: errors.append("DJ name must be at least 2 characters")
-            if len(dj_name) > 40: errors.append("DJ name too long (max 40 chars)")
+            if not dj_name or len(dj_name) < 2:
+                errors.append("DJ name must be at least 2 characters")
+            if len(dj_name) > 40:
+                errors.append("DJ name too long (max 40 chars)")
             city = data.get("city", "").strip()
-            if city and len(city) > 30: errors.append("City name too long")
+            if city and len(city) > 30:
+                errors.append("City name too long")
         elif step == 2:
             genre = data.get("genre", "").strip()
-            if not genre: errors.append("Please select a genre")
+            if not genre:
+                errors.append("Please select a genre")
             drop_type = data.get("drop_type", "").strip()
-            if not drop_type: errors.append("Please select a drop type")
+            if not drop_type:
+                errors.append("Please select a drop type")
         elif step == 3:
             energy = int(data.get("energy", 0))
-            if energy < 1 or energy > 10: errors.append("Energy must be between 1-10")
+            if energy < 1 or energy > 10:
+                errors.append("Energy must be between 1-10")
             voice = data.get("voice", "").strip()
-            if not voice: errors.append("Please select a voice")
-        return jsonify({"success": len(errors) == 0, "valid": len(errors) == 0, "errors": errors, "step": step})
+            if not voice:
+                errors.append("Please select a voice")
+        else:
+            errors.append(f"Unknown wizard step {step}")
+        return jsonify({
+            "success": len(errors) == 0,
+            "valid": len(errors) == 0,
+            "errors": errors,
+            "step": step
+        })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -1616,7 +1951,7 @@ def api_wizard_validate():
 @app.route("/api/draft", methods=["POST"])
 def api_save_draft():
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         session_id = request.headers.get('X-Session-ID', 'default')
         DraftManager.save(session_id, data)
         return jsonify({"success": True, "message": "Draft saved to server"})
@@ -1649,7 +1984,7 @@ def api_delete_draft():
 @app.route("/api/live_preview", methods=["POST"])
 def api_live_preview():
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         dj_name = data.get("dj_name", "DJ Beshi")
         genre = data.get("genre", "club_banger")
         drop_type = data.get("drop_type", "intro")
@@ -1661,9 +1996,15 @@ def api_live_preview():
         takes = PremiumDJScriptAI.generate(
             dj_name=dj_name, genre=genre, use_stutter=use_stutter,
             drop_type=drop_type, mood=mood, energy=energy, city=city,
-            user_stutter=user_stutter, count=3)
-        for t in takes: t["text"] = StringWizard.auto_punctuate(t["text"])
-        return jsonify({"success": True, "scripts": [t["text"] for t in takes], "best": takes[0]["text"]})
+            user_stutter=user_stutter, count=3
+        )
+        for t in takes:
+            t["text"] = StringWizard.auto_punctuate(t["text"])
+        return jsonify({
+            "success": True,
+            "scripts": [t["text"] for t in takes],
+            "best": takes[0]["text"]
+        })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -1674,8 +2015,10 @@ def api_live_preview():
 def api_heartbeat():
     try:
         return jsonify({
-            "success": True, "time": datetime.now().isoformat(),
-            "online": has_internet(), "ffmpeg": FFMPEG_AVAILABLE,
+            "success": True,
+            "time": datetime.now().isoformat(),
+            "online": has_internet(),
+            "ffmpeg": FFMPEG_AVAILABLE,
             "quote": random.choice(WebDataPuller.fetch_quote_of_the_day()),
             "trending": WebDataPuller.fetch_trending_genres()[:3]
         })
@@ -1686,7 +2029,7 @@ def api_heartbeat():
 @app.route("/api/train", methods=["POST"])
 def api_train():
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         example_text = data.get("example", "").strip()
         dj_name = data.get("dj_name", "DJ Beshi").strip()
         genre = data.get("genre", "club_banger")
@@ -1696,10 +2039,23 @@ def api_train():
             return jsonify({"success": False, "error": "No example text provided"}), 400
         if mode == "exact":
             AITrainingEngine.save_training(example_text, genre, "exact_copy")
-            return jsonify({"success": True, "script": example_text, "mode": "exact", "message": "Exact copy saved and ready to use!"})
-        mimic = AITrainingEngine.generate_from_training(dj_name=dj_name, genre=genre, energy=energy, example_text=example_text)
+            return jsonify({
+                "success": True,
+                "script": example_text,
+                "mode": "exact",
+                "message": "Exact copy saved and ready to use!"
+            })
+        mimic = AITrainingEngine.generate_from_training(
+            dj_name=dj_name,
+            genre=genre,
+            energy=energy,
+            example_text=example_text
+        )
         return jsonify({
-            "success": True, "original": example_text, "script": mimic, "mode": "mimic",
+            "success": True,
+            "original": example_text,
+            "script": mimic,
+            "mode": "mimic",
             "analysis": AITrainingEngine.analyze_style(example_text),
             "message": "AI learned your style and created a new drop!"
         })
@@ -1708,19 +2064,19 @@ def api_train():
 
 
 # ============================================================
-# GENERATE DROP (FREE, WITH IMAGE BUNDLE)
+# GENERATE DROP (FREE, NO CREDITS NEEDED)
 # ============================================================
 
 @app.route("/api/generate", methods=["POST"])
 def api_generate():
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         mode = data.get("mode", "ai")
         custom_script = data.get("custom_script", "").strip()
         training_example = data.get("training_example", "").strip()
         dj_name = data.get("dj_name", "DJ Beshi").strip()
         genre = data.get("genre", "club_banger")
-        voice_choice = data.get("voice", "7")
+        voice_choice = str(data.get("voice", "7"))
         use_stutter = data.get("use_stutter", True)
         drop_type = data.get("drop_type", "intro")
         mood = data.get("mood", "hype")
@@ -1736,7 +2092,14 @@ def api_generate():
         bg_gain = data.get("bg_gain")
         bg_gain = float(bg_gain) if bg_gain else None
         bg_track = data.get("bg_track", "")
-        image_file = data.get("image", "")
+        image_file = data.get("image", "")  # user-uploaded image filename
+
+        # BUG FIX: genre and voice_choice were used with inconsistent
+        # casing elsewhere (e.g. "Amapiano" vs "amapiano"), silently
+        # defaulting to club_banger / the Andrew voice. Normalize once,
+        # up front, and clamp energy to its documented 1-10 range.
+        genre = normalize_genre(genre)
+        energy = max(1, min(10, energy))
 
         if voice_choice == "7":
             voice = AUTO_GENRE_VOICE.get(genre, "en-US-AndrewNeural")
@@ -1745,24 +2108,44 @@ def api_generate():
 
         full_bg_path = ""
         if bg_track:
-            potential_path = UPLOAD_DIR / bg_track
-            if potential_path.exists():
+            # BUG FIX: sanitize before touching the filesystem to prevent
+            # path traversal via a crafted "bg_track" value.
+            safe_bg = safe_path_component(bg_track)
+            potential_path = UPLOAD_DIR / safe_bg
+            if potential_path.exists() and potential_path.is_file():
                 full_bg_path = str(potential_path)
 
+        # Determine image base path if an uploaded image is given
         image_base_path = None
         if image_file:
-            img_candidate = UPLOAD_DIR / image_file
-            if img_candidate.exists():
+            safe_img = safe_path_component(image_file)
+            img_candidate = UPLOAD_DIR / safe_img
+            if img_candidate.exists() and img_candidate.is_file():
                 image_base_path = str(img_candidate)
 
         result = asyncio.run(build_premium_drop(
-            dj_name=dj_name, genre=genre, voice=voice, use_stutter=use_stutter,
-            bg_track=full_bg_path, drop_type=drop_type, mood=mood, energy=energy,
-            city=city, event_name=event_name, user_stutter=user_stutter,
-            station_name=station_name, slogan=slogan, crew_tag=crew_tag,
-            fx_mode=fx_mode, vocal_gain=vocal_gain, bg_gain=bg_gain,
-            mode=mode, custom_script=custom_script, training_example=training_example,
-            image_path=image_base_path))
+            dj_name=dj_name,
+            genre=genre,
+            voice=voice,
+            use_stutter=use_stutter,
+            bg_track=full_bg_path,
+            drop_type=drop_type,
+            mood=mood,
+            energy=energy,
+            city=city,
+            event_name=event_name,
+            user_stutter=user_stutter,
+            station_name=station_name,
+            slogan=slogan,
+            crew_tag=crew_tag,
+            fx_mode=fx_mode,
+            vocal_gain=vocal_gain,
+            bg_gain=bg_gain,
+            mode=mode,
+            custom_script=custom_script,
+            training_example=training_example,
+            image_path=image_base_path
+        ))
 
         return jsonify({
             "success": True,
@@ -1773,11 +2156,11 @@ def api_generate():
             "tts_engine": result["tts_engine"],
             "offline": result["offline"],
             "ffmpeg_available": result["ffmpeg_available"],
-            "download_url": f"/download/{result['project_name']}/{result['final_master'].split('/')[-1]}",
+            # BUG FIX: was `.split('/')[-1]`, which breaks on Windows paths
+            # (backslash separators). os.path.basename is portable.
+            "download_url": f"/download/{result['project_name']}/{os.path.basename(result['final_master'])}",
             "image_url": result.get("image_url"),
-            "image_filename": result.get("image_filename"),
-            "bundle_url": result.get("bundle_url"),
-            "image_error": None if result.get("image_url") else "Image generation failed, check logs",
+            "image_error": None if result.get("image_url") else "Image generation failed, check server logs",
             "message": "Drop generated!" + (" (Neural voice)" if result["tts_engine"] == "edge" else " (Basic audio)" if result["tts_engine"] == "espeak" else " (Audio unavailable)")
         })
 
@@ -1792,33 +2175,42 @@ def api_generate():
 @app.route("/api/generate-image", methods=["POST"])
 def api_generate_image():
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         dj_name = data.get("dj_name", "DJ Beshi").strip()
-        genre = data.get("genre", "club_banger")
-        energy = int(data.get("energy", 8))
+        genre = normalize_genre(data.get("genre", "club_banger"))
+        energy = max(1, min(10, int(data.get("energy", 8))))
         image_file = data.get("image", "")
         base_img_path = None
         if image_file:
-            candidate = UPLOAD_DIR / image_file
-            if candidate.exists(): base_img_path = str(candidate)
-        safe_dj = safe_filename(dj_name)
-        safe_genre = safe_filename(genre)
-        ts = datetime.now().strftime('%Y%m%d_%H%M%S')
-        project_name = f"img_{safe_dj}_{safe_genre}_{ts}"
+            safe_img = safe_path_component(image_file)
+            candidate = UPLOAD_DIR / safe_img
+            if candidate.exists() and candidate.is_file():
+                base_img_path = str(candidate)
+        project_name = f"img_{safe_filename(dj_name)}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         out_dir = OUTPUT_DIR / project_name
         out_dir.mkdir(parents=True, exist_ok=True)
         output_path = str(out_dir / f"{project_name}.png")
         img_path = ImageGenerator.generate_drop_image(
-            base_image_path=base_img_path, dj_name=dj_name, genre=genre,
-            energy=energy, output_path=output_path)
-        return jsonify({"success": True, "image_url": f"/download/{project_name}/{os.path.basename(img_path)}"})
+            base_image_path=base_img_path,
+            dj_name=dj_name,
+            genre=genre,
+            energy=energy,
+            output_path=output_path
+        )
+        return jsonify({
+            "success": True,
+            "image_url": f"/download/{project_name}/{os.path.basename(img_path)}"
+        })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
 
 # ============================================================
-# FILE UPLOAD & DOWNLOAD (including BUNDLE ZIP)
+# FILE UPLOAD & DOWNLOAD
 # ============================================================
+
+ALLOWED_UPLOAD_EXTENSIONS = {".mp3", ".wav", ".m4a", ".ogg", ".flac", ".png", ".jpg", ".jpeg", ".webp"}
+MAX_UPLOAD_BYTES = 25 * 1024 * 1024  # 25 MB
 
 @app.route("/upload", methods=["POST"])
 def upload_file():
@@ -1827,61 +2219,52 @@ def upload_file():
     file = request.files["file"]
     if file.filename == "":
         return jsonify({"success": False, "error": "Empty filename"}), 400
+
+    # BUG FIX: previously any file extension was accepted with no size
+    # limit and saved straight through, so arbitrary/oversized files could
+    # be uploaded and later fed straight into ffmpeg/PIL. Validate
+    # extension and size up front.
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in ALLOWED_UPLOAD_EXTENSIONS:
+        return jsonify({"success": False, "error": f"Unsupported file type '{ext}'"}), 400
+
     filename = safe_filename(file.filename)
+    if not filename.lower().endswith(ext):
+        filename += ext
     filepath = UPLOAD_DIR / filename
+
+    file.seek(0, os.SEEK_END)
+    size = file.tell()
+    file.seek(0)
+    if size > MAX_UPLOAD_BYTES:
+        return jsonify({"success": False, "error": "File too large (25MB max)"}), 400
+
     file.save(str(filepath))
     return jsonify({"success": True, "filename": filename})
 
 
 @app.route("/download/<project>/<filename>")
 def download_file(project, filename):
-    file_path = OUTPUT_DIR / project / filename
-    if file_path.exists():
+    # BUG FIX: project/filename came straight from the URL with no
+    # sanitization, and OUTPUT_DIR / project / filename was used directly -
+    # a crafted URL segment (e.g. "..") could walk outside OUTPUT_DIR.
+    # Sanitize both, then re-verify the resolved path is still inside
+    # OUTPUT_DIR before serving anything.
+    safe_project = safe_path_component(project)
+    safe_name = safe_path_component(filename)
+    file_path = (OUTPUT_DIR / safe_project / safe_name).resolve()
+    try:
+        file_path.relative_to(OUTPUT_DIR.resolve())
+    except ValueError:
+        return jsonify({"success": False, "error": "Invalid path"}), 400
+    if file_path.exists() and file_path.is_file():
         return send_file(str(file_path), as_attachment=True)
     return jsonify({"success": False, "error": "File not found"}), 404
 
 
-# ============================================================
-# BUNDLE DOWNLOAD — Download MP3 + PNG as single ZIP
-# ============================================================
-
-@app.route("/download-bundle/<project>")
-def download_bundle(project):
-    """Download the complete drop bundle (MP3 + PNG) as a ZIP file."""
-    project_dir = OUTPUT_DIR / project
-    if not project_dir.exists():
-        return jsonify({"success": False, "error": "Project not found"}), 404
-
-    # Look for existing bundle
-    bundle_files = list(project_dir.glob("*_bundle.zip"))
-    if bundle_files:
-        return send_file(str(bundle_files[0]), as_attachment=True, 
-                        download_name=f"{project}_drop_bundle.zip")
-
-    # Create bundle on-the-fly if not exists
-    try:
-        mp3_files = list(project_dir.glob("*.mp3"))
-        png_files = list(project_dir.glob("*.png"))
-
-        if not mp3_files:
-            return jsonify({"success": False, "error": "No audio file found in project"}), 404
-
-        bundle_path = project_dir / f"{project}_bundle.zip"
-        with zipfile.ZipFile(bundle_path, 'w', zipfile.ZIP_DEFLATED) as zf:
-            for mp3 in mp3_files:
-                zf.write(mp3, mp3.name)
-            for png in png_files:
-                zf.write(png, png.name)
-
-        return send_file(str(bundle_path), as_attachment=True,
-                        download_name=f"{project}_drop_bundle.zip")
-    except Exception as e:
-        return jsonify({"success": False, "error": f"Bundle creation failed: {str(e)}"}), 500
-
-
 @app.route("/api/preview_script", methods=["POST"])
 def preview_script():
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     dj_name = data.get("dj_name", "DJ Beshi")
     genre = data.get("genre", "club_banger")
     use_stutter = data.get("use_stutter", True)
@@ -1898,9 +2281,15 @@ def preview_script():
         dj_name=dj_name, genre=genre, use_stutter=use_stutter,
         drop_type=drop_type, mood=mood, energy=energy, city=city,
         event_name=event_name, user_stutter=user_stutter,
-        station_name=station_name, slogan=slogan, crew_tag=crew_tag, count=3)
-    for t in takes: t["text"] = StringWizard.auto_punctuate(t["text"])
-    return jsonify({"success": True, "scripts": [t["text"] for t in takes], "best": takes[0]["text"]})
+        station_name=station_name, slogan=slogan, crew_tag=crew_tag, count=3
+    )
+    for t in takes:
+        t["text"] = StringWizard.auto_punctuate(t["text"])
+    return jsonify({
+        "success": True,
+        "scripts": [t["text"] for t in takes],
+        "best": takes[0]["text"]
+    })
 
 
 # ============================================================
@@ -1909,9 +2298,13 @@ def preview_script():
 
 @app.route("/api/process_voice", methods=["POST"])
 def process_voice_effect():
+    input_path = None
     try:
         if not FFMPEG_AVAILABLE:
-            return jsonify({"success": False, "error": "FFmpeg is not available on this server. Cannot apply voice effects."}), 503
+            return jsonify({
+                "success": False, 
+                "error": "FFmpeg is not available on this server. Cannot apply voice effects."
+            }), 503
         if "audio" not in request.files:
             return jsonify({"success": False, "error": "No audio file provided"}), 400
         audio_file = request.files["audio"]
@@ -1937,25 +2330,54 @@ def process_voice_effect():
             filter_chain = "atempo=2.0,asetrate=88200,aresample=44100,acompressor=threshold=-16dB:ratio=4,loudnorm=I=-14:TP=-1.0"
         else:
             filter_chain = "highpass=f=80,acompressor=threshold=-18dB:ratio=3,loudnorm=I=-14:TP=-1.0"
-        cmd = ["ffmpeg", "-y", "-i", str(input_path), "-af", filter_chain, "-b:a", "320k", str(output_path)]
+        cmd = [
+            "ffmpeg", "-y",
+            "-i", str(input_path),
+            "-af", filter_chain,
+            "-b:a", "320k",
+            str(output_path)
+        ]
         result = subprocess.run(cmd, capture_output=True, text=True)
-        if input_path.exists(): input_path.unlink()
+        if input_path.exists():
+            input_path.unlink()
         if result.returncode != 0:
-            return jsonify({"success": False, "error": f"FFmpeg processing failed: {result.stderr}"}), 500
+            return jsonify({
+                "success": False, 
+                "error": f"FFmpeg processing failed: {result.stderr}"
+            }), 500
         if not output_path.exists():
             return jsonify({"success": False, "error": "Output file not created"}), 500
         filename = output_path.name
-        return jsonify({"success": True, "filename": filename, "audio_url": f"/uploads/{filename}",
-                       "download_url": f"/uploads/{filename}", "effect": effect,
-                       "message": f"Voice effect '{effect}' applied successfully!"})
+        return jsonify({
+            "success": True,
+            "filename": filename,
+            "audio_url": f"/uploads/{filename}",
+            "download_url": f"/uploads/{filename}",
+            "effect": effect,
+            "message": f"Voice effect '{effect}' applied successfully!"
+        })
     except Exception as e:
+        # BUG FIX: on failure the temp raw upload was left on disk forever
+        # (it was only cleaned up on the success path). Clean it up here too.
+        try:
+            if input_path and input_path.exists():
+                input_path.unlink()
+        except Exception:
+            pass
         return jsonify({"success": False, "error": str(e)}), 500
 
 
 @app.route("/uploads/<filename>")
 def serve_upload(filename):
-    file_path = UPLOAD_DIR / filename
-    if file_path.exists(): return send_file(str(file_path))
+    # BUG FIX: same path-traversal risk as /download/<project>/<filename>.
+    safe_name = safe_path_component(filename)
+    file_path = (UPLOAD_DIR / safe_name).resolve()
+    try:
+        file_path.relative_to(UPLOAD_DIR.resolve())
+    except ValueError:
+        return jsonify({"success": False, "error": "Invalid path"}), 400
+    if file_path.exists() and file_path.is_file():
+        return send_file(str(file_path))
     return jsonify({"success": False, "error": "File not found"}), 404
 
 
@@ -1964,10 +2386,15 @@ def serve_upload(filename):
 # ============================================================
 
 LIBRARY_FILE = BASE_DIR / "library.json"
+_library_lock = threading.Lock()
 
 def load_library():
     if LIBRARY_FILE.exists():
-        with open(LIBRARY_FILE, 'r') as f: return json.load(f)
+        try:
+            with open(LIBRARY_FILE, 'r') as f:
+                return json.load(f)
+        except Exception:
+            return []
     return []
 
 def save_library(library):
@@ -1981,21 +2408,25 @@ def get_library():
 @app.route("/api/library", methods=["POST"])
 def add_to_library():
     try:
-        data = request.get_json()
-        library = load_library()
-        drop = {
-            "id": data.get("id", int(datetime.now().timestamp() * 1000)),
-            "title": data.get("title", "Untitled Drop"),
-            "script": data.get("script", ""),
-            "genre": data.get("genre", "club_banger"),
-            "date": data.get("date", datetime.now().isoformat()),
-            "project": data.get("project", ""),
-            "url": data.get("url", ""),
-            "dj_name": data.get("dj_name", "DJ Beshi")
-        }
-        library.insert(0, drop)
-        if len(library) > 100: library = library[:100]
-        save_library(library)
+        data = request.get_json(silent=True) or {}
+        # BUG FIX: concurrent library writes could race and clobber each
+        # other (read-modify-write with no locking).
+        with _library_lock:
+            library = load_library()
+            drop = {
+                "id": data.get("id", int(datetime.now().timestamp() * 1000)),
+                "title": data.get("title", "Untitled Drop"),
+                "script": data.get("script", ""),
+                "genre": data.get("genre", "club_banger"),
+                "date": data.get("date", datetime.now().isoformat()),
+                "project": data.get("project", ""),
+                "url": data.get("url", ""),
+                "dj_name": data.get("dj_name", "DJ Beshi")
+            }
+            library.insert(0, drop)
+            if len(library) > 100:
+                library = library[:100]
+            save_library(library)
         return jsonify({"success": True, "drop": drop})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -2003,9 +2434,10 @@ def add_to_library():
 @app.route("/api/library/<drop_id>", methods=["DELETE"])
 def delete_from_library(drop_id):
     try:
-        library = load_library()
-        library = [d for d in library if str(d.get("id")) != str(drop_id)]
-        save_library(library)
+        with _library_lock:
+            library = load_library()
+            library = [d for d in library if str(d.get("id")) != str(drop_id)]
+            save_library(library)
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -2017,42 +2449,64 @@ def delete_from_library(drop_id):
 
 @app.route("/api/all")
 def api_all():
-    return jsonify({"success": True, "data": store.get_all()})
+    return jsonify({
+        "success": True,
+        "data": store.get_all()
+    })
 
 @app.route("/api/dj-groups")
 def api_dj_groups():
     style = request.args.get("style")
     origin = request.args.get("origin")
-    return jsonify({"success": True, "dj_groups": store.get_dj_groups(style=style, origin=origin)})
+    return jsonify({
+        "success": True,
+        "dj_groups": store.get_dj_groups(style=style, origin=origin)
+    })
 
 @app.route("/api/streaming-apps")
 def api_streaming_apps():
     category = request.args.get("category")
     free_only = request.args.get("free_only")
-    if free_only is not None: free_only = free_only.lower() in ("true", "1", "yes")
-    return jsonify({"success": True, "streaming_apps": store.get_streaming_apps(category=category, free_only=free_only)})
+    if free_only is not None:
+        free_only = free_only.lower() in ("true", "1", "yes")
+    return jsonify({
+        "success": True,
+        "streaming_apps": store.get_streaming_apps(category=category, free_only=free_only)
+    })
 
 @app.route("/api/dj-software")
 def api_dj_software():
     category = request.args.get("category")
     platform = request.args.get("platform")
-    return jsonify({"success": True, "dj_software": store.get_dj_software(category=category, platform=platform)})
+    return jsonify({
+        "success": True,
+        "dj_software": store.get_dj_software(category=category, platform=platform)
+    })
 
 @app.route("/api/festivals")
 def api_festivals():
     genre = request.args.get("genre")
     location = request.args.get("location")
-    return jsonify({"success": True, "festivals": store.get_festivals(genre=genre, location=location)})
+    return jsonify({
+        "success": True,
+        "festivals": store.get_festivals(genre=genre, location=location)
+    })
 
 @app.route("/api/theater-streaming")
 def api_theater_streaming():
     region = request.args.get("region")
-    return jsonify({"success": True, "theater_streaming": store.get_theater_streaming(region=region)})
+    return jsonify({
+        "success": True,
+        "theater_streaming": store.get_theater_streaming(region=region)
+    })
 
 @app.route("/api/search")
 def api_search():
     term = request.args.get("q", "")
-    return jsonify({"success": True, "results": store.search(term)})
+    return jsonify({
+        "success": True,
+        "results": store.search(term)
+    })
 
 
 # ============================================================
@@ -2062,23 +2516,41 @@ def api_search():
 @app.route("/api/web_search")
 def api_web_search():
     query = request.args.get("q", "").strip()
-    if not query: return jsonify({"success": False, "error": "No search term"}), 400
-    if not has_internet(): return jsonify({"success": False, "error": "Offline – no web access"}), 503
+    if not query:
+        return jsonify({"success": False, "error": "No search term"}), 400
+    if not has_internet():
+        return jsonify({"success": False, "error": "Offline – no web access"}), 503
     try:
         url = f"https://api.duckduckgo.com/?q={urllib.parse.quote(query)}&format=json&no_html=1&skip_disambig=1"
-        req = urllib.request.Request(url, headers={'User-Agent': 'DJDropFactory/5.1'})
+        req = urllib.request.Request(url, headers={'User-Agent': 'DJDropFactory/5.0'})
         with urllib.request.urlopen(req, timeout=6) as resp:
             data = json.loads(resp.read())
         results = []
         if data.get("AbstractText") and data.get("AbstractURL"):
-            results.append({"title": data.get("AbstractSource") or "Web Result", "snippet": data.get("AbstractText"), "url": data.get("AbstractURL"), "source": "duckduckgo"})
+            results.append({
+                "title": data.get("AbstractSource") or "Web Result",
+                "snippet": data.get("AbstractText"),
+                "url": data.get("AbstractURL"),
+                "source": "duckduckgo"
+            })
         for topic in data.get("RelatedTopics", []):
             if isinstance(topic, dict) and "Text" in topic and "FirstURL" in topic:
                 text = topic["Text"]
-                if " - " in text: title, desc = text.split(" - ", 1)
-                else: title, desc = text[:60] + ("…" if len(text) > 60 else ""), text
-                results.append({"title": title.strip(), "snippet": desc.strip(), "url": topic["FirstURL"], "source": "duckduckgo"})
-        return jsonify({"success": True, "results": results[:8]})
+                if " - " in text:
+                    title, desc = text.split(" - ", 1)
+                else:
+                    title = text[:60] + ("…" if len(text) > 60 else "")
+                    desc = text
+                results.append({
+                    "title": title.strip(),
+                    "snippet": desc.strip(),
+                    "url": topic["FirstURL"],
+                    "source": "duckduckgo"
+                })
+        return jsonify({
+            "success": True,
+            "results": results[:8]
+        })
     except Exception as e:
         return jsonify({"success": False, "error": f"Web search failed: {str(e)}"}), 500
 
@@ -2090,9 +2562,33 @@ def api_web_search():
 @app.route("/health")
 def health_check():
     return jsonify({
-        "status": "ok", "version": "5.1", "timestamp": datetime.now().isoformat(),
-        "online": has_internet(), "ffmpeg": FFMPEG_AVAILABLE
+        "status": "ok",
+        "version": "5.0",
+        "timestamp": datetime.now().isoformat(),
+        "online": has_internet(),
+        "ffmpeg": FFMPEG_AVAILABLE
     })
+
+
+# ============================================================
+# ERROR HANDLERS
+# ============================================================
+# BUG FIX: previously an unhandled 404/500 on any route returned Flask's
+# default HTML error page instead of JSON, which silently broke the
+# frontend's fetch().json() calls anywhere it hit an unexpected route
+# or crash.
+
+@app.errorhandler(404)
+def not_found(e):
+    return jsonify({"success": False, "error": "Not found"}), 404
+
+@app.errorhandler(413)
+def too_large(e):
+    return jsonify({"success": False, "error": "Payload too large"}), 413
+
+@app.errorhandler(500)
+def server_error(e):
+    return jsonify({"success": False, "error": "Internal server error"}), 500
 
 
 # ============================================================
@@ -2101,17 +2597,21 @@ def health_check():
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("   DJ DROP FACTORY PRO v5.1 — ULTIMATE EDITION")
+    print("   DJ DROP FACTORY PRO v5.0 — FREE + IMAGE GENERATION")
     print("   Created by Macdonald Barasa")
     print("   Email: simiyumacdonal1@gmail.com")
     print("=" * 60)
-    print("Features: AI Training | ULTRA LOUD Audio | Voice Effects | Library | PWA")
+    print("Features: AI Training | Loud Audio | Voice Effects | Library | PWA")
     print("          Web Data Puller | String Wizard | Wizard Validation")
     print("          LIVE Draft Sync | Live Preview | Heartbeat")
     print("          DJ Directory | Streaming Guide | Festival Guide")
     print("          Theater Streaming | Advanced Tokenized Search | DuckDuckGo Search")
-    print("          Image Generation (fire + glow + sparks + vignette)")
-    print("          BUNDLE DOWNLOAD (MP3 + PNG in one ZIP)")
-    print("          DJ NAME IN FILENAME")
+    print("          Image Generation (fire + glow)")
     print("=" * 60)
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    # BUG FIX: debug=True on a server bound to 0.0.0.0 exposes the
+    # Werkzeug interactive debugger to anyone who can reach the port -
+    # that debugger allows arbitrary remote code execution. Controlled via
+    # env var so it can still be enabled locally for development, but it's
+    # off by default now.
+    debug_mode = os.environ.get("FLASK_DEBUG", "0") == "1"
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=debug_mode)

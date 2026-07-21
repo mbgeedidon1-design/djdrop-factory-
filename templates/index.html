@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="author" content="Macdonald Barasa">
     <title>DJ Drop Factory Pro v5.0 — Live</title>
-    <link rel="manifest" href="/manifest.json">   <!-- ✅ Already present -->
+    <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/static/icon-192.png">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
@@ -866,7 +866,7 @@
                         <div class="suggestion-row" id="trendingGenres" style="display:none;"></div>
                         <div class="form-group">
                             <label class="form-label" for="dropType">Drop Type</label>
-                            <select class="form-select" id="dropType">
+                            <select class="form-select" id="dropType" onchange="updateDropTypeFields()">
                                 <option value="intro" selected>🎬 Intro</option>
                                 <option value="sweeper">🌊 Sweeper</option>
                                 <option value="hype">🔥 Hype</option>
@@ -875,6 +875,29 @@
                                 <option value="radio_id">📡 Radio ID</option>
                                 <option value="crowd_call">👥 Crowd Call</option>
                             </select>
+                        </div>
+                        <!-- Conditional Fields: Promo, Radio, Crowd -->
+                        <div id="promoFields" style="display:none;">
+                            <div class="form-group">
+                                <label class="form-label" for="eventName">Event Name</label>
+                                <input type="text" class="form-input" id="eventName" placeholder="e.g. Summer Bash 2026">
+                            </div>
+                        </div>
+                        <div id="radioFields" style="display:none;">
+                            <div class="form-group">
+                                <label class="form-label" for="stationName">Station Name</label>
+                                <input type="text" class="form-input" id="stationName" placeholder="e.g. Hot 97 FM">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="slogan">Slogan</label>
+                                <input type="text" class="form-input" id="slogan" placeholder="e.g. The People's Station">
+                            </div>
+                        </div>
+                        <div id="crowdFields" style="display:none;">
+                            <div class="form-group">
+                                <label class="form-label" for="crewTag">Crew Tag</label>
+                                <input type="text" class="form-input" id="crewTag" placeholder="e.g. #WolfPack">
+                            </div>
                         </div>
                         <div class="form-group">
                             <label class="form-label" for="mood">Mood</label>
@@ -958,10 +981,30 @@
                             </div>
                             <input type="range" id="bgGain" min="0.0" max="1.0" step="0.05" value="0.25" style="--progress: 25%">
                         </div>
-                        <div class="btn-wizard-nav">
-                            <button class="btn-secondary" onclick="wizardPrev(3)">← Back</button>
-                            <button class="btn-primary" onclick="wizardNext(3)">Next →</button>
+                    </div>
+                    <!-- Background Music & Artwork Upload Section -->
+                    <div class="section-card">
+                        <div class="section-header">🎚️ Background Music & Artwork</div>
+                        <div class="form-group">
+                            <label class="form-label">Background Track</label>
+                            <div style="display:flex;gap:10px;align-items:center;">
+                                <input type="file" id="bgTrackFile" accept="audio/*" style="display:none;" onchange="uploadFile('bgTrackFile', 'bgTrackPreview')">
+                                <button class="btn-secondary" style="width:auto;padding:10px 20px;margin:0;" onclick="document.getElementById('bgTrackFile').click()">🎵 Choose File</button>
+                                <span id="bgTrackPreview" style="font-size:13px;color:var(--text-muted);">No file chosen</span>
+                            </div>
                         </div>
+                        <div class="form-group">
+                            <label class="form-label">Cover Image (for fire overlay)</label>
+                            <div style="display:flex;gap:10px;align-items:center;">
+                                <input type="file" id="coverImageFile" accept="image/*" style="display:none;" onchange="uploadFile('coverImageFile', 'coverPreview')">
+                                <button class="btn-secondary" style="width:auto;padding:10px 20px;margin:0;" onclick="document.getElementById('coverImageFile').click()">🖼️ Choose Image</button>
+                                <span id="coverPreview" style="font-size:13px;color:var(--text-muted);">No image selected</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="btn-wizard-nav">
+                        <button class="btn-secondary" onclick="wizardPrev(3)">← Back</button>
+                        <button class="btn-primary" onclick="wizardNext(3)">Next →</button>
                     </div>
                 </div>
 
@@ -980,6 +1023,8 @@
                             <div class="review-item"><span class="review-label">FX Mode</span><span class="review-value" id="reviewFxMode">Auto</span></div>
                             <div class="review-item"><span class="review-label">Vocal Gain</span><span class="review-value" id="reviewVocalGain">1.8x</span></div>
                             <div class="review-item"><span class="review-label">BG Gain</span><span class="review-value" id="reviewBgGain">0.25</span></div>
+                            <div class="review-item"><span class="review-label">Background Track</span><span class="review-value" id="reviewBgTrack">None</span></div>
+                            <div class="review-item"><span class="review-label">Cover Image</span><span class="review-value" id="reviewCover">None</span></div>
                         </div>
                         <div class="btn-wizard-nav">
                             <button class="btn-secondary" onclick="wizardPrev(4)">← Back</button>
@@ -1148,7 +1193,7 @@
                     <div class="result-script" id="resultScript"></div>
                     <div class="audio-wrap"><audio id="resultAudio" controls></audio></div>
                     <div style="padding: 0 20px 10px;" id="resultImageContainer">
-                        <img id="resultImage" style="width:100%;border-radius:12px;margin-bottom:10px;" src="">
+                        <img id="resultImage" style="width:100%;border-radius:12px;margin-bottom:10px;display:none;" src="" onerror="this.style.display='none'">
                     </div>
                     <button class="btn-secondary" onclick="saveToLibrary()">💾 Save to Library</button>
                     <button class="btn-secondary" onclick="copyScript()">📋 Copy Script</button>
@@ -1371,6 +1416,9 @@
         let liveEngine = null;
         let deviceId = localStorage.getItem('df_device_id') || 'dev_' + Math.random().toString(36).substr(2, 9);
         localStorage.setItem('df_device_id', deviceId);
+        // Upload state
+        let uploadedBgFilename = null;
+        let uploadedCoverFilename = null;
 
         // ==================== CLOCK ====================
         function updateClock() {
@@ -1409,6 +1457,46 @@
                 if (lp) lp.style.display = 'none';
             }
         }
+
+        // ==================== UPLOAD HANDLER ====================
+        async function uploadFile(inputId, previewId) {
+            const fileInput = document.getElementById(inputId);
+            const file = fileInput.files[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('file', file);
+            const preview = document.getElementById(previewId);
+            preview.textContent = 'Uploading...';
+            try {
+                const res = await fetch('/upload', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (data.success) {
+                    preview.textContent = data.filename;
+                    if (inputId === 'bgTrackFile') {
+                        uploadedBgFilename = data.filename;
+                        document.getElementById('reviewBgTrack').textContent = data.filename;
+                    } else if (inputId === 'coverImageFile') {
+                        uploadedCoverFilename = data.filename;
+                        document.getElementById('reviewCover').textContent = data.filename;
+                        preview.innerHTML = `<img src="/uploads/${data.filename}" style="width:40px;height:40px;border-radius:8px;vertical-align:middle;margin-right:8px;">${data.filename}`;
+                    }
+                } else {
+                    preview.textContent = 'Upload failed';
+                }
+            } catch (e) {
+                preview.textContent = 'Upload error';
+            }
+        }
+
+        // ==================== DROP TYPE FIELD TOGGLES ====================
+        function updateDropTypeFields() {
+            const dropType = document.getElementById('dropType').value;
+            document.getElementById('promoFields').style.display = (dropType === 'promo') ? 'block' : 'none';
+            document.getElementById('radioFields').style.display = (dropType === 'radio_id') ? 'block' : 'none';
+            document.getElementById('crowdFields').style.display = (dropType === 'crowd_call') ? 'block' : 'none';
+        }
+        // Initialize on load
+        updateDropTypeFields();
 
         // ==================== WIZARD NAVIGATION ====================
         function wizardNext(step) {
@@ -1474,6 +1562,8 @@
             document.getElementById('reviewFxMode').textContent = document.getElementById('fxMode').options[document.getElementById('fxMode').selectedIndex].text.replace(/^.\s/, '');
             document.getElementById('reviewVocalGain').textContent = document.getElementById('vocalGain').value + 'x';
             document.getElementById('reviewBgGain').textContent = document.getElementById('bgGain').value;
+            document.getElementById('reviewBgTrack').textContent = uploadedBgFilename || 'None';
+            document.getElementById('reviewCover').textContent = uploadedCoverFilename || 'None';
         }
 
         // ==================== ENERGY SLIDER ====================
@@ -1822,7 +1912,14 @@
                 user_stutter: document.getElementById('userStutter').value,
                 fx_mode: fxMode,
                 vocal_gain: vocalGainVal,
-                bg_gain: bgGainVal
+                bg_gain: bgGainVal,
+                // New fields from uploads and conditional inputs
+                bg_track: uploadedBgFilename || '',
+                image: uploadedCoverFilename || '',
+                event_name: document.getElementById('eventName') ? document.getElementById('eventName').value : '',
+                station_name: document.getElementById('stationName') ? document.getElementById('stationName').value : '',
+                slogan: document.getElementById('slogan') ? document.getElementById('slogan').value : '',
+                crew_tag: document.getElementById('crewTag') ? document.getElementById('crewTag').value : ''
             };
 
             try {
@@ -2073,6 +2170,12 @@
                     fxMode: document.getElementById('fxMode')?.value,
                     vocalGain: document.getElementById('vocalGain')?.value,
                     bgGain: document.getElementById('bgGain')?.value,
+                    uploadedBgFilename: uploadedBgFilename,
+                    uploadedCoverFilename: uploadedCoverFilename,
+                    eventName: document.getElementById('eventName')?.value,
+                    stationName: document.getElementById('stationName')?.value,
+                    slogan: document.getElementById('slogan')?.value,
+                    crewTag: document.getElementById('crewTag')?.value,
                     timestamp: Date.now()
                 };
                 localStorage.setItem('df_draft', JSON.stringify(draft));
@@ -2138,7 +2241,10 @@
                 if (draft.djName) document.getElementById('djName').value = draft.djName;
                 if (draft.city) document.getElementById('city').value = draft.city;
                 if (draft.genre) document.getElementById('genre').value = draft.genre;
-                if (draft.dropType) document.getElementById('dropType').value = draft.dropType;
+                if (draft.dropType) {
+                    document.getElementById('dropType').value = draft.dropType;
+                    updateDropTypeFields();
+                }
                 if (draft.mood) document.getElementById('mood').value = draft.mood;
                 if (draft.energy) {
                     document.getElementById('energy').value = draft.energy;
@@ -2157,10 +2263,25 @@
                     document.getElementById('bgGain').value = draft.bgGain;
                     updateBgGainFill();
                 }
+                if (draft.eventName && document.getElementById('eventName')) document.getElementById('eventName').value = draft.eventName;
+                if (draft.stationName && document.getElementById('stationName')) document.getElementById('stationName').value = draft.stationName;
+                if (draft.slogan && document.getElementById('slogan')) document.getElementById('slogan').value = draft.slogan;
+                if (draft.crewTag && document.getElementById('crewTag')) document.getElementById('crewTag').value = draft.crewTag;
+                uploadedBgFilename = draft.uploadedBgFilename || null;
+                uploadedCoverFilename = draft.uploadedCoverFilename || null;
                 if (draft.mode) {
                     const modeIndex = {'ai': 0, 'strict': 1, 'training': 2}[draft.mode] || 0;
                     const seg = document.querySelectorAll('.segment')[modeIndex];
                     if (seg) setMode(draft.mode, seg);
+                }
+                if (uploadedBgFilename) {
+                    document.getElementById('bgTrackPreview').textContent = uploadedBgFilename;
+                    document.getElementById('reviewBgTrack').textContent = uploadedBgFilename;
+                }
+                if (uploadedCoverFilename) {
+                    const preview = document.getElementById('coverPreview');
+                    preview.innerHTML = `<img src="/uploads/${uploadedCoverFilename}" style="width:40px;height:40px;border-radius:8px;vertical-align:middle;margin-right:8px;">${uploadedCoverFilename}`;
+                    document.getElementById('reviewCover').textContent = uploadedCoverFilename;
                 }
                 onGenreChange();
                 fetchCityVibe();
