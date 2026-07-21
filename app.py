@@ -538,7 +538,9 @@ class StringWizard:
         text = text.strip()
         if not text: return text
         text = text[0].upper() + text[1:]
-        if text[-1] not in ".!?: return text += "!"
+        # FIX: Unterminated string literal - added missing quote and colon
+        if text[-1] not in ".!?":
+            text += "!"
         text = re.sub(r'\s+', ' ', text)
         sentences = re.split(r'([.!?]\s+)', text)
         result = ""
